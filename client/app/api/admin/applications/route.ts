@@ -1,0 +1,98 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getAdminSession } from "@/lib/adminAuth";
+import { curatorApprovedEmail, curatorDeclinedEmail, sendEmail } from "@/lib/email";
+
+export async function GET(req: NextRequest) {
+  if (!(await getAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const status = req.nextUrl.searchParams.get("status") ?? "PENDING";
+  const valid = ["PENDING", "APPROVED", "DECLINED"] as const;
+  type AppStatus = (typeof valid)[number];
+
+  const applications = await prisma.curatorApplication.findMany({
+    where: valid.includes(status as AppStatus) ? { status: status as AppStatus } : {},
+    orderBy: { createdAt: "desc" },
+    take: 100,
+  });
+
+  return NextResponse.json({ applications });
+}
+
+// Approving an application creates the actual curator User account.
+export async function POST(req: NextRequest) {
+  if (!(await getAdminSession())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { applicationId, decision, note } = await req.json();
+  if (!applicationId || (decision !== "APPROVE" && decision !== "DECLINE")) {
+    return NextResponse.json(
+      { error: "applicationId and decision ('APPROVE' | 'DECLINE') are required" },
+      { status: 400 }
+    );
+  }
+
+  const application = await prisma.curatorApplication.findUnique({
+    where: { id: applicationId },
+  });
+  if (!application) {
+    return NextResponse.json({ error: "Application not found" }, { status: 404 });
+  }
+  if (application.status !== "PENDING") {
+    return NextResponse.json(
+      { error: `This application is already ${application.status}` },
+      { status: 409 }
+    );
+  }
+
+  if (decision === "DECLINE") {
+    const declined = await prisma.curatorApplication.update({
+      where: { id: applicationId },
+      data: { status: "DECLINED", reviewedAt: new Date(), reviewNote: note ?? null },
+    });
+    const mail = await sendEmail(declined.email, curatorDeclinedEmail(declined.username));
+    return NextResponse.json({ application: declined, user: null, emailed: mail.ok });
+  }
+
+  // Approve: create the curator and link it back to the application, so a
+  // half-applied state can't exist if either write fails.
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email: application.email,
+        username: application.username,
+        // Carry everything over so the curator record still shows who they
+        // are and what they run long after the application is filed away.
+        genres: application.genres,
+        outletName: application.outletName,
+        outletType: application.outletType,
+        outletUrl: application.outletUrl,
+        audienceSize: application.audienceSize,
+        country: application.country,
+        socialLinks: application.socialLinks,
+      },
+    });
+    const approved = await tx.curatorApplication.update({
+      where: { id: applicationId },
+      data: {
+        status: "APPROVED",
+        reviewedAt: new Date(),
+        reviewNote: note ?? null,
+        createdUserId: user.id,
+      },
+    });
+    return { application: approved, user };
+  });
+
+  // Sent after the transaction commits — an email failure must not undo an
+  // approval that already succeeded.
+  const mail = await sendEmail(
+    result.user.email,
+    curatorApprovedEmail(result.user.username)
+  );
+
+  return NextResponse.json({ ...result, emailed: mail.ok, emailError: mail.error });
+}

@@ -1,0 +1,435 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TrackSource {
+  SPOTIFY
+  APPLE_MUSIC
+}
+
+enum TrackStatus {
+  DISCOVERY // fan swipe feed — every track starts here
+  VETTING // paid entry — curator blind vetting
+  GRADUATED
+  REJECTED
+}
+
+enum SwipeDirection {
+  LEFT
+  RIGHT
+}
+
+enum PerformanceTier {
+  NONE
+  GOOD
+  EXCEPTIONAL
+}
+
+enum FeeStatus {
+  NOT_REQUIRED // fan threshold not yet met
+  PENDING // threshold met, artist notified, awaiting payment
+  PAID // fee paid, track moved to VETTING
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+}
+
+// Earnings mature on a holding period before they can be cashed out — this
+// covers the chargeback/refund window and Stripe's fund-availability delay,
+// so we never pay out money that can still be clawed back.
+enum PayoutStatus {
+  HELD      // inside the holding period
+  AVAILABLE // matured, counts toward the cashout threshold
+  WITHDRAWN // included in a paid-out withdrawal
+}
+
+enum WithdrawalStatus {
+  REQUESTED
+  PAID
+  REJECTED
+}
+
+enum AssignmentStatus {
+  PENDING  // curator hasn't decided yet
+  FEATURED // curator put it on a playlist / wrote about it
+  PASSED   // curator listened and declined
+  EXPIRED  // curator never responded in time
+}
+
+enum FeatureType {
+  PLAYLIST // added to a playlist
+  VIDEO    // TikTok, Reel, or Short featuring the track
+  ARTICLE  // written piece
+}
+
+enum FeatureStatus {
+  SUBMITTED // proof given, playlist hold not yet cleared
+  VERIFIED  // held the required days — this is what earns the fee
+  REJECTED  // pulled early, or proof didn't check out
+}
+
+// Admin review of a paid artist submission, sitting between payment and
+// the curator vetting pool.
+enum ReviewStatus {
+  NOT_SUBMITTED // hasn't paid / isn't up for review yet
+  PENDING       // paid, waiting on an admin decision
+  APPROVED      // admin cleared it into curator vetting
+  DECLINED      // admin rejected it
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+model User {
+  id       String @id @default(cuid())
+  email    String @unique
+  username String @unique
+
+  // Curator reputation — weight grows when a user swipes right on tracks
+  // that go on to graduate/perform well; spam/random swiping stays at baseline.
+  totalSwipes            Int   @default(0)
+  rightSwipesOnGraduated Int   @default(0)
+  curationWeight         Float @default(1.0)
+
+  submittedTracks Track[] @relation("SubmittedTracks")
+  swipes          Swipe[]
+  payouts         CuratorPayout[]
+  withdrawals     Withdrawal[]
+  assignments     CuratorAssignment[]
+
+  // Genres this curator covers — used to route tracks to the right 5 people.
+  genres String[] @default([])
+
+  // Carried from their application, so you can still see who they are and
+  // what they run long after the application is filed away.
+  outletName   String?
+  outletType   String?
+  outletUrl    String?
+  audienceSize Int?
+  socialLinks  String[] @default([])
+
+  // Where this curator gets paid (e.g. PayPal email). Payouts are US-only
+  // for now, so country is checked before an application is approved.
+  payoutDestination String?
+  country           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Single-admin (or small team) login for the operator dashboard — separate
+// from the curator/fan identity models, which don't use passwords.
+model Admin {
+  id           String @id @default(cuid())
+  email        String @unique
+  passwordHash String
+  totpSecret   String // Google Authenticator-compatible TOTP, required on every login
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A curator's earned share of an artist's paid submission fee, created when
+// the track graduates. "Released" is an admin-confirmed manual payout status
+// (no real bank/Stripe transfer wired) — distinct from the artist's fee,
+// which is a real Stripe charge.
+model CuratorPayout {
+  id       String @id @default(cuid())
+  userId   String
+  trackId  String
+  user     User   @relation(fields: [userId], references: [id])
+  track    Track  @relation(fields: [trackId], references: [id])
+
+  // Earned by a verified feature — a flat fee per share, not a cut of the
+  // artist's fee, so payment doesn't depend on the track later performing.
+  featureId String?  @unique
+  feature   Feature? @relation(fields: [featureId], references: [id])
+
+  amountCents Int
+  status      PayoutStatus @default(HELD)
+
+  // Earned now, spendable after the holding period.
+  maturesAt DateTime
+
+  withdrawalId String?
+  withdrawal   Withdrawal? @relation(fields: [withdrawalId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, trackId])
+  @@index([userId, status])
+}
+
+// A track routed to one specific curator. An approved track goes out to a
+// fixed number of genre-matched curators; each decides independently.
+model CuratorAssignment {
+  id      String @id @default(cuid())
+  trackId String
+  userId  String
+  track   Track  @relation(fields: [trackId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
+
+  status     AssignmentStatus @default(PENDING)
+  assignedAt DateTime         @default(now())
+  decidedAt  DateTime?
+
+  feature Feature?
+
+  @@unique([trackId, userId])
+  @@index([userId, status])
+}
+
+// The curator's actual share — a playlist add or a written piece. A playlist
+// placement only earns once it has survived the required hold, which is what
+// stops someone adding a track and pulling it straight back off.
+model Feature {
+  id           String            @id @default(cuid())
+  assignmentId String            @unique
+  assignment   CuratorAssignment @relation(fields: [assignmentId], references: [id])
+
+  type     FeatureType
+  proofUrl String
+
+  placedAt  DateTime  @default(now())
+  holdUntil DateTime // placedAt + the required hold, for playlists
+  status    FeatureStatus @default(SUBMITTED)
+
+  verifiedAt     DateTime?
+  rejectedReason String?
+
+  payout CuratorPayout?
+
+  @@index([status])
+}
+
+// A curator cashing out their matured balance. The admin fulfils it and
+// marks it paid; the transfer itself happens outside the app for now.
+model Withdrawal {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // amountCents is the gross balance claimed; netCents is what actually
+  // gets sent after the flat transfer fee.
+  amountCents Int
+  feeCents    Int  @default(0)
+  netCents    Int?
+  status      WithdrawalStatus @default(REQUESTED)
+
+  // Where the curator wants the money sent (e.g. PayPal address).
+  payoutDestination String?
+  adminNote         String?
+
+  requestedAt DateTime  @default(now())
+  paidAt      DateTime?
+
+  payouts CuratorPayout[]
+
+  @@index([userId, status])
+}
+
+model Track {
+  id String @id @default(cuid())
+
+  // Catalog identity — sourced from the streaming service, not uploaded.
+  source     TrackSource
+  externalId String
+  isrc       String?
+
+  title      String
+  artistName String
+  albumName  String?
+  artworkUrl String?
+  previewUrl String
+  durationMs Int?
+
+  submittedById String?
+  submittedBy   User?   @relation("SubmittedTracks", fields: [submittedById], references: [id])
+
+  artistId String?
+  artist   Artist? @relation(fields: [artistId], references: [id])
+
+  status TrackStatus @default(DISCOVERY)
+
+  // Fan discovery aggregates (DISCOVERY stage, gates entry to curator vetting)
+  requiredFanApprovals Int       @default(100)
+  fanRightSwipes       Int       @default(0)
+  fanLeftSwipes        Int       @default(0)
+  feeStatus            FeeStatus @default(NOT_REQUIRED)
+
+  // Admin gate between "artist paid" and "curators see it"
+  reviewStatus   ReviewStatus @default(NOT_SUBMITTED)
+  reviewedAt     DateTime?
+  reviewNote     String?
+
+  // Vetting aggregates (VETTING stage, paid entry)
+  requiredListenThreshold Int   @default(50)
+  totalListens            Int   @default(0)
+  rightSwipes             Int   @default(0)
+  leftSwipes              Int   @default(0)
+  consecutiveRightSwipes  Int   @default(0)
+  approvalRatio           Float @default(0)
+  graduatedAt             DateTime?
+
+  // Post-graduation performance, feeds back into curator reputation.
+  publicStreamCount Int             @default(0)
+  publicLikeCount   Int             @default(0)
+  performanceTier   PerformanceTier @default(NONE)
+
+  // Set by the artist at submission; decides which curators it routes to.
+  genre String?
+
+  swipes        Swipe[]
+  fanSwipes     FanSwipe[]
+  notifications ArtistNotification[]
+  payment       Payment?
+  payouts       CuratorPayout[]
+  assignments   CuratorAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([source, externalId])
+}
+
+model Artist {
+  id    String @id @default(cuid())
+  name  String
+  email String @unique
+
+  stripeCustomerId String?
+
+  tracks        Track[]
+  notifications ArtistNotification[]
+  payments      Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Someone asking to join as a curator. Approving one creates the User.
+model CuratorApplication {
+  id       String @id @default(cuid())
+  email    String @unique
+  username String @unique
+
+  // What they actually run — the substance an approval decision rests on.
+  // Nullable so applications submitted before this existed still load; the
+  // form and API require them going forward.
+  outletName   String?
+  outletType   String? // Playlist, Blog, YouTube, Radio, Podcast, Social
+  outletUrl    String?
+  audienceSize Int? // followers / subscribers / monthly listeners
+  socialLinks  String[] @default([])
+
+  // Payouts run through PayPal US, so we only take US-based curators for now.
+  country String?
+
+  // Why they want in, in their own words.
+  pitch String
+
+  // Carried onto the User record on approval, for genre routing.
+  genres String[] @default([])
+
+  status     ApplicationStatus @default(PENDING)
+  reviewedAt DateTime?
+  reviewNote String?
+
+  // Set once approved, so an application links to the curator it created.
+  createdUserId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Fan {
+  id       String @id @default(cuid())
+  username String @unique
+
+  // Set when they sign in with Spotify; null for anonymous fans, who can
+  // swipe but can't push saves to a playlist.
+  spotifyId           String?   @unique
+  displayName         String?
+  spotifyAccessToken  String?
+  spotifyRefreshToken String?
+  spotifyTokenExpires DateTime?
+
+  swipes FanSwipe[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FanSwipe {
+  id      String @id @default(cuid())
+  trackId String
+  fanId   String
+  fan     Fan    @relation(fields: [fanId], references: [id])
+  track   Track  @relation(fields: [trackId], references: [id])
+
+  direction SwipeDirection
+
+  // Set once the fan pushes this save into their own Spotify library, so the
+  // UI can show it's already there across devices and reloads.
+  savedToSpotifyAt DateTime?
+  spotifyTrackId   String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([fanId, trackId])
+}
+
+// Stubbed notification — recorded here (+ server log), no real email yet.
+model ArtistNotification {
+  id       String @id @default(cuid())
+  artistId String
+  trackId  String
+  artist   Artist @relation(fields: [artistId], references: [id])
+  track    Track  @relation(fields: [trackId], references: [id])
+
+  type   String @default("SUBMIT_TO_CURATORS_FEE_REQUEST")
+  sentAt DateTime @default(now())
+}
+
+model Payment {
+  id       String @id @default(cuid())
+  trackId  String @unique
+  artistId String
+  track    Track  @relation(fields: [trackId], references: [id])
+  artist   Artist @relation(fields: [artistId], references: [id])
+
+  stripeCheckoutSessionId String?
+  stripePaymentIntentId   String?
+  amountCents             Int
+  currency                String        @default("usd")
+  status                  PaymentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Swipe {
+  id      String         @id @default(cuid())
+  userId  String
+  trackId String
+  user    User           @relation(fields: [userId], references: [id])
+  track   Track          @relation(fields: [trackId], references: [id])
+
+  direction        SwipeDirection
+  listenDurationMs Int?
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, trackId])
+}

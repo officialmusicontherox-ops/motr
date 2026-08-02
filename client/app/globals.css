@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/*
+ * MOTR — colors sampled directly from the design mockup so the build matches
+ * the comp rather than an approximation of it.
+ */
+:root {
+  --motr-bg: #09090a;
+  --motr-surface: #131312;
+  --motr-surface-2: #1c1c1c;
+  --motr-border: #262625;
+
+  --motr-gold: #dcb55f;
+  --motr-gold-dim: #a1834d;
+
+  --motr-green: #47ca41;
+  --motr-red: #d33249;
+
+  --motr-text: #ffffff;
+  --motr-muted: #8b8b8b;
+}
+
+@theme inline {
+  --color-bg: var(--motr-bg);
+  --color-surface: var(--motr-surface);
+  --color-surface-2: var(--motr-surface-2);
+  --color-edge: var(--motr-border);
+  --color-gold: var(--motr-gold);
+  --color-gold-dim: var(--motr-gold-dim);
+  --color-hot: var(--motr-green);
+  --color-nope: var(--motr-red);
+  --color-muted: var(--motr-muted);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-anton), var(--font-inter), sans-serif;
+}
+
+/* This is a dark product — don't let the OS flip it to light. */
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--motr-bg);
+  color: var(--motr-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Small uppercase labels used throughout the comp
+   ("LISTENING TO CLIP", "SWIPE TO DISCOVER NEW MUSIC"). */
+.motr-label {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--motr-muted);
+}
+
+/* Slanted marker-style NOPE / LIKE callouts. */
+.motr-verdict {
+  font-family: var(--font-display), sans-serif;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

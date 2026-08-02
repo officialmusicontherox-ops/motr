@@ -1,0 +1,7 @@
+node_modules/
+.claude/settings.local.json
+
+# Secrets — never commit. Live Stripe keys live in client/.env
+.env
+.env.*
+!.env.example
