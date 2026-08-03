@@ -152,6 +152,11 @@ model Admin {
   passwordHash String
   totpSecret   String // Google Authenticator-compatible TOTP, required on every login
 
+  // A TOTP code is valid for its whole window, so the same six digits could
+  // otherwise be replayed by anyone who saw them.
+  lastTotpCode String?
+  lastTotpAt   DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -491,4 +496,22 @@ model ErrorLog {
   lastSeen  DateTime @default(now())
 
   @@index([resolved, lastSeen(sort: Desc)])
+}
+
+/// Every admin login attempt, successful or not.
+///
+/// Throttling has to be recorded here rather than counted in memory:
+/// serverless functions don't share state, so a per-process counter would
+/// reset constantly and stop nothing.
+model AdminLoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  email     String
+  success   Boolean
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt(sort: Desc)])
+  @@index([email, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }

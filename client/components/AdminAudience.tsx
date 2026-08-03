@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AdminSection from "./AdminSection";
 
 type Totals = {
   google: number;
@@ -49,12 +50,10 @@ export default function AdminAudience() {
   }, [type, load]);
 
   return (
-    <section className="mt-10">
-      <h2 className="text-lg font-semibold">Audience</h2>
-      <p className="text-sm text-muted">
-        Everyone swiping the feed, split by how they signed in.
-      </p>
-
+    <AdminSection
+      title="Audience"
+      description="Everyone swiping the feed, split by how they signed in."
+    >
       {totals && (
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           <Tile
@@ -139,7 +138,7 @@ export default function AdminAudience() {
           </table>
         </div>
       )}
-    </section>
+    </AdminSection>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AdminSection from "./AdminSection";
 
 type Curator = {
   id: string;
@@ -166,14 +167,11 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
   }
 
   return (
-    <section className="mt-10">
+    <AdminSection
+      title="Curators"
+      description="Everyone approved to receive tracks, what they run, and what they're owed."
+    >
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Curators</h2>
-          <p className="text-sm text-muted">
-            Everyone approved to receive tracks, what they run, and what they&apos;re owed.
-          </p>
-        </div>
         <div className="flex flex-wrap gap-2">
           {(["all", "ACTIVE", "PAUSED", "SUSPENDED", "REMOVED"] as const).map((f) => (
             <button
@@ -395,7 +393,7 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
           onConfirm={(note) => apply(pending.curator, pending.action, note)}
         />
       )}
-    </section>
+    </AdminSection>
   );
 }
 

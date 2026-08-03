@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import AdminReviewQueues from "./AdminReviewQueues";
 import AdminPayoutQueues from "./AdminPayoutQueues";
@@ -7,6 +8,8 @@ import AdminAudience from "./AdminAudience";
 import AdminCurators from "./AdminCurators";
 import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
+import AdminSecurity from "./AdminSecurity";
+import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 
 type Stats = {
  counts: {
@@ -53,6 +56,7 @@ export default function AdminDashboard({
  const [tab, setTab] = useState<Tab>("tracks");
  const [records, setRecords] = useState<Record<string, unknown>[] | null>(null);
  const [recordsError, setRecordsError] = useState<string | null>(null);
+ const recordsPage = useVisibleCount(10);
 
  const loadStats = useCallback(async () => {
  const res = await fetch("/api/admin/stats");
@@ -94,12 +98,21 @@ export default function AdminDashboard({
  <h1 className="text-2xl font-semibold">Admin</h1>
  <p className="text-sm text-muted">{admin.email}</p>
  </div>
+ <div className="flex flex-wrap items-center gap-2">
+ {/* Getting back to the app required editing the URL by hand. */}
+ <Link
+ href="/"
+ className="rounded-full border border-edge px-4 py-2 text-sm transition hover:border-gold hover:text-gold"
+ >
+ ← Back to MOTR
+ </Link>
  <button
  onClick={logout}
  className="rounded-full border border-edge px-4 py-2 text-sm transition hover:border-gold hover:text-gold"
  >
  Sign out
  </button>
+ </div>
  </header>
 
  {!stats ? (
@@ -174,13 +187,19 @@ export default function AdminDashboard({
 
  <AdminTracks onChanged={loadStats} />
 
- <section className="mt-10">
- <h2 className="text-lg font-semibold">Records</h2>
- <div className="mt-3 flex gap-2">
+ <AdminSection
+ title="Records"
+ description="Raw rows behind the app — artists, curators, tracks and payments."
+ defaultOpen={false}
+ >
+ <div className="flex gap-2">
  {TABS.map((t) => (
  <button
  key={t}
- onClick={() => setTab(t)}
+ onClick={() => {
+ setTab(t);
+ recordsPage.reset();
+ }}
  className={`rounded-full px-4 py-1.5 text-sm capitalize ${
  tab === t
  ? "bg-gold text-bg"
@@ -216,7 +235,7 @@ export default function AdminDashboard({
  </tr>
  </thead>
  <tbody>
- {records.map((r, i) => (
+ {records.slice(0, recordsPage.visible).map((r, i) => (
  <tr key={i} className="border-t border-edge">
  {Object.keys(records[0])
  .filter((k) => typeof records[0][k] !== "object")
@@ -232,13 +251,27 @@ export default function AdminDashboard({
  </table>
  </div>
  )}
- </section>
+ {records && records.length > 0 && (
+ <ShowMore
+ shown={recordsPage.visible}
+ total={records.length}
+ onMore={recordsPage.more}
+ onLess={recordsPage.reset}
+ />
+ )}
+ </AdminSection>
 
  <AdminErrors />
 
 
- <section className="mt-10 pb-16">
- <h2 className="text-lg font-semibold">Recent artist notifications</h2>
+ <AdminSecurity />
+
+
+ <AdminSection
+ title="Recent artist notifications"
+ description="Emails sent to artists whose tracks broke through."
+ defaultOpen={false}
+ >
  {stats.recentNotifications.length === 0 ? (
  <p className="mt-3 text-sm text-muted">None sent yet.</p>
  ) : (
@@ -257,7 +290,7 @@ export default function AdminDashboard({
  ))}
  </ul>
  )}
- </section>
+ </AdminSection>
  </>
  )}
  </main>

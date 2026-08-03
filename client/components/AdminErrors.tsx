@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import AdminSection from "./AdminSection";
 
 type ErrorRow = {
   id: string;
@@ -67,22 +68,18 @@ export default function AdminErrors() {
   }
 
   return (
-    <section className="mt-10 pb-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <AdminSection
+      title="Errors"
+      description="Problems the app hit, on the server or in someone's browser."
+      defaultOpen={false}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">
-            Errors
-            {counts && counts.open > 0 && (
-              <span className="ml-2 rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 text-xs text-rose-300">
-                {counts.open} open
-              </span>
-            )}
-          </h2>
-          <p className="text-sm text-muted">
-            {counts?.open === 0
-              ? "Nothing's gone wrong. This stays empty when the app is healthy."
-              : "Problems the app hit, on the server or in someone's browser."}
-          </p>
+          {counts && counts.open > 0 && (
+            <span className="rounded-full border border-rose-500/40 bg-rose-500/10 px-2 py-0.5 text-xs text-rose-300">
+              {counts.open} needing attention
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {VIEWS.map((v) => (
@@ -193,6 +190,6 @@ export default function AdminErrors() {
           })}
         </ul>
       )}
-    </section>
+    </AdminSection>
   );
 }

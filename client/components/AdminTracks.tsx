@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 
 type Track = {
   id: string;
@@ -50,6 +51,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
   const [flash, setFlash] = useState<string | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const page = useVisibleCount(10);
 
   const load = useCallback(async () => {
     const params = new URLSearchParams({ view, sort });
@@ -63,8 +65,11 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
 
   useEffect(() => {
     setTracks(null);
+    page.reset();
     const t = setTimeout(load, q ? 300 : 0); // debounce typing, not tab switches
     return () => clearTimeout(t);
+    // page.reset is stable enough for this; re-running on it would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, q]);
 
   function preview(t: Track) {
@@ -101,14 +106,11 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
   }
 
   return (
-    <section className="mt-10">
+    <AdminSection
+      title="Tracks"
+      description="Everything on the platform. Pull anything that shouldn't be playing."
+    >
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Tracks</h2>
-          <p className="text-sm text-muted">
-            Everything on the platform. Pull anything that shouldn&apos;t be playing.
-          </p>
-        </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={sort}
@@ -178,7 +180,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
-          {tracks.map((t) => {
+          {tracks.slice(0, page.visible).map((t) => {
             const votes = t.fanRightSwipes + t.fanLeftSwipes;
             const rate = votes ? t.fanRightSwipes / votes : 0;
             return (
@@ -255,6 +257,15 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
         </ul>
       )}
 
+      {tracks && tracks.length > 0 && (
+        <ShowMore
+          shown={page.visible}
+          total={tracks.length}
+          onMore={page.more}
+          onLess={page.reset}
+        />
+      )}
+
       {confirming && (
         <PullDialog
           track={confirming}
@@ -262,7 +273,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
           onConfirm={(note) => act(confirming, "PULL", note)}
         />
       )}
-    </section>
+    </AdminSection>
   );
 }
 
