@@ -25,6 +25,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Never take the fee when there's nobody to spend it on. The fee buys
+  // consideration by curators; with none available the artist would pay for
+  // a queue that doesn't exist, and we'd owe a refund. Routing falls back to
+  // the wider pool when a genre is thin, so the pool as a whole is the test.
+  const activeCurators = await prisma.user.count({ where: { status: "ACTIVE" } });
+
+  if (activeCurators === 0) {
+    return NextResponse.json(
+      {
+        error:
+          "We're onboarding curators right now, so submissions are paused for a few days. " +
+          "Your track keeps its spot — we'll email you the moment it reopens.",
+        code: "no_curators",
+      },
+      { status: 409 }
+    );
+  }
+
   const price = await getArtistFeePrice();
   const origin = req.nextUrl.origin;
 
