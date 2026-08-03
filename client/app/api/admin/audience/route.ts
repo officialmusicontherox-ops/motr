@@ -5,44 +5,45 @@ import { getAdminSession } from "@/lib/adminAuth";
 /**
  * Who's actually using the feed, split by how they got in.
  *
- * A Spotify fan is one we can act on behalf of — push saves into their
- * library, reach them again. An anonymous fan is a swipe count and nothing
- * more, so the two are worth watching separately rather than as one "fans"
- * number.
+ * A signed-in fan has a durable account — their saves survive a cleared
+ * browser and follow them to another device, and we have an address to
+ * reach them at. An anonymous fan is a swipe count and nothing more, so the
+ * two are worth watching separately rather than as one "fans" number.
+ *
+ * Spotify used to be the split; it's Google now, because Spotify's API
+ * only ever allowed five accounts. See lib/spotifyLink.ts.
  */
 export async function GET(req: NextRequest) {
   if (!(await getAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const type = req.nextUrl.searchParams.get("type") === "anonymous" ? "anonymous" : "spotify";
-  const spotifyFilter = type === "spotify" ? { NOT: { spotifyId: null } } : { spotifyId: null };
+  const type = req.nextUrl.searchParams.get("type") === "anonymous" ? "anonymous" : "google";
+  const filter = type === "google" ? { NOT: { email: null } } : { email: null };
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [spotifyCount, anonCount, activeSpotify, activeAnon, savedToLibrary, fans] =
+  const [googleCount, anonCount, activeGoogle, activeAnon, savedTotal, fans] =
     await Promise.all([
-      prisma.fan.count({ where: { NOT: { spotifyId: null } } }),
-      prisma.fan.count({ where: { spotifyId: null } }),
+      prisma.fan.count({ where: { NOT: { email: null } } }),
+      prisma.fan.count({ where: { email: null } }),
       prisma.fan.count({
-        where: { NOT: { spotifyId: null }, swipes: { some: { createdAt: { gte: weekAgo } } } },
+        where: { NOT: { email: null }, swipes: { some: { createdAt: { gte: weekAgo } } } },
       }),
       prisma.fan.count({
-        where: { spotifyId: null, swipes: { some: { createdAt: { gte: weekAgo } } } },
+        where: { email: null, swipes: { some: { createdAt: { gte: weekAgo } } } },
       }),
-      prisma.fanSwipe.count({ where: { NOT: { savedToSpotifyAt: null } } }),
+      prisma.fanSwipe.count({ where: { direction: "RIGHT" } }),
       prisma.fan.findMany({
-        where: spotifyFilter,
+        where: filter,
         orderBy: { createdAt: "desc" },
         take: 100,
         select: {
           id: true,
           username: true,
           displayName: true,
+          email: true,
           createdAt: true,
-          // The token itself never leaves the server — the dashboard only
-          // needs to know whether the connection is still usable.
-          spotifyRefreshToken: true,
           _count: { select: { swipes: true } },
         },
       }),
@@ -50,19 +51,19 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     totals: {
-      spotify: spotifyCount,
+      google: googleCount,
       anonymous: anonCount,
-      activeSpotify,
+      activeGoogle,
       activeAnon,
-      savedToLibrary,
+      savedTotal,
     },
     fans: fans.map((f) => ({
       id: f.id,
       username: f.username,
       displayName: f.displayName,
+      email: f.email,
       createdAt: f.createdAt,
       swipes: f._count.swipes,
-      connected: Boolean(f.spotifyRefreshToken),
     })),
   });
 }

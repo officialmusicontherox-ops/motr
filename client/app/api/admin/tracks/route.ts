@@ -15,6 +15,18 @@ export async function GET(req: NextRequest) {
   const view = req.nextUrl.searchParams.get("view") ?? "live";
   const q = req.nextUrl.searchParams.get("q")?.trim();
 
+  // Sorting matters for answering "is this artist's track on there?" and for
+  // spotting what arrived since you last looked.
+  const SORTS = {
+    newest: { createdAt: "desc" },
+    oldest: { createdAt: "asc" },
+    title: { title: "asc" },
+    artist: { artistName: "asc" },
+    popular: { fanRightSwipes: "desc" },
+  } as const;
+  const sortKey = (req.nextUrl.searchParams.get("sort") ?? "newest") as keyof typeof SORTS;
+  const orderBy = SORTS[sortKey] ?? SORTS.newest;
+
   const where: Record<string, unknown> = {};
   if (view === "live") where.status = "DISCOVERY";
   else if (view === "pulled") where.status = "REJECTED";
@@ -30,7 +42,7 @@ export async function GET(req: NextRequest) {
 
   const tracks = await prisma.track.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy,
     take: 200,
     include: {
       artist: { select: { name: true, email: true } },

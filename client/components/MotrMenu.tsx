@@ -141,22 +141,16 @@ export default function MotrMenu({
             {signingOut ? "Signing out..." : "Sign out"}
           </button>
 
+          {/* Deliberately understated: this is a staff door in a menu fans
+              and artists also use, so it shouldn't advertise what's behind
+              it or compete with the real destinations above. */}
           <Link
             href="/admin"
             onClick={onClose}
-            className="hover:bg-surface-2 group mt-1 flex items-center justify-between rounded-xl px-3 py-3 transition"
+            className="text-muted hover:text-gold block rounded-lg px-3 py-2 text-xs font-medium transition"
           >
-            <span>
-              <span className="group-hover:text-gold flex items-center gap-2 font-semibold transition">
-                <Crown className="text-gold/50 group-hover:text-gold h-3.5 w-3.5 transition" />
-                Admin dashboard
-              </span>
-              <span className="text-muted mt-0.5 block pl-[1.4rem] text-xs">
-                Stats, payouts, approvals
-              </span>
-            </span>
+            Admin
           </Link>
-
         </div>
       </aside>
     </>

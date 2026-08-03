@@ -24,6 +24,14 @@ type Track = {
 
 type Counts = { live: number; pulled: number; submitted: number; withCurators: number };
 
+const SORTS = [
+  { key: "newest", label: "Newest first" },
+  { key: "oldest", label: "Oldest first" },
+  { key: "title", label: "Title A–Z" },
+  { key: "artist", label: "Artist A–Z" },
+  { key: "popular", label: "Most liked" },
+] as const;
+
 const VIEWS = [
   { key: "live", label: "In rotation", hint: "Playing in the fan feed right now" },
   { key: "submitted", label: "Artist submissions", hint: "Sent in by a real artist" },
@@ -33,6 +41,7 @@ const VIEWS = [
 
 export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
   const [view, setView] = useState<(typeof VIEWS)[number]["key"]>("live");
+  const [sort, setSort] = useState<(typeof SORTS)[number]["key"]>("newest");
   const [q, setQ] = useState("");
   const [tracks, setTracks] = useState<Track[] | null>(null);
   const [counts, setCounts] = useState<Counts | null>(null);
@@ -43,14 +52,14 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const load = useCallback(async () => {
-    const params = new URLSearchParams({ view });
+    const params = new URLSearchParams({ view, sort });
     if (q.trim()) params.set("q", q.trim());
     const res = await fetch(`/api/admin/tracks?${params}`);
     if (!res.ok) return;
     const d = await res.json();
     setTracks(d.tracks);
     setCounts(d.counts);
-  }, [view, q]);
+  }, [view, sort, q]);
 
   useEffect(() => {
     setTracks(null);
@@ -100,12 +109,26 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
             Everything on the platform. Pull anything that shouldn&apos;t be playing.
           </p>
         </div>
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search title or artist"
-          className="w-56 rounded-full border border-edge bg-surface px-4 py-2 text-sm outline-none transition focus:border-gold placeholder:text-neutral-600"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as (typeof SORTS)[number]["key"])}
+            aria-label="Sort tracks"
+            className="rounded-full border border-edge bg-surface px-4 py-2 text-sm outline-none transition focus:border-gold"
+          >
+            {SORTS.map((o) => (
+              <option key={o.key} value={o.key}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search title or artist"
+            className="w-56 rounded-full border border-edge bg-surface px-4 py-2 text-sm outline-none transition focus:border-gold placeholder:text-neutral-600"
+          />
+        </div>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -184,6 +207,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                     {t.genre && ` · ${t.genre}`}
                   </p>
                   <p className="mt-0.5 text-xs text-muted">
+                    Added {new Date(t.addedAt).toLocaleDateString()} ·{" "}
                     {t.submittedBy ? (
                       <span className="text-gold">
                         Submitted by {t.submittedBy.name} ({t.submittedBy.email})

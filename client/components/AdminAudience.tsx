@@ -3,33 +3,34 @@
 import { useCallback, useEffect, useState } from "react";
 
 type Totals = {
-  spotify: number;
+  google: number;
   anonymous: number;
-  activeSpotify: number;
+  activeGoogle: number;
   activeAnon: number;
-  savedToLibrary: number;
+  savedTotal: number;
 };
 
 type AudienceFan = {
   id: string;
   username: string;
   displayName: string | null;
+  email: string | null;
   createdAt: string;
   swipes: number;
-  connected: boolean;
 };
 
 /**
- * Splits the fan base by sign-in method. Spotify fans are the ones we can
- * push library saves to; anonymous fans only ever contribute swipe votes.
+ * Splits the fan base by sign-in method. A signed-in fan keeps their saves
+ * across devices and can be contacted; an anonymous fan is a swipe and
+ * nothing else.
  */
 export default function AdminAudience() {
-  const [type, setType] = useState<"spotify" | "anonymous">("spotify");
+  const [type, setType] = useState<"google" | "anonymous">("google");
   const [totals, setTotals] = useState<Totals | null>(null);
   const [fans, setFans] = useState<AudienceFan[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (t: "spotify" | "anonymous") => {
+  const load = useCallback(async (t: "google" | "anonymous") => {
     setFans(null);
     setError(null);
     try {
@@ -57,9 +58,9 @@ export default function AdminAudience() {
       {totals && (
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           <Tile
-            label="Spotify sign-ins"
-            value={totals.spotify}
-            sub={`${totals.activeSpotify} active this week`}
+            label="Google sign-ins"
+            value={totals.google}
+            sub={`${totals.activeGoogle} active this week`}
             gold
           />
           <Tile
@@ -67,26 +68,22 @@ export default function AdminAudience() {
             value={totals.anonymous}
             sub={`${totals.activeAnon} active this week`}
           />
+          <Tile label="Tracks saved" value={totals.savedTotal} sub="right-swipes across all fans" />
           <Tile
-            label="Saved to Spotify"
-            value={totals.savedToLibrary}
-            sub="tracks pushed to libraries"
-          />
-          <Tile
-            label="Connected share"
+            label="Signed in"
             value={
-              totals.spotify + totals.anonymous === 0
+              totals.google + totals.anonymous === 0
                 ? 0
-                : Math.round((totals.spotify / (totals.spotify + totals.anonymous)) * 100)
+                : Math.round((totals.google / (totals.google + totals.anonymous)) * 100)
             }
             suffix="%"
-            sub="of fans linked Spotify"
+            sub="of fans have an account"
           />
         </div>
       )}
 
       <div className="mt-4 flex gap-2">
-        {(["spotify", "anonymous"] as const).map((t) => (
+        {(["google", "anonymous"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setType(t)}
@@ -107,7 +104,7 @@ export default function AdminAudience() {
         <p className="mt-3 text-sm text-muted">Loading...</p>
       ) : fans.length === 0 ? (
         <p className="mt-3 text-sm text-muted">
-          No {type === "spotify" ? "Spotify sign-ins" : "anonymous fans"} yet.
+          No {type === "google" ? "Google sign-ins" : "anonymous fans"} yet.
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-xl border border-edge">
@@ -117,7 +114,7 @@ export default function AdminAudience() {
                 <th className="p-3">Fan</th>
                 <th className="p-3">Swipes</th>
                 <th className="p-3">Joined</th>
-                {type === "spotify" && <th className="p-3">Connection</th>}
+                {type === "google" && <th className="p-3">Email</th>}
               </tr>
             </thead>
             <tbody>
@@ -133,14 +130,8 @@ export default function AdminAudience() {
                   <td className="p-3 text-muted">
                     {new Date(f.createdAt).toLocaleDateString()}
                   </td>
-                  {type === "spotify" && (
-                    <td className="p-3">
-                      {f.connected ? (
-                        <span className="text-hot">Linked</span>
-                      ) : (
-                        <span className="text-muted">Needs reconnect</span>
-                      )}
-                    </td>
+                  {type === "google" && (
+                    <td className="max-w-[18rem] truncate p-3 text-muted">{f.email ?? "—"}</td>
                   )}
                 </tr>
               ))}
