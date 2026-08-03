@@ -13,7 +13,11 @@ const AUTH_ERRORS: Record<string, string> = {
   token_exchange_failed: "Spotify wouldn't complete the sign-in. Try again.",
   profile_fetch_failed: "Couldn't read your Spotify profile. Try again.",
   server_not_configured: "Spotify sign-in isn't configured yet.",
-  access_denied: "You cancelled the Spotify sign-in.",
+  access_denied: "You cancelled the sign-in.",
+  not_configured: "Google sign-in isn't configured yet.",
+  no_email: "Google didn't share an email address, so we couldn't sign you in.",
+  email_unverified: "That Google email isn't verified yet.",
+  missing_code: "Sign-in didn't complete. Try again.",
 };
 
 export default function FanGate({
@@ -26,6 +30,7 @@ export default function FanGate({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
+  const [anonId, setAnonId] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -50,11 +55,19 @@ export default function FanGate({
       window.history.replaceState({}, "", window.location.pathname);
     }
 
-    const savedId = fromSpotify ?? localStorage.getItem(STORAGE_KEY);
+    // The callback sends fans back with ?fan= for Google too.
+    const fromGoogle = params.get("fan");
+    if (fromGoogle) {
+      localStorage.setItem(STORAGE_KEY, fromGoogle);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
+    const savedId = fromSpotify ?? fromGoogle ?? localStorage.getItem(STORAGE_KEY);
     if (!savedId) {
       setChecked(true);
       return;
     }
+    setAnonId(savedId);
 
     fetch(`/api/fans/${savedId}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -138,6 +151,16 @@ export default function FanGate({
           Continue with Spotify
         </a>
 
+        {/* Carries any anonymous swiping into the new account, so signing in
+            never costs someone the saves they already made. */}
+        <a
+          href={`/api/auth/google/login?as=fan${anonId ? `&merge=${anonId}` : ""}`}
+          className="flex items-center justify-center gap-2.5 rounded-full bg-white px-5 py-3.5 font-bold text-neutral-900 transition hover:brightness-95"
+        >
+          <GoogleMark className="h-5 w-5" />
+          Continue with Google
+        </a>
+
         <button
           onClick={swipeAnonymously}
           disabled={pending}
@@ -148,8 +171,8 @@ export default function FanGate({
       </div>
 
       <p className="text-muted relative mt-3 max-w-xs text-xs leading-relaxed">
-        Signing in with Spotify keeps your saves across devices and lets you send them to a
-        playlist.
+        Either sign-in keeps your saves across devices. Spotify also lets you push a track straight
+        into your own library.
       </p>
 
       {error && <p className="text-nope relative mt-4 text-sm">{error}</p>}
@@ -163,6 +186,26 @@ export default function FanGate({
         </Link>
       </div>
     </div>
+  );
+}
+
+function GoogleMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.9-3c-1.1.7-2.4 1.2-4 1.2-3.1 0-5.7-2.1-6.6-4.9H1.4v3.1A12 12 0 0 0 12 24Z"
+      />
+      <path fill="#FBBC05" d="M5.4 14.4a7.2 7.2 0 0 1 0-4.6V6.7H1.4a12 12 0 0 0 0 10.8l4-3.1Z" />
+      <path
+        fill="#EA4335"
+        d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z"
+      />
+    </svg>
   );
 }
 

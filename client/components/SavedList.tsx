@@ -84,7 +84,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
             <p className="text-muted">{notice.text}</p>
             {notice.reconnect && (
               <a
-                href="/api/auth/spotify/login"
+                href={`/api/auth/spotify/login?link=${fan.id}`}
                 className="bg-hot text-bg mt-2 inline-block rounded-full px-4 py-1.5 text-xs font-bold"
               >
                 Connect Spotify

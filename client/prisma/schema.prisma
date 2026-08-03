@@ -377,8 +377,15 @@ model Fan {
   id       String @id @default(cuid())
   username String @unique
 
-  // Set when they sign in with Spotify; null for anonymous fans, who can
-  // swipe but can't push saves to a playlist.
+  // A fan can sign in with Spotify or Google, or stay anonymous. The two
+  // are independent: Google gives them a durable account across devices,
+  // Spotify additionally unlocks pushing a save into their own library. A
+  // fan may end up with both.
+  googleId String? @unique
+  email    String? @unique
+
+  // Set when they sign in with Spotify; null otherwise, and those fans can
+  // swipe and save inside MOTR but can't push to a Spotify library.
   spotifyId           String?   @unique
   displayName         String?
   spotifyAccessToken  String?

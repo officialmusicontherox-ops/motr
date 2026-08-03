@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Google returns the curator here. We trade the code for an ID token, read
- * the *verified* email out of it, and match it to a curator account.
+ * Google returns here for both fans and curators. We trade the code for an
+ * ID token and read the *verified* email out of it.
  *
- * Accounts are only ever created by an admin approving an application — so
- * signing in with a Google account we don't recognise tells you to apply
- * rather than quietly creating a curator.
+ * The two paths differ in a way that matters: a fan account is created on
+ * the spot, because there's nothing to vet. A curator account is only ever
+ * created by an admin approving an application, so an unrecognised Google
+ * account is told to apply rather than quietly becoming a curator.
  */
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -15,8 +16,18 @@ export async function GET(req: NextRequest) {
   const googleError = req.nextUrl.searchParams.get("error");
   const cookieState = req.cookies.get("google_oauth_state")?.value;
 
-  const back = (params: string) =>
-    NextResponse.redirect(new URL(`/curate?${params}`, req.nextUrl.origin));
+  const asFan = req.cookies.get("google_oauth_as")?.value === "fan";
+  const mergeFanId = req.cookies.get("google_oauth_merge")?.value;
+
+  const back = (params: string) => {
+    const res = NextResponse.redirect(
+      new URL(`${asFan ? "/" : "/curate"}?${params}`, req.nextUrl.origin)
+    );
+    for (const c of ["google_oauth_state", "google_oauth_as", "google_oauth_merge"]) {
+      res.cookies.set(c, "", { path: "/", maxAge: 0 });
+    }
+    return res;
+  };
 
   if (googleError) return back(`auth_error=${encodeURIComponent(googleError)}`);
   if (!code) return back("auth_error=missing_code");
@@ -46,12 +57,17 @@ export async function GET(req: NextRequest) {
   // The ID token is signed by Google; we read the claims from the payload.
   const payload = JSON.parse(
     Buffer.from(tokens.id_token.split(".")[1], "base64").toString("utf8")
-  ) as { email?: string; email_verified?: boolean | string };
+  ) as { email?: string; email_verified?: boolean | string; name?: string; sub?: string };
 
   const email = payload.email?.trim().toLowerCase();
   const verified = payload.email_verified === true || payload.email_verified === "true";
   if (!email) return back("auth_error=no_email");
   if (!verified) return back("auth_error=email_unverified");
+
+  if (asFan) {
+    const fan = await signInFan(email, payload.name, mergeFanId);
+    return back(`fan=${fan.id}`);
+  }
 
   const user = await prisma.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
@@ -77,4 +93,49 @@ export async function GET(req: NextRequest) {
   if (application?.status === "PENDING") return back("auth_error=pending");
   if (application?.status === "DECLINED") return back("auth_error=declined");
   return back(`auth_error=no_account&email=${encodeURIComponent(email)}`);
+}
+
+/**
+ * Finds or creates the fan behind a verified Google email.
+ *
+ * If they'd been swiping anonymously we fold that history into the account
+ * rather than stranding it — the whole reason to sign in is not losing your
+ * saves, so losing them at the moment of signing in would be perverse.
+ * Swipes the fan already has on the same track win, since a unique
+ * constraint covers (fanId, trackId).
+ */
+async function signInFan(email: string, name: string | undefined, mergeFanId?: string) {
+  const existing = await prisma.fan.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+  });
+
+  const fan =
+    existing ??
+    (await prisma.fan.create({
+      data: {
+        email,
+        displayName: name ?? null,
+        username: `${(name ?? email.split("@")[0]).replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "listener"}${Math.random().toString(36).slice(2, 6)}`,
+      },
+    }));
+
+  if (mergeFanId && mergeFanId !== fan.id) {
+    const anon = await prisma.fan.findUnique({ where: { id: mergeFanId } });
+    // Only ever absorb a genuinely anonymous session, never another account.
+    if (anon && !anon.email && !anon.spotifyId) {
+      const swipes = await prisma.fanSwipe.findMany({ where: { fanId: mergeFanId } });
+      for (const s of swipes) {
+        await prisma.fanSwipe
+          .update({ where: { id: s.id }, data: { fanId: fan.id } })
+          .catch(async () => {
+            // Already swiped that track on the signed-in account — the
+            // anonymous copy is redundant.
+            await prisma.fanSwipe.delete({ where: { id: s.id } }).catch(() => {});
+          });
+      }
+      await prisma.fan.delete({ where: { id: mergeFanId } }).catch(() => {});
+    }
+  }
+
+  return fan;
 }

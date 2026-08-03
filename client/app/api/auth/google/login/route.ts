@@ -2,18 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
 /**
- * Google sign-in for curators. We only need identity — Google confirms the
- * person actually controls the email address, which is the thing email-only
- * sign-in couldn't prove.
+ * Google sign-in, shared by curators and fans. We only need identity —
+ * Google confirms the person actually controls the email address, which is
+ * the thing email-only sign-in couldn't prove.
+ *
+ * `?as=fan` distinguishes the two: a curator must already have an approved
+ * account, whereas a fan account is created on the spot. The choice rides
+ * along in the state cookie rather than the URL, so it can't be swapped
+ * between the redirect and the callback.
+ *
+ * `?merge=<fanId>` carries an anonymous fan's existing swipes so they aren't
+ * lost when that person finally makes an account.
  *
  * Unlike Spotify, Google accepts http://localhost redirect URIs, so there's
  * no loopback-IP dance for local development.
  */
 export async function GET(req: NextRequest) {
+  const asFan = req.nextUrl.searchParams.get("as") === "fan";
+  const mergeFanId = req.nextUrl.searchParams.get("merge") ?? "";
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     return NextResponse.redirect(
-      new URL("/curate?auth_error=not_configured", req.nextUrl.origin)
+      new URL(`${asFan ? "/" : "/curate"}?auth_error=not_configured`, req.nextUrl.origin)
     );
   }
 
@@ -32,6 +42,15 @@ export async function GET(req: NextRequest) {
   url.searchParams.set("prompt", "select_account");
 
   const res = NextResponse.redirect(url.toString());
+  const cookieOpts = {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 600,
+  };
+  res.cookies.set("google_oauth_as", asFan ? "fan" : "curator", cookieOpts);
+  if (mergeFanId) res.cookies.set("google_oauth_merge", mergeFanId, cookieOpts);
   res.cookies.set("google_oauth_state", state, {
     httpOnly: true,
     sameSite: "lax",

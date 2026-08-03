@@ -41,6 +41,16 @@ export async function GET(req: NextRequest) {
   url.searchParams.set("state", state);
 
   const res = NextResponse.redirect(url.toString());
+  // A fan who already has an account (e.g. via Google) is *connecting*
+  // Spotify, not creating a second identity.
+  const linkFanId = req.nextUrl.searchParams.get("link");
+  if (linkFanId) {
+    res.cookies.set("spotify_link_fan", linkFanId, {
+      httpOnly: true, sameSite: "lax", path: "/", maxAge: 600,
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+
   res.cookies.set("spotify_oauth_state", state, {
     httpOnly: true,
     sameSite: "lax",

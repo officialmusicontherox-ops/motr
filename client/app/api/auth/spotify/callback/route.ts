@@ -56,6 +56,26 @@ export async function GET(req: NextRequest) {
   const expires = new Date(Date.now() + (tokens.expires_in ?? 3600) * 1000);
 
   let fan = await prisma.fan.findUnique({ where: { spotifyId: me.id } });
+
+  // Connecting Spotify to an account they already have. Without this the
+  // callback would mint a second fan and strand every save on the first.
+  const linkFanId = req.cookies.get("spotify_link_fan")?.value;
+  if (!fan && linkFanId) {
+    const target = await prisma.fan.findUnique({ where: { id: linkFanId } });
+    if (target && !target.spotifyId) {
+      fan = await prisma.fan.update({
+        where: { id: target.id },
+        data: {
+          spotifyId: me.id,
+          displayName: target.displayName ?? me.display_name ?? null,
+          spotifyAccessToken: tokens.access_token,
+          spotifyRefreshToken: tokens.refresh_token ?? null,
+          spotifyTokenExpires: expires,
+        },
+      });
+    }
+  }
+
   if (fan) {
     fan = await prisma.fan.update({
       where: { id: fan.id },
