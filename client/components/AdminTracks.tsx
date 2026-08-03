@@ -21,6 +21,10 @@ type Track = {
   submittedBy: { name: string; email: string } | null;
   swipes: number;
   curatorsAssigned: number;
+  avgListenMs: number | null;
+  measuredSwipes: number;
+  convictionRate: number | null;
+  votesThisWeek: number;
 };
 
 type Counts = { live: number; pulled: number; submitted: number; withCurators: number };
@@ -229,6 +233,20 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                   <p>
                     needs {Math.round(t.requiredApprovalRate * 100)}% of {t.requiredFanVotes}
                   </p>
+
+                  {/* What streaming numbers can't tell you: whether people
+                      stayed. */}
+                  {t.avgListenMs !== null && (
+                    <p className="text-gold">
+                      {(t.avgListenMs / 1000).toFixed(1)}s average listen
+                    </p>
+                  )}
+                  {t.convictionRate !== null && t.fanRightSwipes > 0 && (
+                    <p title="Share of likes that came after most of the clip had played">
+                      {Math.round(t.convictionRate * 100)}% liked it after hearing it out
+                    </p>
+                  )}
+                  {t.votesThisWeek > 0 && <p>{t.votesThisWeek} vote(s) this week</p>}
                   {t.curatorsAssigned > 0 && (
                     <p className="text-gold">with {t.curatorsAssigned} curators</p>
                   )}

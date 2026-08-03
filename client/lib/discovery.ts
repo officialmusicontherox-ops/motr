@@ -22,12 +22,16 @@ export async function recordFanSwipe(params: {
   fanId: string;
   trackId: string;
   direction: SwipeDirection;
+  /** Milliseconds listened before deciding, if the client reported it. */
+  listenMs?: number | null;
 }) {
-  const { fanId, trackId, direction } = params;
+  const { fanId, trackId, direction, listenMs } = params;
 
   const result = await prisma.$transaction(async (tx) => {
     try {
-      await tx.fanSwipe.create({ data: { fanId, trackId, direction } });
+      await tx.fanSwipe.create({
+        data: { fanId, trackId, direction, listenMs: listenMs ?? null },
+      });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         throw new AlreadySwipedError();

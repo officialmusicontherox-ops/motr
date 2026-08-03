@@ -78,14 +78,14 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     return () => clearTimeout(t);
   }, [breakout]);
 
-  async function handleSwipe(direction: "LEFT" | "RIGHT") {
+  async function handleSwipe(direction: "LEFT" | "RIGHT", listenMs: number) {
     if (!track) return;
     setPending(true);
 
     const res = await fetch("/api/discover/swipe", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fanId: fan.id, trackId: track.id, direction }),
+      body: JSON.stringify({ fanId: fan.id, trackId: track.id, direction, listenMs }),
     });
 
     if (res.ok) {
@@ -170,7 +170,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           key={track.id}
           track={track}
           disabled={pending}
-          onSwipe={(direction) => handleSwipe(direction)}
+          onSwipe={(direction, listenMs) => handleSwipe(direction, listenMs)}
           onProgress={(currentTime, duration) => setClip({ currentTime, duration })}
         />
       )}

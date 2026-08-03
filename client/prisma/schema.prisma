@@ -412,6 +412,11 @@ model FanSwipe {
 
   direction SwipeDirection
 
+  // How long they listened before deciding, in milliseconds. A right-swipe
+  // four seconds in and one at twenty-eight are very different verdicts;
+  // this is the difference between "looked interesting" and "held me".
+  listenMs Int?
+
   // Set once the fan pushes this save into their own Spotify library, so the
   // UI can show it's already there across devices and reloads.
   savedToSpotifyAt DateTime?
@@ -420,6 +425,7 @@ model FanSwipe {
   createdAt DateTime @default(now())
 
   @@unique([fanId, trackId])
+  @@index([trackId])
 }
 
 // Stubbed notification — recorded here (+ server log), no real email yet.

@@ -50,6 +50,37 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  const trackIds = tracks.map((t) => t.id);
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  // A&R signal. How long someone listened before deciding separates "looked
+  // interesting" from "held me", and it's the thing streaming numbers can't
+  // tell you because they only count plays that already happened.
+  const [listenStats, heldStats, recentVotes] = await Promise.all([
+    prisma.fanSwipe.groupBy({
+      by: ["trackId"],
+      where: { trackId: { in: trackIds }, NOT: { listenMs: null } },
+      _avg: { listenMs: true },
+      _count: { _all: true },
+    }),
+    // Right-swipes that came after most of the clip had played.
+    prisma.fanSwipe.groupBy({
+      by: ["trackId"],
+      where: { trackId: { in: trackIds }, direction: "RIGHT", listenMs: { gte: 20_000 } },
+      _count: { _all: true },
+    }),
+    prisma.fanSwipe.groupBy({
+      by: ["trackId"],
+      where: { trackId: { in: trackIds }, createdAt: { gte: weekAgo } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const avgListen = new Map(listenStats.map((r) => [r.trackId, r._avg.listenMs]));
+  const measured = new Map(listenStats.map((r) => [r.trackId, r._count._all]));
+  const heldToEnd = new Map(heldStats.map((r) => [r.trackId, r._count._all]));
+  const thisWeek = new Map(recentVotes.map((r) => [r.trackId, r._count._all]));
+
   const [live, pulled, submitted, withCurators] = await Promise.all([
     prisma.track.count({ where: { status: "DISCOVERY" } }),
     prisma.track.count({ where: { status: "REJECTED" } }),
@@ -78,6 +109,14 @@ export async function GET(req: NextRequest) {
       submittedBy: t.artist ? { name: t.artist.name, email: t.artist.email } : null,
       swipes: t._count.fanSwipes,
       curatorsAssigned: t._count.assignments,
+
+      // Null until enough swipes carry a measured listen time.
+      avgListenMs: Math.round(avgListen.get(t.id) ?? 0) || null,
+      measuredSwipes: measured.get(t.id) ?? 0,
+      // Of everyone who liked it, how many stayed for most of the clip.
+      convictionRate:
+        t.fanRightSwipes > 0 ? (heldToEnd.get(t.id) ?? 0) / t.fanRightSwipes : null,
+      votesThisWeek: thisWeek.get(t.id) ?? 0,
     })),
     counts: { live, pulled, submitted, withCurators },
   });
