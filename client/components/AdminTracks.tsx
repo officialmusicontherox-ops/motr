@@ -165,7 +165,10 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
         ))}
       </div>
 
-      <p className="mt-2 text-xs text-muted">{VIEWS.find((v) => v.key === view)?.hint}</p>
+      <p className="mt-2 text-xs text-muted">
+        {VIEWS.find((v) => v.key === view)?.hint} · Listen times are recorded from 3 August 2026
+        onward, so swipes before then show none.
+      </p>
 
       {flash && (
         <p className="mt-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
@@ -235,16 +238,22 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                   </p>
 
                   {/* What streaming numbers can't tell you: whether people
-                      stayed. */}
-                  {t.avgListenMs !== null && (
-                    <p className="text-gold">
-                      {(t.avgListenMs / 1000).toFixed(1)}s average listen
-                    </p>
-                  )}
-                  {t.convictionRate !== null && t.fanRightSwipes > 0 && (
-                    <p title="Share of likes that came after most of the clip had played">
-                      {Math.round(t.convictionRate * 100)}% liked it after hearing it out
-                    </p>
+                      stayed. Says so explicitly when there's nothing yet,
+                      rather than rendering blank and looking broken. */}
+                  {t.avgListenMs !== null ? (
+                    <>
+                      <p className="text-gold">
+                        {(t.avgListenMs / 1000).toFixed(1)}s average listen
+                        <span className="text-muted"> of 30s</span>
+                      </p>
+                      {t.convictionRate !== null && t.fanRightSwipes > 0 && (
+                        <p title="Share of likes that came after most of the clip had played">
+                          {Math.round(t.convictionRate * 100)}% liked it after hearing it out
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-muted/70 italic">no listen data yet</p>
                   )}
                   {t.votesThisWeek > 0 && <p>{t.votesThisWeek} vote(s) this week</p>}
                   {t.curatorsAssigned > 0 && (
