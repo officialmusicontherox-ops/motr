@@ -97,14 +97,15 @@ export function trackBrokeThroughEmail(params: {
   trackTitle: string;
   artistName: string;
   approvals: number;
+  approvalRate: number;
   trackId: string;
 }) {
-  const { trackTitle, artistName, approvals, trackId } = params;
+  const { trackTitle, artistName, approvals, approvalRate, trackId } = params;
   return {
     subject: `"${trackTitle}" broke through`,
     html: shell(
       "Fans pushed your track through",
-      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} has ${approvals} fan approvals — enough to clear the vote.</p>
+      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} won over ${Math.round(approvalRate * 100)}% of the ${approvals > 0 ? "fans who heard it" : "vote"} (${approvals} approvals) — enough to clear the fan vote.</p>
        <p style="margin:0 0 12px">You can now submit it to five curators who work in your genre. That fee buys their time and attention, not a guaranteed placement — what they do with it is their call.</p>
        <p style="margin:0;color:#8b8b8b;font-size:13px">No pressure, and nothing changes if you skip it. Your track stays in the feed either way.</p>`,
       { label: "Submit to curators", url: `${APP_URL}/submit/${trackId}` }

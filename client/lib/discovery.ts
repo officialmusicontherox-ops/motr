@@ -9,8 +9,15 @@ export class AlreadySwipedError extends Error {
 }
 
 // Fan swipes are the front door: every track starts in DISCOVERY, open to
-// fans (not curators). Once a track's fan right-swipes cross its threshold,
-// the artist owes a fee to unlock the paid curator-vetting stage (VETTING).
+// fans (not curators). Once a track wins over a high enough *share* of the
+// fans who heard it, the artist owes a fee to unlock the paid curator-vetting
+// stage (VETTING).
+//
+// The gate is a rate over a minimum sample (default 55% of 100 votes) rather
+// than a raw count of right-swipes. A raw count rewards exposure: a track put
+// in front of thousands of people reaches 100 approvals on a 10% hit rate,
+// while a genuinely loved track shown to 150 people might not. Both numbers
+// live on the Track row so they can be retuned without a deploy.
 export async function recordFanSwipe(params: {
   fanId: string;
   trackId: string;
@@ -34,10 +41,16 @@ export async function recordFanSwipe(params: {
     const fanRightSwipes = track.fanRightSwipes + (isRight ? 1 : 0);
     const fanLeftSwipes = track.fanLeftSwipes + (isRight ? 0 : 1);
 
+    const totalVotes = fanRightSwipes + fanLeftSwipes;
+    const approvalRate = totalVotes > 0 ? fanRightSwipes / totalVotes : 0;
+
+    // A track that misses the rate at 100 votes isn't dead — it can still
+    // clear later if opinion improves. Only the sample floor is one-way.
     const feeNowRequested =
       track.status === "DISCOVERY" &&
       track.feeStatus === "NOT_REQUIRED" &&
-      fanRightSwipes >= track.requiredFanApprovals;
+      totalVotes >= track.requiredFanVotes &&
+      approvalRate >= track.requiredApprovalRate;
 
     const updatedTrack = await tx.track.update({
       where: { id: trackId },
@@ -72,6 +85,9 @@ export async function recordFanSwipe(params: {
           trackTitle: result.track.title,
           artistName: result.track.artistName,
           approvals: result.track.fanRightSwipes,
+          approvalRate:
+            result.track.fanRightSwipes /
+            Math.max(1, result.track.fanRightSwipes + result.track.fanLeftSwipes),
           trackId: result.track.id,
         })
       );

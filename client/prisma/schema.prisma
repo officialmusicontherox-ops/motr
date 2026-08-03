@@ -262,8 +262,12 @@ model Track {
 
   status TrackStatus @default(DISCOVERY)
 
-  // Fan discovery aggregates (DISCOVERY stage, gates entry to curator vetting)
-  requiredFanApprovals Int       @default(100)
+  // Fan discovery aggregates (DISCOVERY stage, gates entry to curator vetting).
+  // A track breaks through on the *rate* of right-swipes once it has been
+  // heard enough times to be meaningful — not on a raw approval count, which
+  // a widely-shown but poorly-received track would eventually reach anyway.
+  requiredFanVotes     Int       @default(100)
+  requiredApprovalRate Float     @default(0.55)
   fanRightSwipes       Int       @default(0)
   fanLeftSwipes        Int       @default(0)
   feeStatus            FeeStatus @default(NOT_REQUIRED)

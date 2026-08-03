@@ -3,12 +3,23 @@
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import SwipeCard from "./SwipeCard";
+import GenrePicker from "./GenrePicker";
 import { Crown } from "./icons";
 import type { Fan, Track } from "@/lib/types";
 
-async function fetchNextTrack(fanId: string): Promise<Track | null> {
-  const res = await fetch(`/api/discover/next?fanId=${fanId}`);
-  return (await res.json()).track;
+const GENRE_KEY = "motr:genre";
+
+type FeedResponse = {
+  track: Track | null;
+  genreExhausted?: boolean;
+  othersAvailable?: number;
+};
+
+async function fetchNextTrack(fanId: string, genre: string | null): Promise<FeedResponse> {
+  const q = new URLSearchParams({ fanId });
+  if (genre) q.set("genre", genre);
+  const res = await fetch(`/api/discover/next?${q}`);
+  return res.json();
 }
 
 export default function DiscoveryQueue({ fan }: { fan: Fan }) {
@@ -18,16 +29,47 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [savedCount, setSavedCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [clip, setClip] = useState({ currentTime: 0, duration: 30 });
+  // Chosen mood, remembered between visits — someone who filtered to Jazz
+  // last night probably still wants Jazz, but can switch in one tap.
+  const [genre, setGenre] = useState<string | null>(null);
+  const [genreCounts, setGenreCounts] = useState<Record<string, number>>();
+  const [exhausted, setExhausted] = useState<{ othersAvailable: number } | null>(null);
+
+  useEffect(() => {
+    setGenre(localStorage.getItem(GENRE_KEY));
+  }, []);
+
+  function chooseGenre(next: string | null) {
+    setGenre(next);
+    if (next) localStorage.setItem(GENRE_KEY, next);
+    else localStorage.removeItem(GENRE_KEY);
+    setTrack(undefined);
+    setExhausted(null);
+    setRefreshKey((k) => k + 1);
+  }
 
   useEffect(() => {
     let ignore = false;
     setClip({ currentTime: 0, duration: 30 });
-    fetchNextTrack(fan.id).then((next) => {
-      if (!ignore) setTrack(next);
+    fetchNextTrack(fan.id, genre).then((res) => {
+      if (ignore) return;
+      setTrack(res.track);
+      setExhausted(
+        res.genreExhausted ? { othersAvailable: res.othersAvailable ?? 0 } : null
+      );
     });
     return () => {
       ignore = true;
     };
+  }, [fan.id, refreshKey, genre]);
+
+  // Refreshed alongside the feed so the per-genre counts stay honest as the
+  // fan swipes through them.
+  useEffect(() => {
+    fetch(`/api/discover/genres?fanId=${fan.id}`)
+      .then((r) => r.json())
+      .then((d) => setGenreCounts(d.counts))
+      .catch(() => {});
   }, [fan.id, refreshKey]);
 
   useEffect(() => {
@@ -59,6 +101,10 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
   return (
     <MotrShell clip={track ? clip : null}>
+      <div className="w-full max-w-sm md:max-w-2xl">
+        <GenrePicker value={genre} onChange={chooseGenre} counts={genreCounts} />
+      </div>
+
       <div className="mb-5 flex w-full max-w-sm items-center justify-between md:max-w-2xl">
         <span className="motr-label">
           <span className="text-white">{fan.username}</span>
@@ -92,11 +138,22 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       {track === null && (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
           <Crown className="text-gold/40 h-12 w-12" />
-          <p className="font-display text-2xl uppercase tracking-wide">You&apos;re all caught up</p>
-          <p className="text-muted max-w-xs text-sm">
-            You&apos;ve heard everything in the queue. New tracks land here constantly — come back
-            soon.
+          <p className="font-display text-2xl uppercase tracking-wide">
+            {exhausted ? `That's all the ${genre?.split(" / ")[0]}` : "You're all caught up"}
           </p>
+          <p className="text-muted max-w-xs text-sm">
+            {exhausted && exhausted.othersAvailable > 0
+              ? `You've heard every ${genre?.split(" / ")[0]} track we have. There are ${exhausted.othersAvailable} more waiting in other genres.`
+              : "You've heard everything in the queue. New tracks land here constantly — come back soon."}
+          </p>
+          {exhausted && exhausted.othersAvailable > 0 && (
+            <button
+              onClick={() => chooseGenre(null)}
+              className="bg-gold text-bg mt-1 rounded-full px-5 py-2.5 text-sm font-bold uppercase tracking-wide"
+            >
+              Play everything
+            </button>
+          )}
           {savedCount > 0 && (
             <a
               href="/saved"
