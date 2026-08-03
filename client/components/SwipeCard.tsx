@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Track } from "@/lib/types";
 import { Cross, Crown, Heart, Pause, Play } from "./icons";
+import { clipPlayer, playClip } from "@/lib/clipPlayer";
 
 const SWIPE_THRESHOLD = 100;
 const EXIT_DISTANCE = 600;
@@ -22,7 +23,9 @@ export default function SwipeCard({
   /** Lets the shell render the clip scrubber above the card. */
   onProgress?: (currentTime: number, duration: number) => void;
 }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
+  // One element for the whole session — see lib/clipPlayer.ts for why this
+  // isn't an <audio> tag in the card.
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -33,11 +36,44 @@ export default function SwipeCard({
   const dragStartX = useRef(0);
 
   useEffect(() => {
-    audioRef.current
-      ?.play()
-      .then(() => setIsPlaying(true))
-      .catch(() => setIsPlaying(false));
-  }, []);
+    const a = clipPlayer();
+    audioRef.current = a;
+    if (!a) return;
+
+    // Everything the <audio> element's JSX handlers used to do.
+    const onTime = () => {
+      // Source files can be full-length; the product is a 30s clip.
+      if (a.currentTime >= CLIP_SECONDS) {
+        a.pause();
+        setCurrentTime(CLIP_SECONDS);
+        onProgress?.(CLIP_SECONDS, CLIP_SECONDS);
+        return;
+      }
+      setCurrentTime(a.currentTime);
+      onProgress?.(a.currentTime, CLIP_SECONDS);
+    };
+    const onMeta = () => setDuration(Math.min(a.duration || CLIP_SECONDS, CLIP_SECONDS));
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+
+    a.addEventListener("timeupdate", onTime);
+    a.addEventListener("loadedmetadata", onMeta);
+    a.addEventListener("play", onPlay);
+    a.addEventListener("pause", onPause);
+
+    setCurrentTime(0);
+    onProgress?.(0, CLIP_SECONDS);
+    void playClip(track.previewUrl).then(setIsPlaying);
+
+    return () => {
+      a.removeEventListener("timeupdate", onTime);
+      a.removeEventListener("loadedmetadata", onMeta);
+      a.removeEventListener("play", onPlay);
+      a.removeEventListener("pause", onPause);
+      a.pause();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [track.previewUrl]);
 
   useEffect(() => {
     if (disabled) return;
@@ -63,11 +99,11 @@ export default function SwipeCard({
     if (!a) return;
     if (isPlaying) {
       a.pause();
-    } else {
-      // Replaying after the clip ran out restarts it.
-      if (a.currentTime >= CLIP_SECONDS) a.currentTime = 0;
-      a.play().catch(() => {});
+      return;
     }
+    // Replaying after the clip ran out restarts it.
+    if (a.currentTime >= CLIP_SECONDS) a.currentTime = 0;
+    void playClip(track.previewUrl);
   }
 
   function commitSwipe(direction: "LEFT" | "RIGHT") {
@@ -168,29 +204,6 @@ export default function SwipeCard({
               </span>
             </div>
           )}
-
-          <audio
-            ref={audioRef}
-            src={track.previewUrl}
-            onTimeUpdate={(e) => {
-              const el = e.currentTarget;
-              // Source files can be full-length; the product is a 30s clip.
-              if (el.currentTime >= CLIP_SECONDS) {
-                el.pause();
-                el.currentTime = CLIP_SECONDS;
-                setCurrentTime(CLIP_SECONDS);
-                onProgress?.(CLIP_SECONDS, CLIP_SECONDS);
-                return;
-              }
-              setCurrentTime(el.currentTime);
-              onProgress?.(el.currentTime, CLIP_SECONDS);
-            }}
-            onLoadedMetadata={(e) =>
-              setDuration(Math.min(e.currentTarget.duration || CLIP_SECONDS, CLIP_SECONDS))
-            }
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-          />
 
           {/* Play control with the gold progress ring from the comp. */}
           <div className="mt-3 flex justify-center">
