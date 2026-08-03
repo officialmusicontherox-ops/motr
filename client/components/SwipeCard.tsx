@@ -104,10 +104,10 @@ export default function SwipeCard({
   const played = duration ? currentTime / duration : 0;
 
   return (
-    <div className="w-full max-w-sm select-none md:max-w-2xl">
+    <div className="flex min-h-0 w-full max-w-sm flex-1 flex-col select-none md:max-w-2xl">
       {/* The stack layers live in their own positioning context so they can't
           spill over the action buttons below. */}
-      <div className="relative">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <div className="bg-surface/40 absolute inset-x-6 -bottom-2 top-5 -rotate-2 rounded-[28px]" />
         <div className="bg-surface/70 absolute inset-x-3 -bottom-1 top-2.5 rotate-1 rounded-[28px]" />
 
@@ -121,7 +121,7 @@ export default function SwipeCard({
           transition: dragging ? "none" : "transform 180ms ease-out",
           touchAction: "pan-y",
         }}
-        className="border-edge bg-surface relative cursor-grab overflow-hidden rounded-[28px] border shadow-2xl active:cursor-grabbing"
+        className="border-edge bg-surface relative flex min-h-0 flex-1 cursor-grab flex-col overflow-hidden rounded-[28px] border shadow-2xl active:cursor-grabbing"
       >
         <div
           className="text-hot border-hot pointer-events-none absolute left-5 top-5 z-10 -rotate-12 rounded-xl border-4 px-3 py-1 text-2xl font-black"
@@ -138,8 +138,8 @@ export default function SwipeCard({
 
         {/* Stacked on a phone; side-by-side on a wider screen, where a tall
             single column would leave the artwork tiny and the sides empty. */}
-        <div className="md:flex md:items-stretch">
-        <div className="bg-bg flex shrink-0 justify-center">
+        <div className="flex min-h-0 flex-1 flex-col md:flex-row md:items-stretch">
+        <div className="bg-bg flex min-h-0 flex-1 justify-center md:flex-initial">
           {track.artworkUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -147,17 +147,17 @@ export default function SwipeCard({
               alt=""
               // Equal h/w in viewport units keeps it square and bounded
               // without needing an intrinsic size to resolve against.
-              className="h-[30vh] w-[30vh] max-w-full object-cover md:h-80 md:w-80"
+              className="h-full max-h-full w-auto max-w-full object-contain md:h-80 md:w-80"
               draggable={false}
             />
           ) : (
-            <div className="from-surface-2 to-bg flex h-[30vh] w-[30vh] max-w-full items-center justify-center bg-gradient-to-br md:h-80 md:w-80">
+            <div className="from-surface-2 to-bg flex aspect-square h-full max-w-full items-center justify-center bg-gradient-to-br md:h-80 md:w-80">
               <Crown className="text-gold/25 h-16 w-16" />
             </div>
           )}
         </div>
 
-        <div className="px-5 pb-4 pt-3 md:flex md:flex-1 md:flex-col md:justify-center md:px-7">
+        <div className="shrink-0 px-5 pb-3 pt-2 md:flex md:flex-1 md:flex-col md:justify-center md:px-7">
           <h2 className="truncate text-xl font-bold md:text-2xl">{track.title}</h2>
           <p className="text-gold mt-0.5 truncate text-sm font-semibold">{track.artistName}</p>
 
@@ -230,7 +230,7 @@ export default function SwipeCard({
 
       {/* Tap targets, so swiping is optional rather than required. Labelled
           left/right to match the gesture they stand in for. */}
-      <div className="relative z-10 mt-4 flex items-center justify-center gap-3">
+      <div className="relative z-10 mt-3 flex shrink-0 items-center justify-center gap-3">
         <button
           type="button"
           disabled={disabled}
@@ -262,7 +262,7 @@ export default function SwipeCard({
         </button>
       </div>
 
-      <p className="motr-label mt-2 flex items-center justify-center gap-2 text-[0.55rem]">
+      <p className="motr-label mt-1.5 flex shrink-0 items-center justify-center gap-2 text-[0.55rem]">
         <Crown className="text-gold h-3 w-3" />
         <span className="md:hidden">Tap or swipe to decide</span>
         <span className="hidden md:inline">

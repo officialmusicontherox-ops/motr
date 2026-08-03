@@ -22,9 +22,17 @@ const TABS = [
 export default function MotrShell({
   children,
   clip,
+  fill = false,
 }: {
   children: React.ReactNode;
   clip?: { currentTime: number; duration: number } | null;
+  /**
+   * Locks the page to exactly one screen with no scrolling. The swipe feed
+   * is a single card you act on — scrolling it means the buttons can sit
+   * below the fold, and a vertical drag fights the horizontal swipe. Saved
+   * and Curate are lists and genuinely need to scroll, so they don't set it.
+   */
+  fill?: boolean;
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -33,13 +41,25 @@ export default function MotrShell({
     : 0;
 
   return (
-    <div className="bg-bg flex min-h-screen flex-col">
+    <div
+      className={`bg-bg flex flex-col ${
+        // dvh, not vh: on mobile the browser's own chrome makes vh taller
+        // than what you can actually see, which is itself a cause of scroll.
+        // Auto rather than hidden: when it all fits there is nothing to
+        // scroll and no scrollbar, but on a landscape phone the buttons stay
+        // reachable instead of being clipped away.
+        fill ? "h-[100dvh] overflow-y-auto" : "min-h-screen"
+      }`}
+    >
       <MotrMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       <InstallApp />
 
-      {/* Pinned: the card can be taller than the screen, and the menu button
-          must never scroll out of reach. */}
-      <header className="bg-bg/95 sticky top-0 z-30 flex flex-col items-center px-5 pb-2 pt-4 backdrop-blur">
+      {/* Pinned: the menu button must never scroll out of reach. */}
+      <header
+        className={`bg-bg/95 sticky top-0 z-30 flex shrink-0 flex-col items-center px-5 pb-2 pt-4 backdrop-blur ${
+          fill ? "pt-3" : ""
+        }`}
+      >
         <Link href="/" aria-label="MOTR home">
           <Image
             src="/motr-logo.png"
@@ -47,7 +67,7 @@ export default function MotrShell({
             width={325}
             height={145}
             priority
-            className="h-14 w-auto"
+            className={fill ? "h-10 w-auto sm:h-12" : "h-14 w-auto"}
           />
         </Link>
         <p className="motr-label mt-0.5 text-[0.58rem]">
@@ -109,7 +129,17 @@ export default function MotrShell({
       </header>
 
       {/* Bottom padding clears the fixed tab bar so actions never sit under it. */}
-      <main className="flex flex-1 flex-col items-center px-5 pb-36 pt-4 md:px-8 md:pb-16">{children}</main>
+      <main
+        className={
+          fill
+            ? // min-h-0 lets this shrink below its content, which is what
+              // allows the card inside to size itself to the space left.
+              "flex min-h-0 flex-1 flex-col items-center px-5 pb-20 pt-2 md:px-8 md:pb-4"
+            : "flex flex-1 flex-col items-center px-5 pb-36 pt-4 md:px-8 md:pb-16"
+        }
+      >
+        {children}
+      </main>
 
       <nav className="border-edge bg-bg/95 fixed inset-x-0 bottom-0 z-20 border-t backdrop-blur md:hidden">
         <ul className="mx-auto flex max-w-md">

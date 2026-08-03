@@ -100,12 +100,12 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   }
 
   return (
-    <MotrShell clip={track ? clip : null}>
-      <div className="w-full max-w-sm md:max-w-2xl">
+    <MotrShell fill clip={track ? clip : null}>
+      <div className="w-full max-w-sm shrink-0 md:max-w-2xl">
         <GenrePicker value={genre} onChange={chooseGenre} counts={genreCounts} />
       </div>
 
-      <div className="mb-5 flex w-full max-w-sm items-center justify-between md:max-w-2xl">
+      <div className="mb-3 flex w-full max-w-sm shrink-0 items-center justify-between md:max-w-2xl">
         <span className="motr-label">
           <span className="text-white">{fan.username}</span>
         </span>
