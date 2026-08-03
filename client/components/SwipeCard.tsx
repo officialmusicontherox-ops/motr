@@ -26,6 +26,13 @@ export default function SwipeCard({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  /**
+   * Browsers refuse to autoplay audio until the visitor has interacted with
+   * the page. On the very first card that refusal is silent: a music app
+   * that makes no sound and gives no reason reads as broken, which is the
+   * worst possible first ten seconds. So we say so, loudly, once.
+   */
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -35,8 +42,14 @@ export default function SwipeCard({
   useEffect(() => {
     audioRef.current
       ?.play()
-      .then(() => setIsPlaying(true))
-      .catch(() => setIsPlaying(false));
+      .then(() => {
+        setIsPlaying(true);
+        setAutoplayBlocked(false);
+      })
+      .catch(() => {
+        setIsPlaying(false);
+        setAutoplayBlocked(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -61,6 +74,9 @@ export default function SwipeCard({
   function togglePlay() {
     const a = audioRef.current;
     if (!a) return;
+    // Any tap counts as the gesture browsers were waiting for; from here on
+    // the rest of the session autoplays normally.
+    setAutoplayBlocked(false);
     if (isPlaying) {
       a.pause();
     } else {
@@ -139,7 +155,21 @@ export default function SwipeCard({
         {/* Stacked on a phone; side-by-side on a wider screen, where a tall
             single column would leave the artwork tiny and the sides empty. */}
         <div className="flex min-h-0 flex-1 flex-col md:flex-row md:items-stretch">
-        <div className="bg-bg flex min-h-0 flex-1 justify-center md:flex-initial">
+        <div className="bg-bg relative flex min-h-0 flex-1 justify-center md:flex-initial">
+          {autoplayBlocked && (
+            <button
+              type="button"
+              onClick={togglePlay}
+              aria-label="Tap to play this clip"
+              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/65 backdrop-blur-[2px]"
+            >
+              <span className="border-gold text-gold flex h-16 w-16 items-center justify-center rounded-full border-2">
+                <Play className="ml-1 h-7 w-7" />
+              </span>
+              <span className="text-sm font-semibold text-white">Tap to play</span>
+              <span className="text-muted text-xs">Your browser blocks sound until you do</span>
+            </button>
+          )}
           {track.artworkUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
