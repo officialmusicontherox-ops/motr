@@ -8,6 +8,11 @@
  *
  *   - Spotify oEmbed  -> title + album art (authoritative for the link given)
  *   - iTunes Search   -> the 30s preview audio, artist, album
+ *   - Deezer Search   -> fallback preview when Apple doesn't carry the track
+ *
+ * The two preview sources matter: not everything on Spotify is on Apple
+ * Music, and iTunes also rate-limits to 403 under load. Either would reject a
+ * legitimate submission outright, so we try both before giving up.
  *
  * The Spotify id is still stored, because that's what a fan's
  * save-to-playlist needs later.
@@ -73,6 +78,31 @@ export async function searchItunes(term: string): Promise<ItunesResult | null> {
   return data.results?.find((r) => r.previewUrl) ?? null;
 }
 
+type DeezerResult = {
+  title: string;
+  artist: { name: string };
+  album?: { title?: string; cover_big?: string; cover_medium?: string };
+  preview?: string;
+  duration?: number;
+};
+
+/**
+ * Deezer's search needs no key and carries plenty that Apple doesn't,
+ * including a lot of independent and non-US releases.
+ */
+export async function searchDeezer(term: string): Promise<DeezerResult | null> {
+  try {
+    const res = await fetch(
+      `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=5`
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { data?: DeezerResult[] };
+    return data.data?.find((r) => r.preview) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** iTunes serves 100x100 by default; the same asset exists at larger sizes. */
 function upscaleArtwork(url: string | undefined): string | null {
   if (!url) return null;
@@ -86,22 +116,38 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
     throw new TrackLookupError("That Spotify link didn't return a track title.");
   }
 
-  const itunes = await searchItunes(searchableTitle(displayTitle));
-  if (!itunes?.previewUrl) {
-    throw new TrackLookupError(
-      `We couldn't find a playable 30-second preview for "${displayTitle}". It may not be on Apple Music yet.`
-    );
+  const term = searchableTitle(displayTitle);
+
+  const itunes = await searchItunes(term);
+  if (itunes?.previewUrl) {
+    return {
+      title: displayTitle,
+      artistName: itunes.artistName,
+      albumName: itunes.collectionName ?? null,
+      // Prefer Spotify's art — it matches the exact release that was linked.
+      artworkUrl: oembed.thumbnail_url ?? upscaleArtwork(itunes.artworkUrl100),
+      previewUrl: itunes.previewUrl,
+      durationMs: itunes.trackTimeMillis ?? null,
+    };
   }
 
-  return {
-    title: displayTitle,
-    artistName: itunes.artistName,
-    albumName: itunes.collectionName ?? null,
-    // Prefer Spotify's art — it matches the exact release that was linked.
-    artworkUrl: oembed.thumbnail_url ?? upscaleArtwork(itunes.artworkUrl100),
-    previewUrl: itunes.previewUrl,
-    durationMs: itunes.trackTimeMillis ?? null,
-  };
+  const deezer = await searchDeezer(term);
+  if (deezer?.preview) {
+    return {
+      title: displayTitle,
+      artistName: deezer.artist.name,
+      albumName: deezer.album?.title ?? null,
+      artworkUrl:
+        oembed.thumbnail_url ?? deezer.album?.cover_big ?? deezer.album?.cover_medium ?? null,
+      previewUrl: deezer.preview,
+      durationMs: deezer.duration ? deezer.duration * 1000 : null,
+    };
+  }
+
+  throw new TrackLookupError(
+    `We couldn't find a playable 30-second preview for "${displayTitle}". That usually means the ` +
+      `release is too new or isn't on Apple Music or Deezer yet. Email us and we'll add it by hand.`
+  );
 }
 
 /** Used by the backfill, where all we have is what's already in the row. */

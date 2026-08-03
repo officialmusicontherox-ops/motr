@@ -5,6 +5,7 @@ import AdminReviewQueues from "./AdminReviewQueues";
 import AdminPayoutQueues from "./AdminPayoutQueues";
 import AdminAudience from "./AdminAudience";
 import AdminCurators from "./AdminCurators";
+import AdminTracks from "./AdminTracks";
 
 type Stats = {
  counts: {
@@ -167,6 +168,10 @@ export default function AdminDashboard({
 
 
  <AdminCurators onChanged={loadStats} />
+
+
+
+ <AdminTracks onChanged={loadStats} />
 
  <section className="mt-10">
  <h2 className="text-lg font-semibold">Records</h2>
