@@ -44,7 +44,14 @@ export async function GET(req: NextRequest) {
   const meRes = await fetch("https://api.spotify.com/v1/me", {
     headers: { authorization: `Bearer ${tokens.access_token}` },
   });
-  if (!meRes.ok) return fail("profile_fetch_failed");
+  if (!meRes.ok) {
+    // Spotify's own reason, which "couldn't read your profile" was hiding.
+    // A 403 here almost always means the app is still in Development Mode
+    // and this listener isn't on its 25-user allowlist.
+    const detail = await meRes.text().catch(() => "");
+    console.error("[spotify] /v1/me failed", meRes.status, detail.slice(0, 300));
+    return fail(`profile_fetch_failed_${meRes.status}`);
+  }
   const me = await meRes.json();
 
   // Spotify display names aren't unique, so build a username that is.
