@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { newSubmissionEmail, sendEmail } from "@/lib/email";
 import { TrackLookupError, resolveSpotifyTrack } from "@/lib/trackLookup";
 import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
 
@@ -108,6 +109,20 @@ export async function POST(req: NextRequest) {
       ...(typeof requiredFanVotes === "number" ? { requiredFanVotes } : {}),
     },
   });
+
+  // Sent after the track is saved and never awaited into failure: a mail
+  // problem must not turn a good submission into an error for the artist.
+  if (artistEmail && process.env.EMAIL_REPLY_TO) {
+    await sendEmail(
+      process.env.EMAIL_REPLY_TO,
+      newSubmissionEmail({
+        trackTitle: track.title,
+        artistName: track.artistName,
+        genre: track.genre,
+        submitterEmail: String(artistEmail),
+      })
+    );
+  }
 
   return NextResponse.json({ track, alreadyExisted: false }, { status: 201 });
 }

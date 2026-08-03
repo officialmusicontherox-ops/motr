@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
+import { GENRES } from "@/lib/genres";
 
 /**
  * Every track on the platform, so a bad one can be pulled quickly — wrong
@@ -134,10 +135,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { trackId, action, note } = await req.json().catch(() => ({}));
+  const { trackId, action, note, genre } = await req.json().catch(() => ({}));
+
+  // Correcting a genre matters as much as removing a track: routing is by
+  // genre, so a country song filed under R&B reaches five curators who
+  // can't use it.
+  if (action === "SET_GENRE") {
+    if (!trackId || typeof genre !== "string" || !(GENRES as readonly string[]).includes(genre)) {
+      return NextResponse.json({ error: "trackId and a valid genre are required" }, { status: 400 });
+    }
+    const updated = await prisma.track.update({ where: { id: trackId }, data: { genre } });
+    return NextResponse.json({ track: { id: updated.id, genre: updated.genre } });
+  }
+
   if (!trackId || (action !== "PULL" && action !== "RESTORE")) {
     return NextResponse.json(
-      { error: "trackId and action ('PULL' | 'RESTORE') are required" },
+      { error: "trackId and action ('PULL' | 'RESTORE' | 'SET_GENRE') are required" },
       { status: 400 }
     );
   }

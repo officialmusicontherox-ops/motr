@@ -113,6 +113,33 @@ export function trackBrokeThroughEmail(params: {
   };
 }
 
+/**
+ * Tells the operator a track just went into the feed.
+ *
+ * Submissions publish immediately, so without this the first anyone knows of
+ * a questionable one is when a fan sees it. Names the submitter, because the
+ * common problem isn't bad audio — it's someone submitting music that isn't
+ * theirs.
+ */
+export function newSubmissionEmail(params: {
+  trackTitle: string;
+  artistName: string;
+  genre: string | null;
+  submitterEmail: string;
+}) {
+  const { trackTitle, artistName, genre, submitterEmail } = params;
+  return {
+    subject: `New submission: ${trackTitle} — ${artistName}`,
+    html: shell(
+      "A track just went live",
+      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} is now in the feed.</p>
+       <p style="margin:0 0 12px;color:#a3a3a3">Genre: ${genre ?? "not set"}<br/>Submitted by: ${submitterEmail}</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">If it isn't their music, or the genre looks wrong, you can pull it from the Tracks section of the dashboard.</p>`,
+      { label: "Open the dashboard", url: `${APP_URL}/admin` }
+    ),
+  };
+}
+
 export async function sendEmail(to: string, template: { subject: string; html: string }) {
   return send(to, template.subject, template.html);
 }

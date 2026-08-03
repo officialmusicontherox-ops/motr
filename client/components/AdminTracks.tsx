@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
+import { GENRES } from "@/lib/genres";
 
 type Track = {
   id: string;
@@ -88,6 +89,18 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
     a.play().catch(() => setPlaying(null));
     a.onended = () => setPlaying(null);
     setPlaying(t.id);
+  }
+
+  async function setGenre(t: Track, genre: string) {
+    setBusy(t.id);
+    await fetch("/api/admin/tracks", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trackId: t.id, action: "SET_GENRE", genre }),
+    });
+    setBusy(null);
+    setFlash(`"${t.title}" moved to ${genre}. It'll route to ${genre} curators from now on.`);
+    load();
   }
 
   async function act(t: Track, action: "PULL" | "RESTORE", note: string) {
@@ -211,10 +224,26 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{t.title}</p>
-                  <p className="truncate text-sm text-muted">
-                    {t.artistName}
-                    {t.genre && ` · ${t.genre}`}
-                  </p>
+                  <p className="truncate text-sm text-muted">{t.artistName}</p>
+                  <label className="mt-1 flex items-center gap-1.5 text-xs text-muted">
+                    <span className="sr-only">Genre for {t.title}</span>
+                    <select
+                      value={t.genre ?? ""}
+                      disabled={busy === t.id}
+                      onChange={(e) => setGenre(t, e.target.value)}
+                      className="rounded-md border border-edge bg-bg px-2 py-1 text-xs outline-none transition focus:border-gold disabled:opacity-40"
+                    >
+                      <option value="" disabled>
+                        no genre set
+                      </option>
+                      {GENRES.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                    {t.genre === null && <span className="text-nope">routes nowhere</span>}
+                  </label>
                   <p className="mt-0.5 text-xs text-muted">
                     Added {new Date(t.addedAt).toLocaleDateString()} ·{" "}
                     {t.submittedBy ? (
