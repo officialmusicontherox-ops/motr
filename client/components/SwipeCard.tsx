@@ -26,13 +26,6 @@ export default function SwipeCard({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  /**
-   * Browsers refuse to autoplay audio until the visitor has interacted with
-   * the page. On the very first card that refusal is silent: a music app
-   * that makes no sound and gives no reason reads as broken, which is the
-   * worst possible first ten seconds. So we say so, loudly, once.
-   */
-  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -42,14 +35,8 @@ export default function SwipeCard({
   useEffect(() => {
     audioRef.current
       ?.play()
-      .then(() => {
-        setIsPlaying(true);
-        setAutoplayBlocked(false);
-      })
-      .catch(() => {
-        setIsPlaying(false);
-        setAutoplayBlocked(true);
-      });
+      .then(() => setIsPlaying(true))
+      .catch(() => setIsPlaying(false));
   }, []);
 
   useEffect(() => {
@@ -74,9 +61,6 @@ export default function SwipeCard({
   function togglePlay() {
     const a = audioRef.current;
     if (!a) return;
-    // Any tap counts as the gesture browsers were waiting for; from here on
-    // the rest of the session autoplays normally.
-    setAutoplayBlocked(false);
     if (isPlaying) {
       a.pause();
     } else {
@@ -120,10 +104,10 @@ export default function SwipeCard({
   const played = duration ? currentTime / duration : 0;
 
   return (
-    <div className="flex min-h-0 w-full max-w-sm flex-1 flex-col select-none md:max-w-2xl">
+    <div className="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col select-none md:max-w-2xl md:justify-center">
       {/* The stack layers live in their own positioning context so they can't
           spill over the action buttons below. */}
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col md:max-h-[26rem] md:flex-none">
         <div className="bg-surface/40 absolute inset-x-6 -bottom-2 top-5 -rotate-2 rounded-[28px]" />
         <div className="bg-surface/70 absolute inset-x-3 -bottom-1 top-2.5 rotate-1 rounded-[28px]" />
 
@@ -155,21 +139,7 @@ export default function SwipeCard({
         {/* Stacked on a phone; side-by-side on a wider screen, where a tall
             single column would leave the artwork tiny and the sides empty. */}
         <div className="flex min-h-0 flex-1 flex-col md:flex-row md:items-stretch">
-        <div className="bg-bg relative flex min-h-0 flex-1 justify-center md:flex-initial">
-          {autoplayBlocked && (
-            <button
-              type="button"
-              onClick={togglePlay}
-              aria-label="Tap to play this clip"
-              className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/65 backdrop-blur-[2px]"
-            >
-              <span className="border-gold text-gold flex h-16 w-16 items-center justify-center rounded-full border-2">
-                <Play className="ml-1 h-7 w-7" />
-              </span>
-              <span className="text-sm font-semibold text-white">Tap to play</span>
-              <span className="text-muted text-xs">Your browser blocks sound until you do</span>
-            </button>
-          )}
+        <div className="bg-bg relative flex min-h-0 flex-1 justify-center md:w-1/2 md:flex-none">
           {track.artworkUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -177,11 +147,11 @@ export default function SwipeCard({
               alt=""
               // Equal h/w in viewport units keeps it square and bounded
               // without needing an intrinsic size to resolve against.
-              className="h-full max-h-full w-auto max-w-full object-contain md:h-80 md:w-80"
+              className="h-full max-h-full w-auto max-w-full object-contain md:h-full md:w-full md:object-cover"
               draggable={false}
             />
           ) : (
-            <div className="from-surface-2 to-bg flex aspect-square h-full max-w-full items-center justify-center bg-gradient-to-br md:h-80 md:w-80">
+            <div className="from-surface-2 to-bg flex aspect-square h-full max-w-full items-center justify-center bg-gradient-to-br md:aspect-auto md:h-full md:w-full">
               <Crown className="text-gold/25 h-16 w-16" />
             </div>
           )}
