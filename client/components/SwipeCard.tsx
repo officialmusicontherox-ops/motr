@@ -94,8 +94,8 @@ export default function SwipeCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [disabled, currentTime]);
 
-  function togglePlay() {
-    const a = audioRef.current;
+  async function togglePlay() {
+    const a = audioRef.current ?? clipPlayer();
     if (!a) return;
     if (isPlaying) {
       a.pause();
@@ -103,7 +103,10 @@ export default function SwipeCard({
     }
     // Replaying after the clip ran out restarts it.
     if (a.currentTime >= CLIP_SECONDS) a.currentTime = 0;
-    void playClip(track.previewUrl);
+    // Reflect the outcome rather than assuming success: a refused play left
+    // the button looking inert, with nothing to distinguish it from a click
+    // that never registered.
+    setIsPlaying(await playClip(track.previewUrl));
   }
 
   function commitSwipe(direction: "LEFT" | "RIGHT") {
