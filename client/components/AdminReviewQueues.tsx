@@ -74,6 +74,7 @@ function SubmissionsQueue({ onChanged }: { onChanged: () => void }) {
  const [filter, setFilter] = useState<Filter>("PENDING");
  const [items, setItems] = useState<Submission[] | null>(null);
  const [error, setError] = useState<string | null>(null);
+ const [notice, setNotice] = useState<string | null>(null);
  const [busy, setBusy] = useState<string | null>(null);
 
  const load = useCallback(async (f: Filter) => {
@@ -90,23 +91,34 @@ function SubmissionsQueue({ onChanged }: { onChanged: () => void }) {
 
  useEffect(() => {
  load(filter);
- }, [filter, load]);
+ }, [filter, load]);  async function decide(trackId: string, decision: "APPROVE" | "DECLINE") {
+    setBusy(trackId);
+    const res = await fetch("/api/admin/submissions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trackId, decision }),
+    });
+    setBusy(null);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(data.error ?? "Action failed");
+      return;
+    }
 
- async function decide(trackId: string, decision: "APPROVE" | "DECLINE") {
- setBusy(trackId);
- const res = await fetch("/api/admin/submissions", {
- method: "POST",
- headers: { "content-type": "application/json" },
- body: JSON.stringify({ trackId, decision }),
- });
- setBusy(null);
- if (!res.ok) {
- setError((await res.json()).error ?? "Action failed");
- return;
- }
- load(filter);
- onChanged();
- }
+    // Approving is only meaningful if it actually reached curators. Routing
+    // to nobody is silent otherwise, and the artist has already paid.
+    if (decision === "APPROVE") {
+      const n = data.assignment?.assigned ?? 0;
+      setNotice(
+        n === 0
+          ? "Approved — but it reached 0 curators, so nobody will review it. Approve some curator applications, then re-approve this track."
+          : `Approved and routed to ${n} curator${n === 1 ? "" : "s"}.`
+      );
+    }
+
+    load(filter);
+    onChanged();
+  }
 
  return (
  <section className="mt-10">
@@ -117,6 +129,17 @@ function SubmissionsQueue({ onChanged }: { onChanged: () => void }) {
  <FilterTabs value={filter} onChange={setFilter} />
 
  {error && <p className="mt-3 text-sm text-nope">{error}</p>}
+ {notice && (
+   <p
+     className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
+       notice.includes("0 curators")
+         ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+         : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+     }`}
+   >
+     {notice}
+   </p>
+ )}
 
  {items === null ? (
  <p className="mt-3 text-sm text-muted">Loading...</p>

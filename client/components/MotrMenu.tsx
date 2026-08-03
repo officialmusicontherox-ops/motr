@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/apply", label: "Apply to curate", note: "Get paid per share" },
   { href: "/contact", label: "Contact", note: "Questions, press, support" },
   { href: "/privacy", label: "Privacy", note: "What we collect and why" },
+  { href: "/terms", label: "Terms", note: "The rules, and how refunds work" },
 ];
 
 export default function MotrMenu({

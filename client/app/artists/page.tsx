@@ -167,6 +167,13 @@ export default function ArtistsPage() {
             See how it works
           </Link>
         </p>
+        <p className="text-muted text-center text-xs">
+          Submitting means you agree to our{" "}
+          <Link href="/terms" className="text-gold underline underline-offset-4">
+            Terms
+          </Link>
+          , including that the fee buys consideration by curators — not a guaranteed placement.
+        </p>
       </form>
     </main>
   );

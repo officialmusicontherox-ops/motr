@@ -322,6 +322,12 @@ export default function PrivacyPage() {
             Back to the feed
           </Link>
           <Link
+            href="/terms"
+            className="border-edge hover:border-gold rounded-full border px-6 py-3 text-sm font-semibold transition"
+          >
+            Terms
+          </Link>
+          <Link
             href="/contact"
             className="border-edge hover:border-gold rounded-full border px-6 py-3 text-sm font-semibold transition"
           >

@@ -11,7 +11,7 @@ import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
 //    JS on the client, which we don't have server credentials for yet).
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { source, submittedById, artistEmail, requiredFanApprovals, genre } = body;
+  const { source, submittedById, artistEmail, requiredFanVotes, genre } = body;
 
   if (source !== "SPOTIFY" && source !== "APPLE_MUSIC") {
     return NextResponse.json(
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       submittedById: submittedById ?? null,
       artistId,
       genre: genre ?? null,
-      ...(typeof requiredFanApprovals === "number" ? { requiredFanApprovals } : {}),
+      ...(typeof requiredFanVotes === "number" ? { requiredFanVotes } : {}),
     },
   });
 

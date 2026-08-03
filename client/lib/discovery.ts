@@ -49,6 +49,11 @@ export async function recordFanSwipe(params: {
     const feeNowRequested =
       track.status === "DISCOVERY" &&
       track.feeStatus === "NOT_REQUIRED" &&
+      // No artist behind it means nobody can be invited to pay. The seeded
+      // catalogue is like this: it exists to give fans something to swipe,
+      // not to be sold onward, and without this check those tracks jam the
+      // admin's awaiting-payment queue with rows that can never clear.
+      track.artistId !== null &&
       totalVotes >= track.requiredFanVotes &&
       approvalRate >= track.requiredApprovalRate;
 

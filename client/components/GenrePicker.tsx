@@ -17,7 +17,11 @@ export default function GenrePicker({
 }: {
   value: string | null;
   onChange: (genre: string | null) => void;
-  /** Unswiped tracks per genre, so we can hide ones with nothing left. */
+  /**
+   * Unswiped tracks per genre. Used only to hide genres with nothing left —
+   * the number itself stays out of the UI, since how much stock sits behind
+   * a chip is our business, not the listener's.
+   */
   counts?: Record<string, number>;
 }) {
   const available = counts
@@ -38,9 +42,6 @@ export default function GenrePicker({
         <Chip key={g} active={value === g} onClick={() => onChange(value === g ? null : g)}>
           {/* The " / " variants are too long for a chip on a phone. */}
           {g.split(" / ")[0]}
-          {counts && value !== g && (
-            <span className="text-muted ml-1.5 text-[0.6rem]">{counts[g]}</span>
-          )}
         </Chip>
       ))}
     </div>

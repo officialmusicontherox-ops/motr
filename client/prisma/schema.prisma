@@ -85,6 +85,16 @@ enum ReviewStatus {
   DECLINED      // admin rejected it
 }
 
+// A curator account is never hard-deleted — payouts, withdrawals and past
+// assignments all point at it, and removing the row would erase financial
+// history we're required to keep.
+enum CuratorStatus {
+  ACTIVE    // in the rotation, receives new tracks
+  PAUSED    // no new tracks (holiday, backlog) — can still finish what they have
+  SUSPENDED // locked out entirely, under review
+  REMOVED   // off the platform; the record stays for the books
+}
+
 enum ApplicationStatus {
   PENDING
   APPROVED
@@ -124,8 +134,14 @@ model User {
   payoutDestination String?
   country           String?
 
+  status          CuratorStatus @default(ACTIVE)
+  statusNote      String? // why — shown to you, not to them
+  statusChangedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status])
 }
 
 // Single-admin (or small team) login for the operator dashboard — separate

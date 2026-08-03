@@ -20,10 +20,26 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.findFirst({
     where: { email: { equals: normalized, mode: "insensitive" } },
-    select: { id: true, username: true, email: true, curationWeight: true },
+    select: {
+      id: true, username: true, email: true, curationWeight: true,
+      status: true,
+    },
   });
 
-  if (user) return NextResponse.json({ user });
+  if (user) {
+    // A suspended or removed curator keeps their record (payouts reference
+    // it) but must not get back into the queue or their earnings screen.
+    if (user.status === "SUSPENDED" || user.status === "REMOVED") {
+      return NextResponse.json(
+        {
+          error:
+            "This account isn't active. If you think that's a mistake, reply to any MOTR email and we'll take a look.",
+        },
+        { status: 403 }
+      );
+    }
+    return NextResponse.json({ user });
+  }
 
   // Distinguish "still waiting on us" from "never applied" — otherwise a
   // pending applicant thinks something is broken.

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import AdminReviewQueues from "./AdminReviewQueues";
 import AdminPayoutQueues from "./AdminPayoutQueues";
 import AdminAudience from "./AdminAudience";
+import AdminCurators from "./AdminCurators";
 
 type Stats = {
  counts: {
@@ -163,6 +164,9 @@ export default function AdminDashboard({
  <AdminPayoutQueues onChanged={loadStats} />
 
  <AdminAudience />
+
+
+ <AdminCurators onChanged={loadStats} />
 
  <section className="mt-10">
  <h2 className="text-lg font-semibold">Records</h2>
