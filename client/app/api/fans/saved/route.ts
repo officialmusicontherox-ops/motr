@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { spotifyLinkFor } from "@/lib/spotifyLink";
 
 // Everything a fan swiped right on, newest first.
 export async function GET(req: NextRequest) {
@@ -23,6 +24,8 @@ export async function GET(req: NextRequest) {
           genre: true,
           status: true,
           fanRightSwipes: true,
+          externalId: true,
+          source: true,
         },
       },
     },
@@ -33,6 +36,8 @@ export async function GET(req: NextRequest) {
       ...s.track,
       savedAt: s.createdAt,
       savedToSpotifyAt: s.savedToSpotifyAt,
+      // Works for every fan, unlike the API save — see lib/spotifyLink.ts.
+      spotifyUrl: spotifyLinkFor(s.track),
     })),
   });
 }

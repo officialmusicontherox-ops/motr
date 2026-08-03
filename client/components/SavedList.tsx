@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
-import { Bookmark, Check, Crown, Pause, Play, Plus } from "./icons";
+import { Bookmark, Crown, Pause, Play } from "./icons";
 import type { Fan } from "@/lib/types";
 
 type SavedTrack = {
@@ -16,39 +17,12 @@ type SavedTrack = {
   fanRightSwipes: number;
   savedAt: string;
   savedToSpotifyAt: string | null;
+  spotifyUrl: string;
 };
 
 export default function SavedList({ fan }: { fan: Fan }) {
   const [saved, setSaved] = useState<SavedTrack[] | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ text: string; reconnect: boolean } | null>(null);
-
-  async function addToSpotify(t: SavedTrack) {
-    setBusyId(t.id);
-    setNotice(null);
-    const res = await fetch("/api/fans/save-to-spotify", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fanId: fan.id, trackId: t.id }),
-    });
-    setBusyId(null);
-
-    if (res.ok) {
-      setSaved((prev) =>
-        prev?.map((x) =>
-          x.id === t.id ? { ...x, savedToSpotifyAt: new Date().toISOString() } : x
-        ) ?? prev
-      );
-      return;
-    }
-
-    const data = await res.json().catch(() => ({}));
-    setNotice({
-      text: data.error ?? "Couldn't add that to Spotify.",
-      reconnect: data.code === "not_connected" || data.code === "needs_reconnect",
-    });
-  }
 
   useEffect(() => {
     fetch(`/api/fans/saved?fanId=${fan.id}`)
@@ -75,23 +49,8 @@ export default function SavedList({ fan }: { fan: Fan }) {
       <div className="w-full max-w-sm md:max-w-2xl">
         <h1 className="font-display text-3xl uppercase tracking-wide">Saved</h1>
         <p className="text-muted mt-1 text-sm">
-          Tracks you backed. Connect Spotify to push any of them into your own library with{" "}
-          <span className="text-gold">+</span>.
+          Tracks you backed. Tap the Spotify icon to open one there and save it.
         </p>
-
-        {notice && (
-          <div className="border-edge bg-surface mt-4 rounded-xl border p-3 text-sm">
-            <p className="text-muted">{notice.text}</p>
-            {notice.reconnect && (
-              <a
-                href={`/api/auth/spotify/login?link=${fan.id}`}
-                className="bg-hot text-bg mt-2 inline-block rounded-full px-4 py-1.5 text-xs font-bold"
-              >
-                Connect Spotify
-              </a>
-            )}
-          </div>
-        )}
 
         {saved === null ? (
           <div className="mt-10 flex justify-center">
@@ -104,12 +63,12 @@ export default function SavedList({ fan }: { fan: Fan }) {
             <p className="text-muted max-w-xs text-sm">
               Swipe right on something you like and it&apos;ll show up here.
             </p>
-            <a
+            <Link
               href="/"
               className="border-gold/50 text-gold mt-2 rounded-full border px-5 py-2 text-sm font-semibold"
             >
               Start discovering
-            </a>
+            </Link>
           </div>
         ) : (
           <ul className="mt-6 space-y-3">
@@ -146,30 +105,20 @@ export default function SavedList({ fan }: { fan: Fan }) {
                   )}
                 </div>
 
-                {/* Push the save into the fan's own Spotify library — the
-                    reason fans have accounts at all. */}
-                {t.savedToSpotifyAt ? (
-                  <span
-                    title="In your Spotify library"
-                    className="text-hot flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                  >
-                    <Check className="h-5 w-5" />
-                  </span>
-                ) : (
-                  <button
-                    onClick={() => addToSpotify(t)}
-                    disabled={busyId === t.id}
-                    aria-label={`Add ${t.title} to Spotify`}
-                    title="Add to your Spotify library"
-                    className="border-edge text-gold hover:border-gold flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition disabled:opacity-40"
-                  >
-                    {busyId === t.id ? (
-                      <Crown className="h-4 w-4 animate-pulse" />
-                    ) : (
-                      <Plus className="h-5 w-5" />
-                    )}
-                  </button>
-                )}
+                {/* A link rather than an API call: Spotify's API allows
+                    five users per app unless you have 250k+ monthly actives,
+                    so the button could never have worked for most fans. This
+                    opens the Spotify app straight at the track. */}
+                <a
+                  href={t.spotifyUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open ${t.title} in Spotify`}
+                  title="Open in Spotify to save it"
+                  className="border-edge text-hot hover:border-hot flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition"
+                >
+                  <SpotifyMark className="h-4 w-4" />
+                </a>
 
                 <audio
                   id={`a-${t.id}`}
@@ -183,5 +132,13 @@ export default function SavedList({ fan }: { fan: Fan }) {
         )}
       </div>
     </MotrShell>
+  );
+}
+
+function SpotifyMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 14.4a.8.8 0 0 1-1.1.3c-3-1.9-6.8-2.3-11.3-1.3a.8.8 0 1 1-.3-1.5c4.9-1.1 9.1-.6 12.4 1.4.4.2.5.7.3 1.1Zm1.2-2.8a1 1 0 0 1-1.3.3c-3.4-2.1-8.6-2.7-12.6-1.5a1 1 0 0 1-.6-1.9c4.6-1.4 10.3-.7 14.2 1.7.5.3.6.9.3 1.4Zm.1-2.9C14 8.4 7.7 8.2 4.2 9.2a1.2 1.2 0 1 1-.7-2.3C7.6 5.7 14.5 6 19 8.6a1.2 1.2 0 0 1-1.2 2.1Z" />
+    </svg>
   );
 }
