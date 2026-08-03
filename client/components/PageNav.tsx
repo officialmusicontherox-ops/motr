@@ -16,7 +16,7 @@ export default function PageNav() {
         href="/"
         className="border-edge bg-surface text-gold hover:border-gold flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold uppercase tracking-widest transition"
       >
-        <span aria-hidden>←</span>
+        <span aria-hidden>←</span>{" "}
         Discover
       </Link>
 

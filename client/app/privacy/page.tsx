@@ -188,8 +188,8 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             us to correct it.
           </li>
           <li>
-            <span className="text-white">Ask us to delete your account.</span> We&apos;ll remove
-            your profile and sign-in data. Anonymised swipe counts stay in a track&apos;s totals,
+            <span className="text-white">Ask us to delete your account.</span>{" "}
+            We&apos;ll remove your profile and sign-in data. Anonymised swipe counts stay in a track&apos;s totals,
             and financial records we&apos;re required to keep will remain.
           </li>
           <li>

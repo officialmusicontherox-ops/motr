@@ -50,8 +50,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         </p>
         <ul>
           <li>
-            <span className="text-white">What the fee buys:</span> your track is routed to five
-            genre-matched curators who each listen and decide independently. That&apos;s it.
+            <span className="text-white">What the fee buys:</span>{" "}
+            your track is routed to five genre-matched curators who each listen and decide
+            independently. That&apos;s it.
           </li>
           <li>
             <span className="text-white">What it does not buy:</span> a playlist add, a post, a
