@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Inter } from "next/font/google";
 import "./globals.css";
+import ClientErrorReporter from "@/components/ClientErrorReporter";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -50,6 +51,7 @@ export default function RootLayout({
           suppresses that one-level diff only — it does not hide real
           mismatches inside the app. */}
       <body suppressHydrationWarning className="bg-bg text-white flex min-h-full flex-col">
+        <ClientErrorReporter />
         {children}
       </body>
     </html>

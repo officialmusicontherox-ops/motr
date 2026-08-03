@@ -460,3 +460,35 @@ model Swipe {
 
   @@unique([userId, trackId])
 }
+
+enum ErrorSource {
+  SERVER // thrown in a route handler or during render
+  CLIENT // thrown in the browser
+}
+
+/// Things that went wrong, surfaced in the admin dashboard so problems are
+/// noticed here rather than reported by a confused user.
+///
+/// Rows are deduplicated on a fingerprint and counted, because one broken
+/// page can otherwise generate thousands of near-identical entries and hide
+/// everything else.
+model ErrorLog {
+  id String @id @default(cuid())
+
+  source      ErrorSource
+  message     String
+  fingerprint String  @unique
+  count       Int     @default(1)
+
+  path      String?
+  method    String?
+  stack     String?
+  digest    String? // React's error digest, for matching a client report to a server throw
+  userAgent String?
+
+  resolved  Boolean  @default(false)
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  @@index([resolved, lastSeen(sort: Desc)])
+}

@@ -6,6 +6,7 @@ import AdminPayoutQueues from "./AdminPayoutQueues";
 import AdminAudience from "./AdminAudience";
 import AdminCurators from "./AdminCurators";
 import AdminTracks from "./AdminTracks";
+import AdminErrors from "./AdminErrors";
 
 type Stats = {
  counts: {
@@ -232,6 +233,9 @@ export default function AdminDashboard({
  </div>
  )}
  </section>
+
+ <AdminErrors />
+
 
  <section className="mt-10 pb-16">
  <h2 className="text-lg font-semibold">Recent artist notifications</h2>
