@@ -55,10 +55,18 @@ export async function GET(req: NextRequest) {
 
   const user = await prisma.user.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
-  if (user) return back(`curator=${user.id}`);
+  if (user) {
+    // Google proving who they are isn't the same as the account being
+    // allowed in — a suspended curator must not reach their queue or their
+    // payout details.
+    if (user.status === "SUSPENDED" || user.status === "REMOVED") {
+      return back("auth_error=account_inactive");
+    }
+    return back(`curator=${user.id}`);
+  }
 
   // No account: say which situation they're in rather than a dead end.
   const application = await prisma.curatorApplication.findFirst({

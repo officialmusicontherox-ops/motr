@@ -9,6 +9,8 @@ import type { User } from "@/lib/types";
 const STORAGE_KEY = "md_curator_id";
 
 const AUTH_ERRORS: Record<string, string> = {
+  account_inactive:
+    "This account isn't active right now. Reply to any MOTR email and we'll take a look.",
   pending: "Your application is still being reviewed. We'll be in touch.",
   declined: "That application wasn't approved this time.",
   no_account: "No curator account for that Google address yet — apply below.",
@@ -31,9 +33,7 @@ export default function CuratorGate({
 }) {
   const [curator, setCurator] = useState<User | null>(null);
   const [checked, setChecked] = useState(false);
-  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -66,27 +66,6 @@ export default function CuratorGate({
       .finally(() => setChecked(true));
   }, []);
 
-  async function signIn(e: React.FormEvent) {
-    e.preventDefault();
-    setPending(true);
-    setError(null);
-
-    const res = await fetch("/api/curator/signin", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    const data = await res.json();
-    setPending(false);
-
-    if (!res.ok) {
-      setError(data.error ?? "Could not sign you in");
-      return;
-    }
-    localStorage.setItem(STORAGE_KEY, data.user.id);
-    setCurator(data.user);
-  }
-
   if (curator) return <>{children(curator)}</>;
 
   if (!checked) {
@@ -113,8 +92,8 @@ export default function CuratorGate({
       <div>
         <h1 className="font-display text-3xl uppercase tracking-wide">Curator sign in</h1>
         <p className="text-muted mx-auto mt-2 max-w-xs text-sm leading-relaxed">
-          Use the email you applied with. Curator accounts are created when an application is
-          approved.
+          Curator accounts are created when an application is approved. Sign in with Google using
+          that same email.
         </p>
       </div>
 
@@ -126,31 +105,10 @@ export default function CuratorGate({
           <GoogleMark className="h-5 w-5" />
           Continue with Google
         </a>
-
-        <div className="flex items-center gap-3">
-          <span className="bg-edge h-px flex-1" />
-          <span className="motr-label text-[0.6rem]">or</span>
-          <span className="bg-edge h-px flex-1" />
-        </div>
-
-        <form onSubmit={signIn} className="flex flex-col gap-2">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="email you applied with"
-            aria-label="Email you applied with"
-            className="border-edge bg-surface focus:border-gold rounded-full border px-4 py-3 text-center outline-none transition placeholder:text-neutral-600"
-          />
-          <button
-            type="submit"
-            disabled={pending || !email.trim()}
-            className="border-edge hover:border-gold rounded-full border px-4 py-3 text-sm font-semibold transition disabled:opacity-30"
-          >
-            {pending ? "Checking..." : "Continue with email"}
-          </button>
-        </form>
+        <p className="text-muted text-xs leading-relaxed">
+          Sign in with the Google account matching the email on your application. Your earnings and
+          payout details sit behind this, so it&apos;s a real sign-in rather than just an address.
+        </p>
       </div>
 
       {error && (
