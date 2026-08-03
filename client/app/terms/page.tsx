@@ -74,28 +74,26 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: "Refunds",
     body: (
       <>
-        <p>Stated plainly, because this is where services like this usually get vague:</p>
+        <p>
+          Stated plainly, because this is where services like ours usually get vague.
+        </p>
         <ul>
           <li>
-            <span className="text-white">Full refund</span> if we decline your submission, or if it
-            never reaches any curator.
-          </li>
-          <li>
-            <span className="text-white">Full refund</span> if fewer than five curators receive it
-            and you&apos;d rather not proceed — email us.
+            <span className="text-white">Full refund</span> if we decline your submission, or if
+            it never reaches curators.
           </li>
           <li>
             <span className="text-white">No refund</span> once curators have received and
-            considered the track, even if every one of them passes. The work you paid for —
-            genuine consideration — has happened.
+            considered your track, even if all of them pass. Consideration by real people is what
+            the fee pays for, and by then it has happened.
           </li>
         </ul>
         <p className="mt-2">
           Refund requests go to{" "}
           <a href={`mailto:${EMAIL}`} className="text-gold underline underline-offset-4">
             {EMAIL}
-          </a>
-          . We aim to respond within five business days.
+          </a>.
+          We aim to respond within five business days.
         </p>
       </>
     ),
@@ -140,7 +138,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         Swipe honestly. Automated swiping, multiple accounts, or any attempt to push a particular
-        track through the vote undermines the one part of MOTR money can&apos;t touch — we&apos;ll
+        track through the vote undermines the one part of MOTR that money can&apos;t touch — we&apos;ll
         remove accounts that do it and discount their votes.
       </p>
     ),
@@ -173,9 +171,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         You can stop using MOTR whenever you like and ask us to delete your account — see the{" "}
         <Link href="/privacy" className="text-gold underline underline-offset-4">
           Privacy Policy
-        </Link>
-        . We may suspend an account for the abuses described above, or where we&apos;re required
-        to. If we close a curator account without cause, any verified earnings you&apos;ve already
+        </Link>.
+        We may suspend an account for the abuses described above, or where the law requires
+        it. If we close a curator account without cause, any verified earnings you&apos;ve already
         cleared still get paid.
       </p>
     ),

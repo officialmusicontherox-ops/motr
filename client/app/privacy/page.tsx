@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 const EMAIL = "officialmusicontherox@gmail.com";
-const UPDATED = "August 2, 2026";
+const UPDATED = "August 3, 2026";
 
 /**
  * Written around what the app actually stores rather than a generic template —
@@ -24,9 +24,8 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         This policy covers the MOTR app and the pages under musicontherox.com. Questions go to{" "}
         <a href={`mailto:${EMAIL}`} className="text-gold underline underline-offset-4">
           {EMAIL}
-        </a>
-        .
-      </p>
+        </a>.
+              </p>
     ),
   },
   {
@@ -39,19 +38,15 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           <li>Which tracks you swiped on, which direction, and when.</li>
         </ul>
 
-        <p className="mt-4 font-semibold text-white">If you sign in with Spotify</p>
+        <p className="mt-4 font-semibold text-white">If you sign in with Google</p>
         <ul>
-          <li>Your Spotify user ID and display name.</li>
-          <li>
-            Access and refresh tokens, so we can add a track to your library when you tap the{" "}
-            <span className="text-gold">+</span> button. We ask only for the permissions needed to
-            do that.
-          </li>
+          <li>Your email address and the name on your Google account.</li>
           <li>Your swipe history and saved tracks.</li>
         </ul>
         <p className="mt-2">
-          We do not read your playlists, your listening history, or anything else in your Spotify
-          account, and we never post to it without you tapping the button.
+          Signing in is only so your saves survive a cleared browser and follow you to another
+          device. We ask Google for nothing beyond your name and email, and we never post anywhere
+          on your behalf.
         </p>
 
         <p className="mt-4 font-semibold text-white">If you apply to curate</p>
@@ -93,7 +88,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <ul>
         <li>To run the feed and make sure you never see the same track twice.</li>
         <li>To count swipes and decide which tracks break through.</li>
-        <li>To add tracks to your Spotify library when you ask us to.</li>
+        <li>To keep your saves attached to you rather than to one browser.</li>
         <li>To review curator applications and route tracks by genre.</li>
         <li>To take artist payments and pay curators what they&apos;ve earned.</li>
         <li>
@@ -121,7 +116,8 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <p>Only the services needed to run MOTR, and only what each one needs:</p>
         <ul>
           <li>
-            <span className="text-white">Spotify</span> — sign-in and library saves.
+            <span className="text-white">Google</span> — sign-in. We receive your name and email;
+            Google is told nothing about what you listen to.
           </li>
           <li>
             <span className="text-white">Stripe</span> — artist payments. Stripe handles card
@@ -137,9 +133,16 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             <span className="text-white">Neon and Vercel</span> — database and hosting.
           </li>
           <li>
-            <span className="text-white">Apple (iTunes Search)</span> — track previews and
-            artwork. This is a lookup we make, not a handover of your data.
+            <span className="text-white">Apple and Deezer</span> — track previews and artwork.
+            These are lookups we make about music, not a handover of anything about you.
           </li>
+        </ul>
+        <p className="mt-2">
+          The Spotify buttons on your saved tracks are ordinary links. Tapping one opens Spotify
+          with that song; nothing about you is sent to them, and MOTR has no access to your
+          Spotify account.
+        </p>
+        <ul>
         </ul>
         <p className="mt-2">
           We may also disclose information if the law requires it, or to protect the rights and
@@ -153,7 +156,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         We use a small number of first-party cookies to keep you signed in and to hold your
-        session while you sign in with Spotify or Google. There are no advertising or
+        session while you sign in with Google. There are no advertising or
         cross-site tracking cookies on MOTR. Blocking cookies will break sign-in.
       </p>
     ),
@@ -180,19 +183,6 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <>
         <ul>
-          <li>
-            <span className="text-white">Disconnect Spotify</span> at any time from{" "}
-            <a
-              href="https://www.spotify.com/account/apps/"
-              target="_blank"
-              rel="noreferrer"
-              className="text-gold underline underline-offset-4"
-            >
-              your Spotify apps page
-            </a>
-            . We lose the ability to save tracks for you; tracks already in your library stay
-            there.
-          </li>
           <li>
             <span className="text-white">Ask for a copy</span> of what we hold about you, or ask
             us to correct it.
