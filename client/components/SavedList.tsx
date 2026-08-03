@@ -75,8 +75,8 @@ export default function SavedList({ fan }: { fan: Fan }) {
       <div className="w-full max-w-sm md:max-w-2xl">
         <h1 className="font-display text-3xl uppercase tracking-wide">Saved</h1>
         <p className="text-muted mt-1 text-sm">
-          Tracks you backed. Tap <span className="text-gold">+</span> to add one to your Spotify
-          library.
+          Tracks you backed. Connect Spotify to push any of them into your own library with{" "}
+          <span className="text-gold">+</span>.
         </p>
 
         {notice && (

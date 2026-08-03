@@ -148,16 +148,12 @@ export default function FanGate({
       )}
 
       <div className="relative mt-8 flex w-full max-w-xs flex-col gap-3">
-        <a
-          href="/api/auth/spotify/login"
-          className="bg-hot text-bg flex items-center justify-center gap-2.5 rounded-full px-5 py-3.5 font-bold transition hover:brightness-110"
-        >
-          <SpotifyMark className="h-5 w-5" />
-          Continue with Spotify
-        </a>
-
-        {/* Carries any anonymous swiping into the new account, so signing in
-            never costs someone the saves they already made. */}
+        {/* Google leads while the Spotify app is capped at 25 hand-added
+            accounts in development mode. Spotify was the top button and
+            failed for every visitor who wasn't on that list — a broken first
+            impression for the majority. It's offered from Saved instead,
+            where someone opts into it for library saves and a failure is
+            explained rather than fatal. */}
         <a
           href={`/api/auth/google/login?as=fan${anonId ? `&merge=${anonId}` : ""}`}
           className="flex items-center justify-center gap-2.5 rounded-full bg-white px-5 py-3.5 font-bold text-neutral-900 transition hover:brightness-95"
@@ -176,7 +172,7 @@ export default function FanGate({
       </div>
 
       <p className="text-muted relative mt-3 max-w-xs text-xs leading-relaxed">
-        Either sign-in keeps your saves across devices. Spotify also lets you push a track straight
+        Signing in keeps your saves across devices. You can connect Spotify later to push tracks
         into your own library.
       </p>
 
