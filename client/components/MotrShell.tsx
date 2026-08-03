@@ -6,12 +6,13 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
-import { Bookmark, Crown, Menu, Waveform } from "./icons";
+import { Bookmark, Crown, Menu } from "./icons";
 
+// Only what a fan can actually use. Curating needs an approved account, so
+// it sits in the menu rather than taking a quarter of the main navigation.
 const TABS = [
   { href: "/", label: "Discover", Icon: Crown },
   { href: "/saved", label: "Saved", Icon: Bookmark },
-  { href: "/curate", label: "Curate", Icon: Waveform },
 ];
 
 /**

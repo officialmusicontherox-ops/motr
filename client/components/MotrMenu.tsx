@@ -9,6 +9,7 @@ import InstallApp from "./InstallApp";
 const LINKS = [
   { href: "/artists", label: "Submit your song", note: "Free — paste a Spotify link" },
   { href: "/faq", label: "How it works", note: "The path from swipe to playlist" },
+  { href: "/curate", label: "Curator sign in", note: "Your queue and earnings" },
   { href: "/apply", label: "Apply to curate", note: "Get paid per share" },
   { href: "/contact", label: "Contact", note: "Questions, press, support" },
   { href: "/privacy", label: "Privacy", note: "What we collect and why" },
