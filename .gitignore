@@ -5,3 +5,7 @@ node_modules/
 .env
 .env.*
 !.env.example
+
+# Database exports contain emails and password hashes — never commit one.
+motr-backup-*.json
+*.sql
