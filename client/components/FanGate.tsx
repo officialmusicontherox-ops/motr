@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Crown } from "./icons";
-import { installAudioUnlock, primeAudio } from "@/lib/audioUnlock";
 import type { Fan } from "@/lib/types";
 
 const STORAGE_KEY = "md_fan_id";
@@ -37,8 +36,6 @@ export default function FanGate({
   const [pending, setPending] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
   const [anonId, setAnonId] = useState<string | null>(null);
-
-  useEffect(() => installAudioUnlock(), []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -88,9 +85,6 @@ export default function FanGate({
   }, []);
 
   async function swipeAnonymously() {
-    // This click is the gesture the browser was waiting for; spend it now so
-    // the first card plays on its own.
-    primeAudio();
     setPending(true);
     setError(null);
     const res = await fetch("/api/fans", {
