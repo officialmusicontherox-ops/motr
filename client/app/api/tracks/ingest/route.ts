@@ -46,8 +46,28 @@ export async function POST(req: NextRequest) {
       };
     } catch (e) {
       if (e instanceof TrackLookupError) {
-        // Tell the operator: the artist may be right and the track may need
-        // adding by hand, which nobody learns from a 422 alone.
+        // Keep the attempt. Refusing is right, but the artist is often
+        // correct and the track just needs adding by hand — which nothing
+        // recorded, so it survived only as an email that could be missed.
+        const url = String(body.spotifyUrl ?? "");
+        if (url && artistEmail) {
+          await prisma.refusedSubmission
+            .upsert({
+              where: {
+                spotifyUrl_artistEmail: { spotifyUrl: url, artistEmail: String(artistEmail) },
+              },
+              // A retry bumps the count rather than adding another row.
+              update: { attempts: { increment: 1 }, reason: e.message, status: "PENDING" },
+              create: {
+                spotifyUrl: url,
+                artistEmail: String(artistEmail),
+                genre: genre ?? null,
+                reason: e.message,
+              },
+            })
+            .catch(() => {});
+        }
+
         if (process.env.EMAIL_REPLY_TO && artistEmail) {
           await sendEmail(
             process.env.EMAIL_REPLY_TO,

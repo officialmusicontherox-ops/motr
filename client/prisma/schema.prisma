@@ -521,3 +521,29 @@ model AdminLoginAttempt {
   @@index([email, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
 }
+
+enum RefusedStatus {
+  PENDING   // waiting on you
+  ADDED     // added by hand, track now exists
+  DISMISSED // not going in
+}
+
+/// A submission the lookup wouldn't accept.
+///
+/// Refusing is right — we won't attach audio we can't confirm is the
+/// artist's — but the artist is often correct and the track simply needs
+/// adding by hand. Without a record, that only survived as an email.
+model RefusedSubmission {
+  id          String        @id @default(cuid())
+  spotifyUrl  String
+  artistEmail String
+  genre       String?
+  reason      String
+  attempts    Int           @default(1)
+  status      RefusedStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([spotifyUrl, artistEmail])
+  @@index([status, createdAt(sort: Desc)])
+}

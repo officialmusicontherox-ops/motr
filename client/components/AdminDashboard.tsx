@@ -10,6 +10,7 @@ import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
 import AdminFeedHealth from "./AdminFeedHealth";
 import AdminReports from "./AdminReports";
+import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
 import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 
@@ -181,6 +182,10 @@ export default function AdminDashboard({
 
 
  <AdminReviewQueues onChanged={loadStats} />
+
+
+
+ <AdminRefused onChanged={loadStats} />
  <AdminPayoutQueues onChanged={loadStats} />
 
  <AdminAudience />
