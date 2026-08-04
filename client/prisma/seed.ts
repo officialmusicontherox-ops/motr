@@ -53,7 +53,10 @@ async function main() {
 
   console.log(`Seeded ${curators.length} users and ${tracks.length} tracks.`);
 
-  const adminEmail = "jerrettfranklinmusic@gmail.com";
+  // Configurable, and defaulting to the address the live dashboard actually
+  // uses. It was hardcoded to a personal address, which meant seeding against
+  // production would have quietly created a second admin nobody expected.
+  const adminEmail = process.env.ADMIN_EMAIL ?? "officialmusicontherox@gmail.com";
   const existingAdmin = await prisma.admin.findUnique({ where: { email: adminEmail } });
   if (!existingAdmin) {
     const generatedPassword = crypto.randomBytes(9).toString("base64url");
