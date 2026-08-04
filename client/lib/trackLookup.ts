@@ -10,6 +10,13 @@
  *   - iTunes Search   -> the 30s preview audio, artist, album
  *   - Deezer Search   -> fallback preview when Apple doesn't carry the track
  *
+ * WARNING about the Deezer fallback: its preview URLs are signed and expire
+ * after a while. Storing one means the track plays for a day and then goes
+ * silent — 58 of them died overnight once, taking 42% of the feed with them
+ * and looking for all the world like a player bug. Anything saved from
+ * Deezer must be re-resolved against iTunes before it is written, or
+ * re-checked on a schedule. Prefer iTunes for anything persisted.
+ *
  * The two preview sources matter: not everything on Spotify is on Apple
  * Music, and iTunes also rate-limits to 403 under load. Either would reject a
  * legitimate submission outright, so we try both before giving up.
