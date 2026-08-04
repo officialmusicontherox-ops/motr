@@ -72,3 +72,64 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Printing a report.
+   "Save as PDF" is the browser's own print dialog rather than a bundled PDF
+   library: every browser and phone already has it, it needs no dependency,
+   and it can't fail in a way we'd have to debug. These rules make what comes
+   out a clean report instead of a screenshot of the dashboard.
+--------------------------------------------------------------------------- */
+@media print {
+  /* Everything hides, then the report and its ancestors are shown again. */
+  body * {
+    visibility: hidden;
+  }
+  #motr-report,
+  #motr-report * {
+    visibility: visible;
+  }
+  #motr-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  /* Ink on paper: the dark theme would burn a cartridge and read badly. */
+  #motr-report,
+  #motr-report * {
+    background: #fff !important;
+    color: #111 !important;
+    border-color: #ccc !important;
+  }
+  #motr-report .text-gold,
+  #motr-report .text-muted {
+    color: #444 !important;
+  }
+  /* Keep the bars — they survive as grey and still carry the shape. */
+  #motr-report svg rect {
+    fill: #6b6b6b !important;
+  }
+
+  #motr-report table {
+    page-break-inside: auto;
+  }
+  #motr-report tr {
+    page-break-inside: avoid;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
+
+.print-only {
+  display: none;
+}

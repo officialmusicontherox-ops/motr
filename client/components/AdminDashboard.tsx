@@ -9,6 +9,7 @@ import AdminCurators from "./AdminCurators";
 import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
 import AdminFeedHealth from "./AdminFeedHealth";
+import AdminReports from "./AdminReports";
 import AdminSecurity from "./AdminSecurity";
 import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 
@@ -175,6 +176,9 @@ export default function AdminDashboard({
  </Alert>
  )}
  </div>
+
+ <AdminReports />
+
 
  <AdminReviewQueues onChanged={loadStats} />
  <AdminPayoutQueues onChanged={loadStats} />
