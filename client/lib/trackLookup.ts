@@ -36,6 +36,9 @@ export type ResolvedTrack = {
 
 export class TrackLookupError extends Error {}
 
+/** Where an artist should write when an automatic lookup can't be trusted. */
+const CONTACT_EMAIL = process.env.EMAIL_REPLY_TO ?? "officialmusicontherox@gmail.com";
+
 type Oembed = { title: string; thumbnail_url?: string };
 
 /**
@@ -212,7 +215,8 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
   }
   if (!spotifyArtist) {
     throw new TrackLookupError(
-      "We couldn't read the artist from that Spotify link. Check it's a public track link and try again."
+      `We couldn't read the artist from that Spotify link. Check it's a public track link — and ` +
+        `if it is, email it to ${CONTACT_EMAIL} and we'll add it by hand.`
     );
   }
 
@@ -249,9 +253,10 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
   // Something was found, but by someone else. Refusing is the right answer:
   // serving it would put another artist's recording under this one's name.
   throw new TrackLookupError(
-    `We found "${displayTitle}" but couldn't confirm a preview that's actually ${spotifyArtist}'s ` +
-      `recording, so we haven't added it — we won't attach another artist's audio to your track. ` +
-      `This usually means the release isn't on Apple Music or Deezer yet. Email us and we'll add it by hand.`
+    `We found "${displayTitle}" but couldn't confirm a preview that is actually ${spotifyArtist}'s ` +
+      `recording — so we haven't added it, because we won't put another artist's audio under your ` +
+      `name. This usually means the release isn't on Apple Music or Deezer yet. ` +
+      `If the Spotify link is right, email it to ${CONTACT_EMAIL} and we'll add it by hand.`
   );
 }
 

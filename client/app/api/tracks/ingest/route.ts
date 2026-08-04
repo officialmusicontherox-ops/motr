@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { newSubmissionEmail, sendEmail } from "@/lib/email";
+import { newSubmissionEmail, refusedSubmissionEmail, sendEmail } from "@/lib/email";
 import { TrackLookupError, resolveSpotifyTrack } from "@/lib/trackLookup";
 import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
 
@@ -46,6 +46,18 @@ export async function POST(req: NextRequest) {
       };
     } catch (e) {
       if (e instanceof TrackLookupError) {
+        // Tell the operator: the artist may be right and the track may need
+        // adding by hand, which nobody learns from a 422 alone.
+        if (process.env.EMAIL_REPLY_TO && artistEmail) {
+          await sendEmail(
+            process.env.EMAIL_REPLY_TO,
+            refusedSubmissionEmail({
+              spotifyUrl: String(body.spotifyUrl ?? ""),
+              artistEmail: String(artistEmail),
+              reason: e.message,
+            })
+          );
+        }
         return NextResponse.json({ error: e.message }, { status: 422 });
       }
       return NextResponse.json(

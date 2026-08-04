@@ -140,6 +140,32 @@ export function newSubmissionEmail(params: {
   };
 }
 
+/**
+ * A submission the lookup refused.
+ *
+ * Refusals are the cases most worth seeing: the artist did everything right
+ * and we still turned them away, so someone has to add the track by hand.
+ * Without this the only signal is whether they bother to write in.
+ */
+export function refusedSubmissionEmail(params: {
+  spotifyUrl: string;
+  artistEmail: string;
+  reason: string;
+}) {
+  const { spotifyUrl, artistEmail, reason } = params;
+  return {
+    subject: "Submission needs adding by hand",
+    html: shell(
+      "We couldn't verify a submission",
+      `<p style="margin:0 0 12px">Someone submitted a track and we refused it rather than risk attaching the wrong audio.</p>
+       <p style="margin:0 0 12px;color:#a3a3a3">From: ${artistEmail}<br/>Link: <a href="${spotifyUrl}" style="color:#dcb55f">${spotifyUrl}</a></p>
+       <p style="margin:0 0 12px;color:#a3a3a3">Reason: ${reason}</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">If the link is right, add it from the dashboard — Tracks, then Replace audio, and paste this Spotify link.</p>`,
+      { label: "Open the dashboard", url: `${APP_URL}/admin` }
+    ),
+  };
+}
+
 export async function sendEmail(to: string, template: { subject: string; html: string }) {
   return send(to, template.subject, template.html);
 }

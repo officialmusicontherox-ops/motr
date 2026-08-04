@@ -123,7 +123,11 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
     }
     setFixing(null);
     setLinkDraft("");
-    setFlash(`Audio replaced for "${t.title}".`);
+    setFlash(
+      data.via === "spotify"
+        ? `Re-read from Spotify: now "${data.track.title}" by ${data.track.artistName}.`
+        : `Audio replaced for "${t.title}".`
+    );
     load();
   }
 
@@ -338,7 +342,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                   }}
                   className="shrink-0 rounded-full border border-edge px-3 py-1.5 text-xs text-muted transition hover:border-gold hover:text-gold"
                 >
-                  {fixing === t.id ? "Cancel" : "Replace audio"}
+                  {fixing === t.id ? "Cancel" : "Fix track"}
                 </button>
 
                 {t.status === "REJECTED" ? (
@@ -361,12 +365,18 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                 {fixing === t.id && (
                   <div className="w-full border-t border-edge pt-3">
                     <label className="block text-xs text-muted">
-                      Paste an Apple Music link or a direct audio link. We&apos;ll play it before
-                      saving, so a bad link can&apos;t get through.
+                      <strong className="text-white">Spotify link</strong> — fixes a track
+                      matched to the wrong recording: re-reads title, artist, artwork and
+                      audio, and refuses if it can&apos;t confirm they belong together.
+                      <br />
+                      <strong className="text-white">Apple Music or iTunes link</strong>, or a
+                      direct audio link — replaces the audio only.
+                      <br />
+                      Whatever you paste is played before it&apos;s saved.
                       <input
                         value={linkDraft}
                         onChange={(e) => setLinkDraft(e.target.value)}
-                        placeholder="https://music.apple.com/us/album/…?i=1234567890"
+                        placeholder="Spotify, Apple Music or iTunes link"
                         className="mt-2 w-full rounded-lg border border-edge bg-bg px-3 py-2 text-sm outline-none transition focus:border-gold placeholder:text-neutral-600"
                       />
                     </label>

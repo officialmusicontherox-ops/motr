@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
 import { GENRES } from "@/lib/genres";
+import { TrackLookupError, resolveSpotifyTrack } from "@/lib/trackLookup";
+import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
 
 /**
  * Every track on the platform, so a bad one can be pulled quickly — wrong
@@ -157,12 +159,18 @@ export async function POST(req: NextRequest) {
   }
 
   /**
-   * Set the preview by hand.
+   * Repoint a track at the right audio by hand.
    *
-   * Accepts either a direct audio link or an Apple Music / iTunes page URL,
-   * from which the track id is pulled and the real preview looked up. The
-   * link is played before it's saved — storing one that doesn't work would
-   * reproduce exactly the failure this exists to fix.
+   * Three kinds of link are accepted:
+   *  - a **Spotify** track link, which re-resolves everything — title,
+   *    artist, artwork and audio — through the same verified path a
+   *    submission takes. This is the one to use when a track was matched to
+   *    the wrong recording.
+   *  - an **Apple Music** page link, from which the preview is looked up.
+   *  - a **direct audio** link.
+   *
+   * Whatever is given, it is played before being stored: saving a link that
+   * doesn't work would reproduce the failure this exists to fix.
    */
   if (action === "SET_PREVIEW") {
     const raw = typeof previewUrl === "string" ? previewUrl.trim() : "";
@@ -170,11 +178,50 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "trackId and a link are required" }, { status: 400 });
     }
 
+    // Spotify link: re-resolve the whole track, verified against its artist.
+    const spotifyId = parseSpotifyTrackId(raw);
+    if (spotifyId) {
+      try {
+        const r = await resolveSpotifyTrack(spotifyId);
+        const updated = await prisma.track.update({
+          where: { id: trackId },
+          data: {
+            externalId: spotifyId,
+            title: r.title,
+            artistName: r.artistName,
+            albumName: r.albumName,
+            artworkUrl: r.artworkUrl,
+            previewUrl: r.previewUrl,
+            durationMs: r.durationMs,
+          },
+        });
+        return NextResponse.json({
+          track: { id: updated.id, title: updated.title, artistName: updated.artistName },
+          via: "spotify",
+        });
+      } catch (e) {
+        return NextResponse.json(
+          {
+            error:
+              e instanceof TrackLookupError
+                ? e.message
+                : "Couldn't resolve that Spotify link.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     let resolved = raw;
 
-    // An Apple Music link carries the track id in ?i=, or as the last path
-    // segment on a /song/ URL.
-    const appleId = raw.match(/[?&]i=(\d+)/)?.[1] ?? raw.match(/\/song\/[^/]*\/(\d+)/)?.[1];
+    // Apple carries the track id in ?i= on an album URL, or as the last path
+    // segment of a /song/ URL. Both music.apple.com and the older
+    // itunes.apple.com form use the same shapes. A bare id is accepted too,
+    // since that is what people paste when copying from a search result.
+    const appleId =
+      raw.match(/[?&]i=(\d+)/)?.[1] ??
+      raw.match(/\/song\/[^/]*\/(\d+)/)?.[1] ??
+      (/^\d{6,}$/.test(raw) ? raw : undefined);
     if (appleId) {
       const look = await fetch(`https://itunes.apple.com/lookup?id=${appleId}`);
       const data = look.ok ? await look.json() : null;
