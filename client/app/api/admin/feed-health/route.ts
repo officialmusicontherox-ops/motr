@@ -59,8 +59,15 @@ export async function POST(req: NextRequest) {
 /**
  * Re-points a dead track at a working preview.
  *
- * iTunes only — its URLs are stable, where Deezer's are signed and expire.
- * That distinction is the whole reason this endpoint exists.
+ * Tries the exact source first. Every track carries the id it came from in
+ * externalId (`deezer-1234`), and asking a provider for a known id returns
+ * the right recording every time — where a title-and-artist search can
+ * quietly match a live version, a remaster, or a different song entirely.
+ *
+ * Deezer previews are signed and expire, which is what broke the feed; but
+ * a *freshly fetched* one works, so the source is fine as long as we resolve
+ * it from the id rather than storing the link. Falling back to an iTunes
+ * search only when there's no usable id.
  */
 export async function PATCH(req: NextRequest) {
   if (!(await getAdminSession())) {
@@ -74,6 +81,35 @@ export async function PATCH(req: NextRequest) {
 
   const track = await prisma.track.findUnique({ where: { id: trackId } });
   if (!track) return NextResponse.json({ error: "Track not found" }, { status: 404 });
+
+  // Exact match by id where we have one.
+  const deezerId = track.externalId.startsWith("deezer-")
+    ? track.externalId.slice("deezer-".length)
+    : null;
+
+  if (deezerId) {
+    try {
+      const res = await fetch(`https://api.deezer.com/track/${deezerId}`);
+      if (res.ok) {
+        const d = (await res.json()) as { preview?: string; duration?: number };
+        if (d.preview) {
+          const updated = await prisma.track.update({
+            where: { id: trackId },
+            data: {
+              previewUrl: d.preview,
+              durationMs: d.duration ? d.duration * 1000 : track.durationMs,
+            },
+          });
+          return NextResponse.json({
+            track: { id: updated.id, title: updated.title },
+            via: "deezer",
+          });
+        }
+      }
+    } catch {
+      // Fall through to the search below.
+    }
+  }
 
   // Featured-artist tails hurt matching, so search on the plain title.
   const clean = track.title.replace(/\s*[([].*?[)\]]/g, "").trim();
@@ -99,5 +135,5 @@ export async function PATCH(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ track: { id: updated.id, title: updated.title } });
+  return NextResponse.json({ track: { id: updated.id, title: updated.title }, via: "itunes" });
 }
