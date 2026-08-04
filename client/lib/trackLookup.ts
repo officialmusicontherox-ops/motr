@@ -38,6 +38,80 @@ export class TrackLookupError extends Error {}
 
 type Oembed = { title: string; thumbnail_url?: string };
 
+/**
+ * The artist behind a Spotify track.
+ *
+ * oEmbed returns a title and nothing else — no artist — which is why the
+ * preview lookup used to search on title alone and could attach a different
+ * artist's recording to someone's submission. The track page carries the
+ * real credits in its meta tags.
+ */
+export async function fetchSpotifyArtist(trackId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://open.spotify.com/track/${trackId}`, {
+      headers: {
+        // Counter-intuitive but load-bearing: Spotify serves the rendered
+        // page with its meta tags to crawlers, and an empty JavaScript shell
+        // to anything that looks like a browser. Identify honestly as a bot.
+        "user-agent": "MOTR/1.0 (+https://app.musicontherox.com)",
+        accept: "*/*",
+      },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const musician = html.match(
+      /<meta name="music:musician_description" content="([^"]+)"/
+    )?.[1];
+    if (musician) return decodeEntities(musician);
+
+    // "Artist · Title · Song · 2024"
+    const desc = html.match(/<meta property="og:description" content="([^"]+)"/)?.[1];
+    const first = desc?.split("·")[0]?.trim();
+    return first ? decodeEntities(first) : null;
+  } catch {
+    return null;
+  }
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&#0?39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+/** Loose comparison: accents, case, punctuation and "feat." all vary by source. */
+function normaliseName(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(feat|ft|featuring|with|and)\b/g, "&")
+    .replace(/[^a-z0-9&]+/g, " ")
+    .trim();
+}
+
+/**
+ * Does this candidate credit the artist we're looking for?
+ *
+ * Only the lead artist has to match. Sources disagree constantly about
+ * collaborators — Spotify's "Luis Martelo, Badoxa" is Apple's "Luis Martelo
+ * & Badoxa" or just "Luis Martelo" — but they agree on who leads.
+ */
+export function artistMatches(expected: string, candidate: string): boolean {
+  const lead = normaliseName(expected.split(/[,&]/)[0]);
+  const candidateLead = normaliseName(candidate.split(/[,&]/)[0]);
+  if (!lead || !candidateLead) return false;
+
+  // Leads agree, or the candidate credits our lead among its artists.
+  // Deliberately not the reverse: "Tribe" must not match "A Tribe Called
+  // Quest", or a short name would sweep up unrelated acts.
+  return lead === candidateLead || normaliseName(candidate).includes(lead);
+}
+
 export async function fetchSpotifyOembed(trackId: string): Promise<Oembed> {
   const res = await fetch(
     `https://open.spotify.com/oembed?url=${encodeURIComponent(
@@ -116,22 +190,43 @@ function upscaleArtwork(url: string | undefined): string | null {
   return url.replace(/\/\d+x\d+bb\.(jpg|png)$/, "/600x600bb.$1");
 }
 
+/**
+ * Turns a pasted Spotify link into something playable.
+ *
+ * The rule that matters: **we never attach audio we can't confirm belongs to
+ * the artist who submitted it.** An earlier version searched on title alone
+ * and stored whichever artist iTunes returned, so a track called "Sodade"
+ * came back as Cesária Evora's recording under the submitter's own artwork.
+ * An artist seeing their picture over someone else's song is the worst thing
+ * this app can do, so a lookup that can't be verified is refused outright.
+ */
 export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrack> {
-  const oembed = await fetchSpotifyOembed(trackId);
+  const [oembed, spotifyArtist] = await Promise.all([
+    fetchSpotifyOembed(trackId),
+    fetchSpotifyArtist(trackId),
+  ]);
+
   const displayTitle = oembed.title?.trim();
   if (!displayTitle) {
     throw new TrackLookupError("That Spotify link didn't return a track title.");
   }
+  if (!spotifyArtist) {
+    throw new TrackLookupError(
+      "We couldn't read the artist from that Spotify link. Check it's a public track link and try again."
+    );
+  }
 
-  const term = searchableTitle(displayTitle);
+  const title = searchableTitle(displayTitle);
+  // Artist *and* title. Title alone is what caused the mismatches.
+  const term = `${spotifyArtist.split(/[,&]/)[0].trim()} ${title}`;
 
   const itunes = await searchItunes(term);
-  if (itunes?.previewUrl) {
+  if (itunes?.previewUrl && artistMatches(spotifyArtist, itunes.artistName)) {
     return {
       title: displayTitle,
-      artistName: itunes.artistName,
+      // Spotify's credits, not the catalogue's — this is the artist's own link.
+      artistName: spotifyArtist,
       albumName: itunes.collectionName ?? null,
-      // Prefer Spotify's art — it matches the exact release that was linked.
       artworkUrl: oembed.thumbnail_url ?? upscaleArtwork(itunes.artworkUrl100),
       previewUrl: itunes.previewUrl,
       durationMs: itunes.trackTimeMillis ?? null,
@@ -139,10 +234,10 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
   }
 
   const deezer = await searchDeezer(term);
-  if (deezer?.preview) {
+  if (deezer?.preview && artistMatches(spotifyArtist, deezer.artist.name)) {
     return {
       title: displayTitle,
-      artistName: deezer.artist.name,
+      artistName: spotifyArtist,
       albumName: deezer.album?.title ?? null,
       artworkUrl:
         oembed.thumbnail_url ?? deezer.album?.cover_big ?? deezer.album?.cover_medium ?? null,
@@ -151,9 +246,12 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
     };
   }
 
+  // Something was found, but by someone else. Refusing is the right answer:
+  // serving it would put another artist's recording under this one's name.
   throw new TrackLookupError(
-    `We couldn't find a playable 30-second preview for "${displayTitle}". That usually means the ` +
-      `release is too new or isn't on Apple Music or Deezer yet. Email us and we'll add it by hand.`
+    `We found "${displayTitle}" but couldn't confirm a preview that's actually ${spotifyArtist}'s ` +
+      `recording, so we haven't added it — we won't attach another artist's audio to your track. ` +
+      `This usually means the release isn't on Apple Music or Deezer yet. Email us and we'll add it by hand.`
   );
 }
 
