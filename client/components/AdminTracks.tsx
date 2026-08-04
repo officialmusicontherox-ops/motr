@@ -22,6 +22,8 @@ type Track = {
   submittedBy: { name: string; email: string } | null;
   swipes: number;
   curatorsAssigned: number;
+  previewSource: "iTunes" | "Deezer" | "Other";
+  previewExpires: boolean;
   avgListenMs: number | null;
   measuredSwipes: number;
   convictionRate: number | null;
@@ -53,6 +55,8 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
   const [counts, setCounts] = useState<Counts | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<Track | null>(null);
+  const [fixing, setFixing] = useState<string | null>(null);
+  const [linkDraft, setLinkDraft] = useState("");
   const [flash, setFlash] = useState<string | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -100,6 +104,26 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
     });
     setBusy(null);
     setFlash(`"${t.title}" moved to ${genre}. It'll route to ${genre} curators from now on.`);
+    load();
+  }
+
+  async function setPreview(t: Track) {
+    if (!linkDraft.trim()) return;
+    setBusy(t.id);
+    const res = await fetch("/api/admin/tracks", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trackId: t.id, action: "SET_PREVIEW", previewUrl: linkDraft.trim() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(null);
+    if (!res.ok) {
+      setFlash(data.error ?? "That link didn't work.");
+      return;
+    }
+    setFixing(null);
+    setLinkDraft("");
+    setFlash(`Audio replaced for "${t.title}".`);
     load();
   }
 
@@ -224,7 +248,24 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{t.title}</p>
-                  <p className="truncate text-sm text-muted">{t.artistName}</p>
+                  <p className="flex flex-wrap items-center gap-2 truncate text-sm text-muted">
+                    {t.artistName}
+                    <span
+                      title={
+                        t.previewExpires
+                          ? "Deezer links expire after about a day — worth replacing with an iTunes one"
+                          : "iTunes links don't expire"
+                      }
+                      className={`rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold ${
+                        t.previewExpires
+                          ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+                          : "border-edge text-muted"
+                      }`}
+                    >
+                      {t.previewSource}
+                      {t.previewExpires && " · expires"}
+                    </span>
+                  </p>
                   <label className="mt-1 flex items-center gap-1.5 text-xs text-muted">
                     <span className="sr-only">Genre for {t.title}</span>
                     <select
@@ -290,6 +331,16 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                   )}
                 </div>
 
+                <button
+                  onClick={() => {
+                    setFixing(fixing === t.id ? null : t.id);
+                    setLinkDraft("");
+                  }}
+                  className="shrink-0 rounded-full border border-edge px-3 py-1.5 text-xs text-muted transition hover:border-gold hover:text-gold"
+                >
+                  {fixing === t.id ? "Cancel" : "Replace audio"}
+                </button>
+
                 {t.status === "REJECTED" ? (
                   <button
                     disabled={busy === t.id}
@@ -306,6 +357,27 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                   >
                     Pull
                   </button>
+                )}
+                {fixing === t.id && (
+                  <div className="w-full border-t border-edge pt-3">
+                    <label className="block text-xs text-muted">
+                      Paste an Apple Music link or a direct audio link. We&apos;ll play it before
+                      saving, so a bad link can&apos;t get through.
+                      <input
+                        value={linkDraft}
+                        onChange={(e) => setLinkDraft(e.target.value)}
+                        placeholder="https://music.apple.com/us/album/…?i=1234567890"
+                        className="mt-2 w-full rounded-lg border border-edge bg-bg px-3 py-2 text-sm outline-none transition focus:border-gold placeholder:text-neutral-600"
+                      />
+                    </label>
+                    <button
+                      onClick={() => setPreview(t)}
+                      disabled={busy === t.id || !linkDraft.trim()}
+                      className="mt-2 rounded-full bg-gold px-4 py-1.5 text-sm font-bold text-bg disabled:opacity-40"
+                    >
+                      {busy === t.id ? "Checking..." : "Use this audio"}
+                    </button>
+                  </div>
                 )}
               </li>
             );

@@ -110,6 +110,14 @@ export async function GET(req: NextRequest) {
       submittedBy: t.artist ? { name: t.artist.name, email: t.artist.email } : null,
       swipes: t._count.fanSwipes,
       curatorsAssigned: t._count.assignments,
+      previewSource: t.previewUrl.includes("apple")
+        ? "iTunes"
+        : t.previewUrl.includes("dzcdn")
+          ? "Deezer"
+          : "Other",
+      // Deezer signs its links and they expire within about a day; Apple's
+      // are permanent. Worth flagging, since a track can look fine today.
+      previewExpires: t.previewUrl.includes("dzcdn"),
 
       // Null until enough swipes carry a measured listen time.
       avgListenMs: Math.round(avgListen.get(t.id) ?? 0) || null,
@@ -135,7 +143,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { trackId, action, note, genre } = await req.json().catch(() => ({}));
+  const { trackId, action, note, genre, previewUrl } = await req.json().catch(() => ({}));
 
   // Correcting a genre matters as much as removing a track: routing is by
   // genre, so a country song filed under R&B reaches five curators who
@@ -146,6 +154,59 @@ export async function POST(req: NextRequest) {
     }
     const updated = await prisma.track.update({ where: { id: trackId }, data: { genre } });
     return NextResponse.json({ track: { id: updated.id, genre: updated.genre } });
+  }
+
+  /**
+   * Set the preview by hand.
+   *
+   * Accepts either a direct audio link or an Apple Music / iTunes page URL,
+   * from which the track id is pulled and the real preview looked up. The
+   * link is played before it's saved — storing one that doesn't work would
+   * reproduce exactly the failure this exists to fix.
+   */
+  if (action === "SET_PREVIEW") {
+    const raw = typeof previewUrl === "string" ? previewUrl.trim() : "";
+    if (!trackId || !raw) {
+      return NextResponse.json({ error: "trackId and a link are required" }, { status: 400 });
+    }
+
+    let resolved = raw;
+
+    // An Apple Music link carries the track id in ?i=, or as the last path
+    // segment on a /song/ URL.
+    const appleId = raw.match(/[?&]i=(\d+)/)?.[1] ?? raw.match(/\/song\/[^/]*\/(\d+)/)?.[1];
+    if (appleId) {
+      const look = await fetch(`https://itunes.apple.com/lookup?id=${appleId}`);
+      const data = look.ok ? await look.json() : null;
+      const hit = data?.results?.[0];
+      if (!hit?.previewUrl) {
+        return NextResponse.json(
+          { error: "That Apple link has no preview available." },
+          { status: 400 }
+        );
+      }
+      resolved = hit.previewUrl;
+    }
+
+    if (!/^https?:\/\//i.test(resolved)) {
+      return NextResponse.json({ error: "That doesn't look like a link." }, { status: 400 });
+    }
+
+    try {
+      const probe = await fetch(resolved, { headers: { Range: "bytes=0-500" } });
+      if (!probe.ok) throw new Error(String(probe.status));
+    } catch {
+      return NextResponse.json(
+        { error: "That link didn't play when we tried it. Check it and try again." },
+        { status: 400 }
+      );
+    }
+
+    const updated = await prisma.track.update({
+      where: { id: trackId },
+      data: { previewUrl: resolved },
+    });
+    return NextResponse.json({ track: { id: updated.id, previewUrl: updated.previewUrl } });
   }
 
   if (!trackId || (action !== "PULL" && action !== "RESTORE")) {

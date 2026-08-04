@@ -59,15 +59,14 @@ export async function POST(req: NextRequest) {
 /**
  * Re-points a dead track at a working preview.
  *
- * Tries the exact source first. Every track carries the id it came from in
- * externalId (`deezer-1234`), and asking a provider for a known id returns
- * the right recording every time — where a title-and-artist search can
- * quietly match a live version, a remaster, or a different song entirely.
+ * iTunes first, because its links are permanent. Deezer's are signed and
+ * expire within about a day — storing one only buys a track that plays
+ * today and is silent tomorrow, which is precisely how the feed broke.
  *
- * Deezer previews are signed and expire, which is what broke the feed; but
- * a *freshly fetched* one works, so the source is fine as long as we resolve
- * it from the id rather than storing the link. Falling back to an iTunes
- * search only when there's no usable id.
+ * Deezer's exact id is still the better *lookup* when Apple genuinely
+ * hasn't got the recording, so it stays as a fallback. The response says
+ * which was used, because a Deezer repair is temporary and the caller
+ * deserves to know that.
  */
 export async function PATCH(req: NextRequest) {
   if (!(await getAdminSession())) {
@@ -82,44 +81,46 @@ export async function PATCH(req: NextRequest) {
   const track = await prisma.track.findUnique({ where: { id: trackId } });
   if (!track) return NextResponse.json({ error: "Track not found" }, { status: 404 });
 
-  // Exact match by id where we have one.
-  const deezerId = track.externalId.startsWith("deezer-")
-    ? track.externalId.slice("deezer-".length)
-    : null;
-
-  if (deezerId) {
-    try {
-      const res = await fetch(`https://api.deezer.com/track/${deezerId}`);
-      if (res.ok) {
-        const d = (await res.json()) as { preview?: string; duration?: number };
-        if (d.preview) {
-          const updated = await prisma.track.update({
-            where: { id: trackId },
-            data: {
-              previewUrl: d.preview,
-              durationMs: d.duration ? d.duration * 1000 : track.durationMs,
-            },
-          });
-          return NextResponse.json({
-            track: { id: updated.id, title: updated.title },
-            via: "deezer",
-          });
-        }
-      }
-    } catch {
-      // Fall through to the search below.
-    }
-  }
-
   // Featured-artist tails hurt matching, so search on the plain title.
   const clean = track.title.replace(/\s*[([].*?[)\]]/g, "").trim();
   const found = await searchItunes(`${track.artistName} ${clean}`);
 
   if (!found?.previewUrl) {
+    // Apple hasn't got it. Deezer's exact id will, but that link expires,
+    // so it's a stopgap and the response says so.
+    const deezerId = track.externalId.startsWith("deezer-")
+      ? track.externalId.slice("deezer-".length)
+      : null;
+
+    if (deezerId) {
+      try {
+        const res = await fetch(`https://api.deezer.com/track/${deezerId}`);
+        if (res.ok) {
+          const d = (await res.json()) as { preview?: string; duration?: number };
+          if (d.preview) {
+            const updated = await prisma.track.update({
+              where: { id: trackId },
+              data: {
+                previewUrl: d.preview,
+                durationMs: d.duration ? d.duration * 1000 : track.durationMs,
+              },
+            });
+            return NextResponse.json({
+              track: { id: updated.id, title: updated.title },
+              via: "deezer",
+              temporary: true,
+            });
+          }
+        }
+      } catch {
+        // Fall through to the error below.
+      }
+    }
+
     return NextResponse.json(
       {
         error:
-          "Apple has no playable preview for this one. Pull it from the Tracks section, or ask the artist for a different release.",
+          "Neither Apple nor Deezer has a playable preview for this one. Paste an iTunes link below, or pull it from the Tracks section.",
       },
       { status: 404 }
     );
