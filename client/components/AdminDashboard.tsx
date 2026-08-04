@@ -8,6 +8,7 @@ import AdminAudience from "./AdminAudience";
 import AdminCurators from "./AdminCurators";
 import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
+import AdminFeedHealth from "./AdminFeedHealth";
 import AdminSecurity from "./AdminSecurity";
 import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 
@@ -260,6 +261,9 @@ export default function AdminDashboard({
  />
  )}
  </AdminSection>
+
+ <AdminFeedHealth />
+
 
  <AdminErrors />
 
