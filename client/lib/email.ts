@@ -195,6 +195,33 @@ export function submissionReceivedEmail(params: {
   };
 }
 
+/**
+ * A curator's reasons for passing, sent to the artist.
+ *
+ * Named, because "a curator passed" is a verdict from nowhere while "Sarah
+ * at Basement Tapes passed, and here's why" is a person's opinion — which is
+ * what was actually paid for, and the only part of a no that's any use.
+ */
+export function curatorPassedEmail(params: {
+  trackTitle: string;
+  curatorName: string;
+  reason: string;
+}) {
+  const { trackTitle, curatorName, reason } = params;
+  return {
+    subject: `${curatorName} passed on "${trackTitle}"`,
+    html: shell(
+      "A curator's decision",
+      `<p style="margin:0 0 12px"><strong style="color:#fff">${curatorName}</strong> listened to <strong style="color:#fff">${trackTitle}</strong> and decided not to feature it.</p>
+       <div style="margin:0 0 16px;padding:14px 16px;background:#0d0d0c;border-left:3px solid #dcb55f;border-radius:8px">
+         <p style="margin:0;color:#e6e6e6;font-style:italic">${reason.replace(/</g, "&lt;")}</p>
+       </div>
+       <p style="margin:0 0 12px">That's one curator's take, not a verdict on the track. Others may hear it differently, and their decisions come separately.</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">Your fee bought their time and their honest opinion — including this one.</p>`
+    ),
+  };
+}
+
 export async function sendEmail(to: string, template: { subject: string; html: string }) {
   return send(to, template.subject, template.html);
 }

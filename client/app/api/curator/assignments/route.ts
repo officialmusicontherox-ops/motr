@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
 // Curator decides: share it (with proof) or pass.
 export async function POST(req: NextRequest) {
-  const { userId, assignmentId, action, type, proofUrl } = await req.json();
+  const { userId, assignmentId, action, type, proofUrl , reason } = await req.json();
 
   if (!userId || !assignmentId) {
     return NextResponse.json({ error: "userId and assignmentId are required" }, { status: 400 });
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
   try {
     if (action === "PASS") {
-      const assignment = await passOnAssignment(assignmentId, userId);
+      const assignment = await passOnAssignment(assignmentId, userId, reason);
       return NextResponse.json({ assignment });
     }
 

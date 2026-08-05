@@ -205,6 +205,12 @@ model CuratorAssignment {
   assignedAt DateTime         @default(now())
   decidedAt  DateTime?
 
+  // Why a curator passed. Required when passing and sent on to the artist
+  // with the curator's name: a "no" they can learn from is worth far more
+  // than silence, and it's most of what a submission fee buys when the
+  // answer is no.
+  passReason String?
+
   feature Feature?
 
   @@unique([trackId, userId])
@@ -287,8 +293,11 @@ model Track {
   // A track breaks through on the *rate* of right-swipes once it has been
   // heard enough times to be meaningful — not on a raw approval count, which
   // a widely-shown but poorly-received track would eventually reach anyway.
-  requiredFanVotes     Int       @default(100)
-  requiredApprovalRate Float     @default(0.55)
+  // 25 of 75 votes. Expressed as a rate rather than a raw count so a track
+  // shown to far more people still has to earn the same share of them —
+  // exposure alone must never carry something through.
+  requiredFanVotes     Int       @default(75)
+  requiredApprovalRate Float     @default(0.33)
   fanRightSwipes       Int       @default(0)
   fanLeftSwipes        Int       @default(0)
   feeStatus            FeeStatus @default(NOT_REQUIRED)

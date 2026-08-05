@@ -86,6 +86,27 @@ function decodeEntities(s: string): string {
     .replace(/&gt;/g, ">");
 }
 
+/**
+ * A stable key for "this is the same song by the same artist".
+ *
+ * The unique constraint on (source, externalId) only stops the *same Spotify
+ * link* going in twice. A single and its album release have different ids,
+ * so the same recording could appear repeatedly and compete with itself for
+ * swipes — unfair to the artist and to everyone else in the feed.
+ */
+export function trackIdentity(artistName: string, title: string): string {
+  const norm = (v: string) =>
+    v
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      // Version tails describe the same song: "- Radio Edit", "(Remastered)".
+      .replace(/\s*[-–(\[]\s*(radio edit|single version|remaster(ed)?( \d+)?|studio version.*|album version|explicit|clean|mono|stereo|feat\.?.*|ft\.?.*|with .*)\s*[)\]]?\s*$/gi, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  return `${norm(artistName.split(/[,&]/)[0])}|${norm(title)}`;
+}
+
 /** Loose comparison: accents, case, punctuation and "feat." all vary by source. */
 function normaliseName(s: string): string {
   return s

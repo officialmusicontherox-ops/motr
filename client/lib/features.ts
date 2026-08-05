@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { curatorPassedEmail, sendEmail } from "./email";
 import {
   FEATURE_FEE_CENTS,
   HELD_SHARE_TYPES,
@@ -60,18 +61,59 @@ export async function submitFeature(params: {
   });
 }
 
-export async function passOnAssignment(assignmentId: string, userId: string) {
-  const assignment = await prisma.curatorAssignment.findUnique({ where: { id: assignmentId } });
+/**
+ * A curator declining, with their reasons.
+ *
+ * The reason is required. Passing is a perfectly good answer, but an
+ * unexplained one tells the artist nothing — and when the answer is no, the
+ * explanation is most of what their fee bought. It goes to them with the
+ * curator's name attached, so it reads as a person's judgement rather than
+ * a verdict from the platform.
+ */
+export async function passOnAssignment(
+  assignmentId: string,
+  userId: string,
+  reason: string
+) {
+  const trimmed = (reason ?? "").trim();
+  if (trimmed.length < 15) {
+    throw new FeatureError(
+      "Tell the artist why in a sentence or two — it's the most useful thing they get from a no."
+    );
+  }
+
+  const assignment = await prisma.curatorAssignment.findUnique({
+    where: { id: assignmentId },
+    include: {
+      user: { select: { username: true, outletName: true } },
+      track: { include: { artist: { select: { email: true } } } },
+    },
+  });
   if (!assignment) throw new FeatureError("Assignment not found");
   if (assignment.userId !== userId) throw new FeatureError("That isn't your assignment");
   if (assignment.status !== "PENDING") {
     throw new FeatureError(`You've already ${assignment.status.toLowerCase()} this track`);
   }
 
-  return prisma.curatorAssignment.update({
+  const updated = await prisma.curatorAssignment.update({
     where: { id: assignmentId },
-    data: { status: "PASSED", decidedAt: new Date() },
+    data: { status: "PASSED", decidedAt: new Date(), passReason: trimmed.slice(0, 2000) },
   });
+
+  // Outside any transaction: a mail failure must not undo the curator's
+  // decision or make them submit it twice.
+  if (assignment.track.artist?.email) {
+    await sendEmail(
+      assignment.track.artist.email,
+      curatorPassedEmail({
+        trackTitle: assignment.track.title,
+        curatorName: assignment.user.outletName || assignment.user.username,
+        reason: trimmed,
+      })
+    );
+  }
+
+  return updated;
 }
 
 /**

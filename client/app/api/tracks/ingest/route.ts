@@ -6,7 +6,7 @@ import {
   sendEmail,
   submissionReceivedEmail,
 } from "@/lib/email";
-import { TrackLookupError, resolveSpotifyTrack } from "@/lib/trackLookup";
+import { TrackLookupError, resolveSpotifyTrack, trackIdentity } from "@/lib/trackLookup";
 import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
 
 // Two ways to ingest a track into the vetting queue:
@@ -135,6 +135,28 @@ export async function POST(req: NextRequest) {
       create: { email: artistEmail, name: normalized.artistName },
     });
     artistId = artist.id;
+  }
+
+  // The unique constraint only catches the same Spotify link twice. A single
+  // and its album release are different ids but the same recording, and a
+  // song competing with itself for swipes is unfair to its own artist as
+  // much as to everyone else.
+  const identity = trackIdentity(normalized.artistName, normalized.title);
+  const sameSong = (
+    await prisma.track.findMany({
+      where: { status: { in: ["DISCOVERY", "VETTING", "GRADUATED"] } },
+      select: { id: true, title: true, artistName: true },
+    })
+  ).find((t) => trackIdentity(t.artistName, t.title) === identity);
+
+  if (sameSong) {
+    return NextResponse.json(
+      {
+        error: `"${sameSong.title}" by ${sameSong.artistName} is already in the feed. Every track gets one entry, so it isn't competing against itself for swipes.`,
+        alreadyExisted: true,
+      },
+      { status: 409 }
+    );
   }
 
   const track = await prisma.track.create({

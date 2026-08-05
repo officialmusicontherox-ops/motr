@@ -28,6 +28,8 @@ export default function AssignmentQueue({ curator }: { curator: User }) {
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [passing, setPassing] = useState<string | null>(null);
+  const [passReason, setPassReason] = useState("");
 
   const load = useCallback(
     async (status: string) => {
@@ -47,6 +49,8 @@ export default function AssignmentQueue({ curator }: { curator: User }) {
   );
 
   useEffect(() => {
+    setPassing(null);
+    setPassReason("");
     load(tab);
   }, [tab, load]);
 
@@ -160,12 +164,45 @@ export default function AssignmentQueue({ curator }: { curator: User }) {
                           I shared this
                         </button>
                         <button
-                          onClick={() => act(a.id, { action: "PASS" })}
+                          onClick={() => setPassing(passing === a.id ? null : a.id)}
                           disabled={busy === a.id}
                           className="border-edge text-muted hover:text-white rounded-full border px-4 py-2 text-sm transition disabled:opacity-40"
                         >
-                          Pass
+                          {passing === a.id ? "Cancel" : "Pass"}
                         </button>
+                      </div>
+                    )}
+
+                    {/* Passing needs a reason. It's the most useful thing an
+                        artist gets from a no, and the only part of the fee
+                        that pays off when the answer isn't yes. */}
+                    {passing === a.id && (
+                      <div className="border-edge mt-3 rounded-xl border p-3">
+                        <label className="block text-xs text-muted">
+                          Why are you passing? The artist sees this with your name on it — a
+                          sentence or two is plenty.
+                          <textarea
+                            value={passReason}
+                            onChange={(e) => setPassReason(e.target.value)}
+                            rows={3}
+                            placeholder="Not the right fit for my playlist — the production feels unfinished around the chorus, and my listeners skip anything that doesn't land by 0:20."
+                            className="border-edge bg-bg focus:border-gold mt-2 w-full rounded-lg border px-3 py-2 text-sm outline-none transition placeholder:text-neutral-600"
+                          />
+                        </label>
+                        <div className="mt-2 flex items-center gap-3">
+                          <button
+                            onClick={() => act(a.id, { action: "PASS", reason: passReason })}
+                            disabled={busy === a.id || passReason.trim().length < 15}
+                            className="bg-gold text-bg rounded-full px-5 py-2 text-sm font-bold disabled:opacity-30"
+                          >
+                            {busy === a.id ? "Sending..." : "Send and pass"}
+                          </button>
+                          <span className="text-muted text-xs">
+                            {passReason.trim().length < 15
+                              ? `${15 - passReason.trim().length} more characters`
+                              : "Goes to the artist with your name"}
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
