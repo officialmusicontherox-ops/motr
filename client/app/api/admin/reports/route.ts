@@ -42,11 +42,20 @@ export async function GET(req: NextRequest) {
 
   const trunc = Prisma.raw(`'${unit}'`);
 
-  const [fans, swipes, rightSwipes, listens, tracks, submissions, revenue, features] =
+  const [fans, activeFans, swipes, rightSwipes, listens, tracks, submissions, revenue, features] =
     await Promise.all([
       prisma.$queryRaw<Row[]>`
         SELECT date_trunc(${trunc}, "createdAt") AS bucket, COUNT(*)::bigint AS n
         FROM "Fan" WHERE "createdAt" >= ${since} GROUP BY 1 ORDER BY 1`,
+      // Listeners who actually swiped, bucketed by when they joined. A
+      // share link creates a listener on click, so the raw signup count
+      // includes bounces and link previews that never heard anything.
+      prisma.$queryRaw<Row[]>`
+        SELECT date_trunc(${trunc}, f."createdAt") AS bucket, COUNT(*)::bigint AS n
+        FROM "Fan" f
+        WHERE f."createdAt" >= ${since}
+          AND EXISTS (SELECT 1 FROM "FanSwipe" s WHERE s."fanId" = f."id")
+        GROUP BY 1 ORDER BY 1`,
       prisma.$queryRaw<Row[]>`
         SELECT date_trunc(${trunc}, "createdAt") AS bucket, COUNT(*)::bigint AS n
         FROM "FanSwipe" WHERE "createdAt" >= ${since} GROUP BY 1 ORDER BY 1`,
@@ -97,6 +106,7 @@ export async function GET(req: NextRequest) {
     return {
       bucket: iso,
       newFans: Number(at(fans, iso)?.n ?? 0),
+      activeFans: Number(at(activeFans, iso)?.n ?? 0),
       swipes: total,
       rightSwipes: right,
       // Null rather than zero when nothing happened: a bucket with no swipes
@@ -125,6 +135,7 @@ export async function GET(req: NextRequest) {
     series,
     totals: {
       newFans: sum("newFans"),
+      activeFans: sum("activeFans"),
       swipes: totalSwipes,
       rightSwipes: totalRight,
       approvalRate: totalSwipes > 0 ? totalRight / totalSwipes : null,

@@ -6,6 +6,7 @@ import AdminSection from "./AdminSection";
 type Point = {
   bucket: string;
   newFans: number;
+  activeFans: number;
   swipes: number;
   rightSwipes: number;
   approvalRate: number | null;
@@ -39,7 +40,8 @@ const PERIODS = [
  */
 const METRICS = [
   { key: "swipes", label: "Swipes", format: (n: number) => n.toLocaleString() },
-  { key: "newFans", label: "New listeners", format: (n: number) => n.toLocaleString() },
+  { key: "newFans", label: "Arrived", format: (n: number) => n.toLocaleString() },
+  { key: "activeFans", label: "Swiped at least once", format: (n: number) => n.toLocaleString() },
   {
     key: "approvalRate",
     label: "Approval rate",
@@ -146,7 +148,12 @@ export default function AdminReports() {
 
           <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
             <Tile label="Swipes" value={report.totals.swipes.toLocaleString()} gold />
-            <Tile label="New listeners" value={report.totals.newFans.toLocaleString()} />
+            <Tile label="Arrived" value={report.totals.newFans.toLocaleString()} />
+            <Tile
+              label="Swiped at least once"
+              value={report.totals.activeFans.toLocaleString()}
+              gold
+            />
             <Tile
               label="Approval rate"
               value={
@@ -205,7 +212,8 @@ export default function AdminReports() {
               <thead className="bg-surface-2 text-muted">
                 <tr>
                   <th className="p-2.5">Period</th>
-                  <th className="p-2.5">Listeners</th>
+                  <th className="p-2.5">Arrived</th>
+                  <th className="p-2.5">Swiped</th>
                   <th className="p-2.5">Swipes</th>
                   <th className="p-2.5">Approval</th>
                   <th className="p-2.5">Avg listen</th>
@@ -221,6 +229,7 @@ export default function AdminReports() {
                       {bucketLabel(p.bucket, report.period)}
                     </td>
                     <td className="p-2.5 tabular-nums">{p.newFans}</td>
+                    <td className="p-2.5 tabular-nums">{p.activeFans}</td>
                     <td className="p-2.5 tabular-nums">{p.swipes}</td>
                     <td className="p-2.5 tabular-nums">
                       {p.approvalRate === null ? "—" : `${Math.round(p.approvalRate * 100)}%`}

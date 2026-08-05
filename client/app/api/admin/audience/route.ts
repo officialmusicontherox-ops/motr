@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [googleCount, anonCount, activeGoogle, activeAnon, savedTotal, fans] =
+  const [googleCount, anonCount, activeGoogle, activeAnon, savedTotal, swipedEver, fans] =
     await Promise.all([
       prisma.fan.count({ where: { NOT: { email: null } } }),
       prisma.fan.count({ where: { email: null } }),
@@ -34,6 +34,10 @@ export async function GET(req: NextRequest) {
         where: { email: null, swipes: { some: { createdAt: { gte: weekAgo } } } },
       }),
       prisma.fanSwipe.count({ where: { direction: "RIGHT" } }),
+      // The honest headcount. A share link creates a listener the moment
+      // someone clicks, so the raw total includes bounces and link
+      // previewers who never heard a note.
+      prisma.fan.count({ where: { swipes: { some: {} } } }),
       prisma.fan.findMany({
         where: filter,
         orderBy: { createdAt: "desc" },
@@ -56,6 +60,8 @@ export async function GET(req: NextRequest) {
       activeGoogle,
       activeAnon,
       savedTotal,
+      swipedEver,
+      registered: googleCount + anonCount,
     },
     fans: fans.map((f) => ({
       id: f.id,

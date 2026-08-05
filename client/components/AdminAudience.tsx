@@ -9,6 +9,8 @@ type Totals = {
   activeGoogle: number;
   activeAnon: number;
   savedTotal: number;
+  swipedEver: number;
+  registered: number;
 };
 
 type AudienceFan = {
@@ -68,15 +70,13 @@ export default function AdminAudience() {
             sub={`${totals.activeAnon} active this week`}
           />
           <Tile label="Tracks saved" value={totals.savedTotal} sub="right-swipes across all fans" />
+          {/* The number that means something. A share link creates a listener
+              on click, so the raw total counts bounces and link previews. */}
           <Tile
-            label="Signed in"
-            value={
-              totals.google + totals.anonymous === 0
-                ? 0
-                : Math.round((totals.google / (totals.google + totals.anonymous)) * 100)
-            }
-            suffix="%"
-            sub="of fans have an account"
+            label="Swiped at least once"
+            value={totals.swipedEver}
+            sub={`of ${totals.registered} who arrived`}
+            gold
           />
         </div>
       )}
