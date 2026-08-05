@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Crown } from "./icons";
 import type { Fan } from "@/lib/types";
 
@@ -36,6 +36,32 @@ export default function FanGate({
   const [pending, setPending] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
   const [anonId, setAnonId] = useState<string | null>(null);
+
+  /**
+   * Creates the anonymous listener and drops them into the feed.
+   *
+   * Guarded against running twice: React re-invokes effects in development,
+   * and a double call here would create two listener records for one visitor
+   * — inflating the count and splitting their swipes across two accounts.
+   */
+  const entering = useRef(false);
+  const enterAnonymously = useCallback(async () => {
+    if (entering.current) return null;
+    entering.current = true;
+    const res = await fetch("/api/fans", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ anonymous: true }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      entering.current = false;
+      throw new Error(data.error ?? "Could not start listening");
+    }
+    localStorage.setItem(STORAGE_KEY, data.fan.id);
+    setFan(data.fan);
+    return data.fan;
+  }, []);
 
   // Start the database waking while they read the screen. Neon suspends
   // when idle and takes ~1.5s to come back, which otherwise lands on the tap.
@@ -80,6 +106,14 @@ export default function FanGate({
 
     const savedId = fromSpotify ?? fromGoogle ?? localStorage.getItem(STORAGE_KEY);
     if (!savedId) {
+      // Arriving from an artist's share link means they've already chosen to
+      // listen. Making them pick an account first is friction at the worst
+      // moment, and it's the artist's own fans who get lost at it. Straight
+      // in as an anonymous listener; they can sign in later from the menu.
+      if (shared) {
+        enterAnonymously().catch(() => setChecked(true));
+        return;
+      }
       setChecked(true);
       return;
     }
@@ -93,25 +127,18 @@ export default function FanGate({
       })
       .catch(() => localStorage.removeItem(STORAGE_KEY))
       .finally(() => setChecked(true));
-  }, []);
+  }, [enterAnonymously]);
 
   async function swipeAnonymously() {
     setPending(true);
     setError(null);
-    const res = await fetch("/api/fans", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ anonymous: true }),
-    });
-    const data = await res.json();
-    setPending(false);
-
-    if (!res.ok) {
-      setError(data.error ?? "Could not start listening");
-      return;
+    try {
+      await enterAnonymously();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not start listening");
+    } finally {
+      setPending(false);
     }
-    localStorage.setItem(STORAGE_KEY, data.fan.id);
-    setFan(data.fan);
   }
 
   if (fan) return <>{children(fan)}</>;
@@ -217,14 +244,6 @@ function GoogleMark({ className }: { className?: string }) {
         fill="#EA4335"
         d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.4 6.7l4 3.1C6.3 6.9 8.9 4.8 12 4.8Z"
       />
-    </svg>
-  );
-}
-
-function SpotifyMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 14.4a.8.8 0 0 1-1.1.3c-3-1.9-6.8-2.3-11.3-1.3a.8.8 0 1 1-.3-1.5c4.9-1.1 9.1-.6 12.4 1.4.4.2.5.7.3 1.1Zm1.2-2.8a1 1 0 0 1-1.3.3c-3.4-2.1-8.6-2.7-12.6-1.5a1 1 0 0 1-.6-1.9c4.6-1.4 10.3-.7 14.2 1.7.5.3.6.9.3 1.4Zm.1-2.9C14 8.4 7.7 8.2 4.2 9.2a1.2 1.2 0 1 1-.7-2.3C7.6 5.7 14.5 6 19 8.6a1.2 1.2 0 0 1-1.2 2.1Z" />
     </svg>
   );
 }
