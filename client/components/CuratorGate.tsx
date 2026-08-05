@@ -70,14 +70,14 @@ export default function CuratorGate({
 
   if (!checked) {
     return (
-      <div className="bg-bg flex min-h-screen flex-1 items-center justify-center">
+      <div className="bg-bg flex h-[100dvh] items-center justify-center">
         <Crown className="text-gold/30 h-10 w-10 animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="bg-bg flex min-h-screen flex-1 flex-col items-center justify-center gap-6 px-6 py-12 text-center">
+    <div className="bg-bg flex h-[100dvh] flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-6 text-center">
       <Link href="/" aria-label="MOTR home">
         <Image
           src="/motr-logo.png"

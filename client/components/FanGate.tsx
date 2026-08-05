@@ -107,14 +107,14 @@ export default function FanGate({
 
   if (!checked) {
     return (
-      <div className="bg-bg flex min-h-screen flex-1 items-center justify-center">
+      <div className="bg-bg flex h-[100dvh] items-center justify-center">
         <Crown className="text-gold/30 h-10 w-10 animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="bg-bg relative flex min-h-screen flex-1 flex-col items-center justify-center overflow-hidden px-6 py-12 text-center">
+    <div className="bg-bg relative flex h-[100dvh] flex-col items-center justify-center overflow-y-auto px-6 py-6 text-center">
       <div
         aria-hidden
         className="bg-gold/10 pointer-events-none absolute -top-24 h-72 w-72 rounded-full blur-3xl"
@@ -126,17 +126,17 @@ export default function FanGate({
         width={325}
         height={145}
         priority
-        className="relative h-20 w-auto"
+        className="relative h-16 w-auto sm:h-20"
       />
       <p className="motr-label mt-1">
         Based on <span className="text-gold">musicontherox.com</span>
       </p>
 
-      <h1 className="font-display relative mt-10 max-w-md text-4xl uppercase leading-[1.05] tracking-wide">
+      <h1 className="font-display relative mt-6 max-w-md text-3xl uppercase leading-[1.05] tracking-wide sm:mt-8 sm:text-4xl">
         Find your next
         <span className="text-gold"> favorite song</span>
       </h1>
-      <p className="text-muted relative mt-3 max-w-sm text-sm leading-relaxed">
+      <p className="text-muted relative mt-2.5 max-w-sm text-sm leading-relaxed">
         Thirty seconds each. Swipe what moves you. No labels, no payola — the tracks fans push
         hardest go straight to real curators.
       </p>
@@ -147,7 +147,7 @@ export default function FanGate({
         </p>
       )}
 
-      <div className="relative mt-8 flex w-full max-w-xs flex-col gap-3">
+      <div className="relative mt-6 flex w-full max-w-xs flex-col gap-3">
         {/* Google leads while the Spotify app is capped at 25 hand-added
             accounts in development mode. Spotify was the top button and
             failed for every visitor who wasn't on that list — a broken first
@@ -178,7 +178,7 @@ export default function FanGate({
 
       {error && <p className="text-nope relative mt-4 text-sm">{error}</p>}
 
-      <div className="relative mt-10 flex flex-wrap justify-center gap-x-5 gap-y-2">
+      <div className="relative mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2">
         <Link href="/artists" className="motr-label hover:text-gold underline-offset-4 hover:underline">
           Submit your song
         </Link>
