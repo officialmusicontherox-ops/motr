@@ -14,7 +14,8 @@ export default function ArtistsPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [done, setDone] = useState<{ title: string; artistName: string } | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [done, setDone] = useState<{ id: string; title: string; artistName: string } | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,11 +38,15 @@ export default function ArtistsPage() {
       setError("That track is already in the feed.");
       return;
     }
-    setDone({ title: data.track.title, artistName: data.track.artistName });
+    setDone({ id: data.track.id, title: data.track.title, artistName: data.track.artistName });
   }
 
   if (done) {
-    const shareText = `My track "${done.title}" is on MOTR — 30 seconds, swipe right if you like it: https://app.musicontherox.com`;
+    // A link straight to their track. Sent to the app's front page instead,
+    // a fan swipes ~9 of 150-odd tracks and has about a 6% chance of ever
+    // reaching this one — which makes sharing close to pointless.
+    const shareUrl = `https://app.musicontherox.com/?track=${done.id}`;
+    const shareText = `My track "${done.title}" is on MOTR — 30 seconds, swipe right if you like it: ${shareUrl}`;
     return (
       <main className="bg-bg min-h-screen">
         <PageNav />
@@ -62,12 +67,14 @@ export default function ArtistsPage() {
             </p>
             <p className="text-muted mt-2 text-sm leading-relaxed">
               Nothing reaches curators without listeners backing it first, and your own fans are
-              the ones most likely to swipe right. Send them to{" "}
-              <span className="text-white">app.musicontherox.com</span> and ask them to swipe.
+              the ones most likely to swipe right. This link opens{" "}
+              <span className="text-white">on your track</span> — not a random one — so everyone
+              you send lands straight on it.
             </p>
 
             <div className="border-edge bg-bg mt-3 rounded-xl border p-3">
-              <p className="text-muted text-sm leading-relaxed">{shareText}</p>
+              <p className="text-gold break-all text-sm">{shareUrl}</p>
+              <p className="text-muted mt-2 text-sm leading-relaxed">{shareText}</p>
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
@@ -98,6 +105,17 @@ export default function ArtistsPage() {
               >
                 X
               </a>
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(shareUrl).then(
+                    () => setCopiedLink(true),
+                    () => setCopiedLink(false)
+                  );
+                }}
+                className="border-edge hover:border-gold rounded-full border px-5 py-2.5 text-sm font-semibold transition"
+              >
+                {copiedLink ? "Link copied" : "Copy link only"}
+              </button>
             </div>
           </div>
 
@@ -111,6 +129,7 @@ export default function ArtistsPage() {
                 setDone(null);
                 setSpotifyUrl("");
                 setCopied(false);
+                setCopiedLink(false);
               }}
               className="border-edge hover:border-gold rounded-full border px-6 py-3 text-sm font-semibold transition"
             >

@@ -46,6 +46,11 @@ export default function FanGate({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
+    // A shared link's track id has to outlive the URL tidying below, and
+    // the Google round trip, before the feed can act on it.
+    const shared = params.get("track");
+    if (shared) sessionStorage.setItem("motr:sharedTrack", shared);
+
     // Confirms the sign-out landed, since the screen it returns to looks
     // identical to a first visit.
     if (params.get("signedout")) {

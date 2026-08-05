@@ -21,12 +21,68 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "fanId query param is required" }, { status: 400 });
   }
 
+  // A shared link puts that track first. An artist sending fans to MOTR
+  // otherwise has roughly a 6% chance of any one of them reaching the song —
+  // nine swipes into a feed of 153 — which makes sharing pointless.
+  // Served once: after they swipe it, the feed carries on as normal.
+  const startWith = req.nextUrl.searchParams.get("track");
+  if (startWith) {
+    const asked = await prisma.track.findFirst({
+      where: {
+        id: startWith,
+        status: "DISCOVERY",
+        NOT: { fanSwipes: { some: { fanId } } },
+      },
+    });
+    if (asked) return NextResponse.json({ track: asked, fromShare: true });
+  }
+
   // Optional mood filter. Anything not in the fixed list is ignored rather
   // than rejected, so a stale bookmark degrades to the full feed.
   const requested = req.nextUrl.searchParams.get("genre");
   const genre = requested && (GENRES as readonly string[]).includes(requested) ? requested : null;
 
   const genreClause = genre ? Prisma.sql`AND t."genre" = ${genre}` : Prisma.empty;
+
+  /**
+   * Every sixth card is a recent submission.
+   *
+   * Counted off the listener's own swipes rather than rolled at random, so
+   * it lands as a rhythm they can feel — a steady trickle of new music
+   * between the catalogue — instead of clumping or vanishing by chance.
+   *
+   * Pure random was fair but slow: across 153 tracks a submission collected
+   * about 0.29 votes a day, most of a year to reach 75. It also buried the
+   * newest work under a catalogue that mostly exists to make the feed feel
+   * full.
+   *
+   * Falls straight through to the normal pick when there's nothing recent
+   * left for this listener, so nobody sees a repeat or runs out early.
+   */
+  const EVERY = 6;
+  const swipesSoFar = await prisma.fanSwipe.count({ where: { fanId } });
+  const dueANewOne = swipesSoFar > 0 && swipesSoFar % EVERY === 0;
+
+  if (dueANewOne && !genre) {
+    const recent = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT t."id"
+      FROM "Track" t
+      WHERE t."status" = 'DISCOVERY'::"TrackStatus"
+        AND t."artistId" IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM "FanSwipe" s
+          WHERE s."trackId" = t."id" AND s."fanId" = ${fanId}
+        )
+      ORDER BY t."createdAt" DESC
+      LIMIT 5
+    `);
+    if (recent.length > 0) {
+      // Spread across the newest few, so one track doesn't take every slot.
+      const pick = recent[Math.floor(Math.random() * recent.length)];
+      const track = await prisma.track.findUnique({ where: { id: pick.id } });
+      if (track) return NextResponse.json({ track, fresh: true });
+    }
+  }
 
   const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
     SELECT t."id"

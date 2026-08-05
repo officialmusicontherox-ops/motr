@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
 import SwipeCard from "./SwipeCard";
 import GenrePicker from "./GenrePicker";
@@ -13,13 +13,31 @@ type FeedResponse = {
   track: Track | null;
   genreExhausted?: boolean;
   othersAvailable?: number;
+  fromShare?: boolean;
 };
 
-async function fetchNextTrack(fanId: string, genre: string | null): Promise<FeedResponse> {
+async function fetchNextTrack(
+  fanId: string,
+  genre: string | null,
+  startWith?: string | null
+): Promise<FeedResponse> {
   const q = new URLSearchParams({ fanId });
   if (genre) q.set("genre", genre);
+  if (startWith) q.set("track", startWith);
   const res = await fetch(`/api/discover/next?${q}`);
   return res.json();
+}
+
+/** A shared link's track, from the URL or stashed by the sign-in screen. */
+function takeSharedTrack(): string | null {
+  if (typeof window === "undefined") return null;
+  const fromUrl = new URLSearchParams(window.location.search).get("track");
+  const stashed = sessionStorage.getItem("motr:sharedTrack");
+  const id = fromUrl ?? stashed;
+  if (fromUrl) window.history.replaceState({}, "", window.location.pathname);
+  // Consumed once — a refresh shouldn't replay the same track forever.
+  sessionStorage.removeItem("motr:sharedTrack");
+  return id;
 }
 
 export default function DiscoveryQueue({ fan }: { fan: Fan }) {
@@ -29,6 +47,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [savedCount, setSavedCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
   const [clip, setClip] = useState({ currentTime: 0, duration: 30 });
+  const sharedRef = useRef<string | null | undefined>(undefined);
   // Chosen mood, remembered between visits — someone who filtered to Jazz
   // last night probably still wants Jazz, but can switch in one tap.
   const [genre, setGenre] = useState<string | null>(null);
@@ -51,7 +70,12 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   useEffect(() => {
     let ignore = false;
     setClip({ currentTime: 0, duration: 30 });
-    fetchNextTrack(fan.id, genre).then((res) => {
+    // Read once, on the first fetch of the session.
+    if (sharedRef.current === undefined) sharedRef.current = takeSharedTrack();
+    const startWith = sharedRef.current;
+    sharedRef.current = null;
+
+    fetchNextTrack(fan.id, genre, startWith).then((res) => {
       if (ignore) return;
       setTrack(res.track);
       setExhausted(
