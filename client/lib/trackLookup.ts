@@ -149,17 +149,28 @@ type ItunesResult = {
   trackTimeMillis?: number;
 };
 
-export async function searchItunes(term: string): Promise<ItunesResult | null> {
+/**
+ * Playable iTunes candidates, best-guess order preserved.
+ *
+ * Returns every match rather than the first, because the first is regularly
+ * the wrong artist — a cover, an interlude, a same-titled song — and the
+ * right recording sits further down. Taking only the first meant a real
+ * release could be refused while its correct match went unexamined.
+ */
+export async function searchItunesAll(term: string, limit = 15): Promise<ItunesResult[]> {
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
     term
-  )}&media=music&entity=song&limit=5`;
+  )}&media=music&entity=song&limit=${limit}`;
 
   const res = await fetch(url);
-  if (!res.ok) return null;
+  if (!res.ok) return [];
 
   const data = (await res.json()) as { results?: ItunesResult[] };
-  // Only a result with audio is useful to us.
-  return data.results?.find((r) => r.previewUrl) ?? null;
+  return (data.results ?? []).filter((r) => r.previewUrl);
+}
+
+export async function searchItunes(term: string): Promise<ItunesResult | null> {
+  return (await searchItunesAll(term, 5))[0] ?? null;
 }
 
 type DeezerResult = {
@@ -174,17 +185,22 @@ type DeezerResult = {
  * Deezer's search needs no key and carries plenty that Apple doesn't,
  * including a lot of independent and non-US releases.
  */
-export async function searchDeezer(term: string): Promise<DeezerResult | null> {
+/** Every playable Deezer candidate — see searchItunesAll for why not just one. */
+export async function searchDeezerAll(term: string, limit = 15): Promise<DeezerResult[]> {
   try {
     const res = await fetch(
-      `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=5`
+      `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=${limit}`
     );
-    if (!res.ok) return null;
+    if (!res.ok) return [];
     const data = (await res.json()) as { data?: DeezerResult[] };
-    return data.data?.find((r) => r.preview) ?? null;
+    return (data.data ?? []).filter((r) => r.preview);
   } catch {
-    return null;
+    return [];
   }
+}
+
+export async function searchDeezer(term: string): Promise<DeezerResult | null> {
+  return (await searchDeezerAll(term, 5))[0] ?? null;
 }
 
 /** iTunes serves 100x100 by default; the same asset exists at larger sizes. */
@@ -221,42 +237,47 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
   }
 
   const title = searchableTitle(displayTitle);
-  // Artist *and* title. Title alone is what caused the mismatches.
-  const term = `${spotifyArtist.split(/[,&]/)[0].trim()} ${title}`;
+  const lead = spotifyArtist.split(/[,&]/)[0].trim();
 
-  const itunes = await searchItunes(term);
-  if (itunes?.previewUrl && artistMatches(spotifyArtist, itunes.artistName)) {
-    return {
-      title: displayTitle,
-      // Spotify's credits, not the catalogue's — this is the artist's own link.
-      artistName: spotifyArtist,
-      albumName: itunes.collectionName ?? null,
-      artworkUrl: oembed.thumbnail_url ?? upscaleArtwork(itunes.artworkUrl100),
-      previewUrl: itunes.previewUrl,
-      durationMs: itunes.trackTimeMillis ?? null,
-    };
+  // Apple only. Its preview links are permanent, where Deezer signs and
+  // expires its own within about a day — storing one buys a track that plays
+  // today and is silent tomorrow, which is how the feed emptied once before.
+  //
+  // Several phrasings, because Apple's relevance ranking is inconsistent
+  // about which word order finds a small artist.
+  const terms = [
+    `${lead} ${title}`,
+    `${title} ${lead}`,
+    `${spotifyArtist} ${title}`,
+  ];
+
+  for (const term of terms) {
+    // Every playable result, not just the first: the first is regularly a
+    // cover, an interlude or a same-titled song by someone far more famous,
+    // and the real recording sits below it.
+    const candidates = await searchItunesAll(term, 20);
+    const hit = candidates.find((c) => artistMatches(spotifyArtist, c.artistName));
+    if (hit?.previewUrl) {
+      return {
+        title: displayTitle,
+        // Spotify's credits, not Apple's — this is the artist's own link.
+        artistName: spotifyArtist,
+        albumName: hit.collectionName ?? null,
+        artworkUrl: oembed.thumbnail_url ?? upscaleArtwork(hit.artworkUrl100),
+        previewUrl: hit.previewUrl,
+        durationMs: hit.trackTimeMillis ?? null,
+      };
+    }
   }
 
-  const deezer = await searchDeezer(term);
-  if (deezer?.preview && artistMatches(spotifyArtist, deezer.artist.name)) {
-    return {
-      title: displayTitle,
-      artistName: spotifyArtist,
-      albumName: deezer.album?.title ?? null,
-      artworkUrl:
-        oembed.thumbnail_url ?? deezer.album?.cover_big ?? deezer.album?.cover_medium ?? null,
-      previewUrl: deezer.preview,
-      durationMs: deezer.duration ? deezer.duration * 1000 : null,
-    };
-  }
-
-  // Something was found, but by someone else. Refusing is the right answer:
-  // serving it would put another artist's recording under this one's name.
+  // Nothing Apple has can be confirmed as theirs. Refusing is right: serving
+  // an unverified match would put another artist's recording under this
+  // artist's name and artwork.
   throw new TrackLookupError(
-    `We found "${displayTitle}" but couldn't confirm a preview that is actually ${spotifyArtist}'s ` +
-      `recording — so we haven't added it, because we won't put another artist's audio under your ` +
-      `name. This usually means the release isn't on Apple Music or Deezer yet. ` +
-      `If the Spotify link is right, email it to ${CONTACT_EMAIL} and we'll add it by hand.`
+    `We found "${displayTitle}" on Spotify but couldn't find a matching preview from Apple for ` +
+      `${spotifyArtist}, so we haven't added it — we won't put another artist's audio under your ` +
+      `name. This usually means the release hasn't reached Apple Music yet. ` +
+      `If it has, email the link to ${CONTACT_EMAIL} and we'll add it by hand.`
   );
 }
 

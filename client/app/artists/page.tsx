@@ -13,6 +13,7 @@ export default function ArtistsPage() {
   const [genre, setGenre] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [done, setDone] = useState<{ title: string; artistName: string } | null>(null);
 
   async function submit(e: React.FormEvent) {
@@ -40,34 +41,88 @@ export default function ArtistsPage() {
   }
 
   if (done) {
+    const shareText = `My track "${done.title}" is on MOTR — 30 seconds, swipe right if you like it: https://app.musicontherox.com`;
     return (
       <main className="bg-bg min-h-screen">
         <PageNav />
-        <div className="flex min-h-[75vh] flex-col items-center justify-center gap-4 px-6 text-center">
-        <Crown className="text-gold h-12 w-12" />
-        <h1 className="font-display text-3xl uppercase tracking-wide">You&apos;re in the feed</h1>
-        <p className="text-muted max-w-sm text-sm leading-relaxed">
-          <span className="text-white">{done.title}</span> by{" "}
-          <span className="text-white">{done.artistName}</span> is live for fans to swipe on. If
-          enough of them back it, we&apos;ll email you about the curator round.
-        </p>
-        <div className="mt-2 flex flex-wrap justify-center gap-3">
-          <button
-            onClick={() => {
-              setDone(null);
-              setSpotifyUrl("");
-            }}
-            className="border-edge hover:border-gold rounded-full border px-6 py-3 text-sm font-semibold transition"
-          >
-            Submit another
-          </button>
-          <Link
-            href="/"
-            className="bg-gold text-bg rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wide"
-          >
-            Go swipe
-          </Link>
-        </div>
+        <div className="flex min-h-[75vh] flex-col items-center justify-center gap-4 px-6 py-10 text-center">
+          <Crown className="text-gold h-12 w-12" />
+          <h1 className="font-display text-3xl uppercase tracking-wide">You&apos;re in the feed</h1>
+          <p className="text-muted max-w-sm text-sm leading-relaxed">
+            <span className="text-white">{done.title}</span> by{" "}
+            <span className="text-white">{done.artistName}</span> is live for fans to swipe on.
+          </p>
+
+          {/* The share ask goes here rather than in an email: this is the
+              moment they've just finished and are most likely to act, and it
+              doesn't depend on an email being opened. */}
+          <div className="border-gold/40 bg-surface mt-2 w-full max-w-md rounded-2xl border p-5 text-left">
+            <p className="font-display text-gold text-lg uppercase tracking-wide">
+              Now bring your people
+            </p>
+            <p className="text-muted mt-2 text-sm leading-relaxed">
+              Nothing reaches curators without listeners backing it first, and your own fans are
+              the ones most likely to swipe right. Send them to{" "}
+              <span className="text-white">app.musicontherox.com</span> and ask them to swipe.
+            </p>
+
+            <div className="border-edge bg-bg mt-3 rounded-xl border p-3">
+              <p className="text-muted text-sm leading-relaxed">{shareText}</p>
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard?.writeText(shareText).then(
+                    () => setCopied(true),
+                    () => setCopied(false)
+                  );
+                }}
+                className="bg-gold text-bg rounded-full px-5 py-2.5 text-sm font-bold"
+              >
+                {copied ? "Copied" : "Copy this"}
+              </button>
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="border-edge hover:border-gold rounded-full border px-5 py-2.5 text-sm font-semibold transition"
+              >
+                WhatsApp
+              </a>
+              <a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="border-edge hover:border-gold rounded-full border px-5 py-2.5 text-sm font-semibold transition"
+              >
+                X
+              </a>
+            </div>
+          </div>
+
+          <p className="text-muted max-w-sm text-xs leading-relaxed">
+            We&apos;ll email you the moment it breaks through. Nothing else to do until then.
+          </p>
+
+          <div className="mt-1 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => {
+                setDone(null);
+                setSpotifyUrl("");
+                setCopied(false);
+              }}
+              className="border-edge hover:border-gold rounded-full border px-6 py-3 text-sm font-semibold transition"
+            >
+              Submit another
+            </button>
+            <Link
+              href="/"
+              className="bg-gold text-bg rounded-full px-6 py-3 text-sm font-bold uppercase tracking-wide"
+            >
+              Go swipe
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -96,6 +151,12 @@ export default function ArtistsPage() {
       <form onSubmit={submit} className="mx-auto mt-8 flex max-w-lg flex-col gap-5 px-6">
         <label className="block">
           <span className="motr-label block">Spotify track link</span>
+          <span className="text-muted mb-2 mt-1 block text-xs leading-relaxed">
+            It has to be <strong className="text-white">already released</strong>. We match your
+            track to a 30-second clip from Apple Music, and a song that hasn&apos;t reached the
+            stores yet has nothing for us to play — so we&apos;ll turn it away rather than risk
+            playing the wrong recording under your name.
+          </span>
           <span className="text-muted mb-2 mt-1 block text-xs">
             Open your song in Spotify → Share → Copy Song Link.
           </span>

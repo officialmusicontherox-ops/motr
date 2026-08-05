@@ -166,6 +166,35 @@ export function refusedSubmissionEmail(params: {
   };
 }
 
+/**
+ * Confirms a submission to the artist, and asks them to share it.
+ *
+ * They received nothing at all before — the only emails on submission went
+ * to the operator. This is also the one moment they're most motivated to
+ * tell people, and their own fans are the listeners most likely to swipe
+ * right, so the ask belongs here rather than in a later nudge.
+ */
+export function submissionReceivedEmail(params: {
+  trackTitle: string;
+  artistName: string;
+  requiredVotes: number;
+  requiredRate: number;
+}) {
+  const { trackTitle, artistName, requiredVotes, requiredRate } = params;
+  return {
+    subject: `"${trackTitle}" is live on MOTR`,
+    html: shell(
+      "Your track is in the feed",
+      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} is now playing in the MOTR feed, where listeners hear thirty seconds with no artist name attached and decide on the music alone.</p>
+       <p style="margin:0 0 12px">To reach curators it needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that — it's the one gate money doesn't open.</p>
+       <p style="margin:0 0 12px"><strong style="color:#fff">Share it with your people.</strong> Send them to MOTR and ask them to swipe. Your own fans are the listeners most likely to swipe right, and every swipe counts the same whether it comes from them or a stranger.</p>
+       <p style="margin:0 0 12px;color:#a3a3a3;font-size:14px">Something like: <em>"My track's on MOTR — 30 seconds, swipe right if you like it: app.musicontherox.com"</em></p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">We'll email you the moment it breaks through. Nothing to do until then.</p>`,
+      { label: "See it in the feed", url: APP_URL }
+    ),
+  };
+}
+
 export async function sendEmail(to: string, template: { subject: string; html: string }) {
   return send(to, template.subject, template.html);
 }
