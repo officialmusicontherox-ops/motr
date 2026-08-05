@@ -37,6 +37,12 @@ export default function FanGate({
   const [signedOut, setSignedOut] = useState(false);
   const [anonId, setAnonId] = useState<string | null>(null);
 
+  // Start the database waking while they read the screen. Neon suspends
+  // when idle and takes ~1.5s to come back, which otherwise lands on the tap.
+  useEffect(() => {
+    void fetch("/api/warm").catch(() => {});
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
