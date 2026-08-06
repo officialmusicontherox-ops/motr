@@ -6,9 +6,10 @@ import { getAdminSession } from "@/lib/adminAuth";
  * Every track anyone has saved, ranked by how many times.
  *
  * This is the A&R data the platform exists to produce, so it shouldn't be a
- * number you can only see in aggregate. Right-swipes come back alongside the
- * total votes each track has taken, because 8 saves out of 10 plays and 8 out
- * of 200 are opposite results and the raw count alone can't tell them apart.
+ * number you can only see in aggregate. A save is a right-swipe, so `saves`
+ * is the subset of `votes` — every swipe on the track, both directions — that
+ * went right. Both are returned because 8 saves out of 10 swipes and 8 out of
+ * 200 are opposite results and the count alone can't tell them apart.
  *
  * Counted in Postgres rather than by pulling swipes and grouping in JS — the
  * swipe table is the fastest-growing one there is.

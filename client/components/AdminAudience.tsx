@@ -217,7 +217,7 @@ const SAVE_SORTS = [
   { key: "savesAsc", label: "Fewest saved" },
   { key: "rate", label: "Highest save rate" },
   { key: "rateAsc", label: "Lowest save rate" },
-  { key: "votes", label: "Most played" },
+  { key: "votes", label: "Most swiped" },
   { key: "recent", label: "Recently saved" },
   { key: "title", label: "Title A–Z" },
   { key: "artist", label: "Artist A–Z" },
@@ -244,10 +244,11 @@ const SAVE_COMPARATORS: Record<SaveSort, (a: SavedTrack, b: SavedTrack) => numbe
 /**
  * Every saved track, most-saved first.
  *
- * Saves are shown against the votes each track took, because the raw count
- * rewards nothing but exposure — a track played to everyone will out-save a
- * better one played to fifty people. The rate is the verdict; the count is
- * the sample size behind it.
+ * A save *is* a right-swipe, so the "Swipes" column is the total either way
+ * and saves are the share of it that went right. Both are shown because the
+ * raw save count rewards nothing but exposure — a track put in front of
+ * everyone will out-save a better one heard by fifty people. The rate is the
+ * verdict; the swipe count is the sample size behind it.
  */
 function SavedBreakdown() {
   const [tracks, setTracks] = useState<SavedTrack[] | null>(null);
@@ -308,8 +309,8 @@ function SavedBreakdown() {
               <th className="p-3">#</th>
               <th className="p-3">Track</th>
               <th className="p-3">Saves</th>
-              <th className="p-3">Votes</th>
-              <th className="p-3">Rate</th>
+              <th className="p-3">Swipes</th>
+              <th className="p-3">Save rate</th>
               <th className="p-3">Last saved</th>
             </tr>
           </thead>
@@ -351,8 +352,11 @@ function SavedBreakdown() {
       <ShowMore shown={visible} total={ordered.length} onMore={more} onLess={reset} />
 
       <p className="mt-3 text-xs text-muted">
-        Rate is saves ÷ votes. It only means something once a track has taken a few dozen
-        votes — a track played twice and saved twice reads as 100%.
+        <strong className="text-white">Saves</strong> are right-swipes.{" "}
+        <strong className="text-white">Swipes</strong> is everyone who heard the track and
+        decided either way, so saves are part of that total, not separate from it. Save rate
+        is one divided by the other — it only means something once a track has taken a few
+        dozen swipes, since one swipe and one save reads as 100%.
       </p>
     </div>
   );
