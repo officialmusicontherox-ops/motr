@@ -5,11 +5,8 @@ import { getAdminSession } from "@/lib/adminAuth";
 /**
  * Every track anyone has saved, ranked by how many times.
  *
- * This is the A&R data the platform exists to produce, so it shouldn't be a
- * number you can only see in aggregate. A save is a right-swipe, so `saves`
- * is the subset of `votes` — every swipe on the track, both directions — that
- * went right. Both are returned because 8 saves out of 10 swipes and 8 out of
- * 200 are opposite results and the count alone can't tell them apart.
+ * A save is a right-swipe and a decline is a left one — the two directions of
+ * the same action, so they're the only two numbers here.
  *
  * Counted in Postgres rather than by pulling swipes and grouping in JS — the
  * swipe table is the fastest-growing one there is.
@@ -21,9 +18,8 @@ type Row = {
   artistName: string;
   artworkUrl: string | null;
   genre: string | null;
-  status: string;
   saves: number;
-  votes: number;
+  declined: number;
   lastSavedAt: Date | null;
 };
 
@@ -39,15 +35,14 @@ export async function GET() {
       t."artistName",
       t."artworkUrl",
       t."genre",
-      t."status"::text AS status,
       COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::int AS saves,
-      COUNT(*)::int AS votes,
+      COUNT(*) FILTER (WHERE s."direction" = 'LEFT')::int AS declined,
       MAX(s."createdAt") FILTER (WHERE s."direction" = 'RIGHT') AS "lastSavedAt"
     FROM "FanSwipe" s
     JOIN "Track" t ON t."id" = s."trackId"
     GROUP BY t."id"
     HAVING COUNT(*) FILTER (WHERE s."direction" = 'RIGHT') > 0
-    ORDER BY saves DESC, votes DESC, t."title" ASC`;
+    ORDER BY saves DESC, t."title" ASC`;
 
   return NextResponse.json({
     tracks: rows,

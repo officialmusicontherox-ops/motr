@@ -28,9 +28,8 @@ type SavedTrack = {
   artistName: string;
   artworkUrl: string | null;
   genre: string | null;
-  status: string;
   saves: number;
-  votes: number;
+  declined: number;
   lastSavedAt: string | null;
 };
 
@@ -215,9 +214,7 @@ function Tile({
 const SAVE_SORTS = [
   { key: "saves", label: "Most saved" },
   { key: "savesAsc", label: "Fewest saved" },
-  { key: "rate", label: "Highest save rate" },
-  { key: "rateAsc", label: "Lowest save rate" },
-  { key: "votes", label: "Most swiped" },
+  { key: "declined", label: "Most declined" },
   { key: "recent", label: "Recently saved" },
   { key: "title", label: "Title A–Z" },
   { key: "artist", label: "Artist A–Z" },
@@ -225,31 +222,18 @@ const SAVE_SORTS = [
 
 type SaveSort = (typeof SAVE_SORTS)[number]["key"];
 
-const rate = (t: SavedTrack) => t.saves / t.votes;
 const savedAt = (t: SavedTrack) => (t.lastSavedAt ? new Date(t.lastSavedAt).getTime() : 0);
 
 const SAVE_COMPARATORS: Record<SaveSort, (a: SavedTrack, b: SavedTrack) => number> = {
-  saves: (a, b) => b.saves - a.saves || b.votes - a.votes,
-  savesAsc: (a, b) => a.saves - b.saves || a.votes - b.votes,
-  // Ties on rate break toward the bigger sample — 5 of 5 is a firmer 100%
-  // than 1 of 1, and putting the flukes on top would make the sort useless.
-  rate: (a, b) => rate(b) - rate(a) || b.votes - a.votes,
-  rateAsc: (a, b) => rate(a) - rate(b) || b.votes - a.votes,
-  votes: (a, b) => b.votes - a.votes || b.saves - a.saves,
+  saves: (a, b) => b.saves - a.saves,
+  savesAsc: (a, b) => a.saves - b.saves,
+  declined: (a, b) => b.declined - a.declined,
   recent: (a, b) => savedAt(b) - savedAt(a),
   title: (a, b) => a.title.localeCompare(b.title),
   artist: (a, b) => a.artistName.localeCompare(b.artistName) || a.title.localeCompare(b.title),
 };
 
-/**
- * Every saved track, most-saved first.
- *
- * A save *is* a right-swipe, so the "Swipes" column is the total either way
- * and saves are the share of it that went right. Both are shown because the
- * raw save count rewards nothing but exposure — a track put in front of
- * everyone will out-save a better one heard by fifty people. The rate is the
- * verdict; the swipe count is the sample size behind it.
- */
+/** Every saved track, most-saved first. */
 function SavedBreakdown() {
   const [tracks, setTracks] = useState<SavedTrack[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -308,9 +292,8 @@ function SavedBreakdown() {
             <tr>
               <th className="p-3">#</th>
               <th className="p-3">Track</th>
-              <th className="p-3">Saves</th>
-              <th className="p-3">Swipes</th>
-              <th className="p-3">Save rate</th>
+              <th className="p-3">Saved</th>
+              <th className="p-3">Declined</th>
               <th className="p-3">Last saved</th>
             </tr>
           </thead>
@@ -338,8 +321,7 @@ function SavedBreakdown() {
                   </div>
                 </td>
                 <td className="p-3 text-lg font-semibold tabular-nums text-gold">{t.saves}</td>
-                <td className="p-3 tabular-nums text-muted">{t.votes}</td>
-                <td className="p-3 tabular-nums">{Math.round((t.saves / t.votes) * 100)}%</td>
+                <td className="p-3 tabular-nums text-muted">{t.declined}</td>
                 <td className="whitespace-nowrap p-3 text-muted">
                   {t.lastSavedAt ? new Date(t.lastSavedAt).toLocaleDateString() : "—"}
                 </td>
@@ -350,14 +332,6 @@ function SavedBreakdown() {
       </div>
 
       <ShowMore shown={visible} total={ordered.length} onMore={more} onLess={reset} />
-
-      <p className="mt-3 text-xs text-muted">
-        <strong className="text-white">Saves</strong> are right-swipes.{" "}
-        <strong className="text-white">Swipes</strong> is everyone who heard the track and
-        decided either way, so saves are part of that total, not separate from it. Save rate
-        is one divided by the other — it only means something once a track has taken a few
-        dozen swipes, since one swipe and one save reads as 100%.
-      </p>
     </div>
   );
 }
