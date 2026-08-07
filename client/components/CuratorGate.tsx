@@ -40,7 +40,15 @@ export default function CuratorGate({
 
     const authError = params.get("auth_error");
     if (authError) {
-      setError(AUTH_ERRORS[authError] ?? "Sign-in didn't go through. Try again.");
+      // Approved curators are told to sign in with the address they applied
+      // with, and some won't. Naming the account they actually used turns a
+      // dead end into an obvious "oh, wrong Google account".
+      const tried = params.get("email");
+      setError(
+        authError === "no_account" && tried
+          ? `${tried} isn't a curator account. If you applied with a different address, sign in with that one — otherwise apply below.`
+          : (AUTH_ERRORS[authError] ?? "Sign-in didn't go through. Try again.")
+      );
       window.history.replaceState({}, "", window.location.pathname);
     }
 
