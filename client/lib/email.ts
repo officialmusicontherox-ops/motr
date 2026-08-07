@@ -1,4 +1,12 @@
 import { Resend } from "resend";
+import {
+  CURATORS_PER_TRACK,
+  FEATURE_FEE_CENTS,
+  MIN_WITHDRAWAL_CENTS,
+  PAYOUT_MATURITY_DAYS,
+  SHARE_HOLD_DAYS,
+  WITHDRAWAL_FEE_CENTS,
+} from "./economics";
 
 /**
  * Transactional email. Two moments in the product depend on it: telling an
@@ -13,7 +21,25 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 const FROM = process.env.EMAIL_FROM ?? "MOTR <onboarding@resend.dev>";
 const REPLY_TO = process.env.EMAIL_REPLY_TO;
-const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+/**
+ * Where the links in these emails point.
+ *
+ * The localhost default is only correct on a dev machine, and an email is the
+ * one place a wrong URL is unrecoverable — it's already in someone's inbox.
+ * Vercel sets VERCEL_PROJECT_PRODUCTION_URL on every deployment, so a missing
+ * APP_URL in the dashboard degrades to the real domain rather than to a link
+ * that opens nothing on the recipient's machine.
+ */
+const APP_URL =
+  process.env.APP_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.NODE_ENV === "production"
+      ? "https://app.musicontherox.com"
+      : "http://localhost:3000");
+
+const dollars = (cents: number) =>
+  cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 
 export type SendResult = { ok: boolean; id?: string; error?: string };
 
@@ -69,14 +95,41 @@ function shell(heading: string, body: string, cta?: { label: string; url: string
 </div>`;
 }
 
-export function curatorApprovedEmail(username: string) {
+/**
+ * The welcome email, and the only complete explanation of the job a curator
+ * ever gets — there's no onboarding screen and no handbook.
+ *
+ * Every number in it comes from lib/payouts.ts rather than being typed into
+ * the copy, because an email that quietly disagrees with what the app pays is
+ * worse than one that says nothing. Retuning the economics retunes this.
+ */
+export function curatorApprovedEmail(username: string, email?: string) {
+  const signInNote = email
+    ? `Sign in with Google using <strong style="color:#fff">${email}</strong> — the address you applied with. A different Google account won't find your account.`
+    : `Sign in with Google using the address you applied with. A different Google account won't find your account.`;
+
   return {
-    subject: "You're in — welcome to MOTR",
+    subject: "You're in — here's how curating on MOTR works",
     html: shell(
       "You're approved",
-      `<p style="margin:0 0 12px">Hi ${username}, we looked at your outlet and we'd like you curating.</p>
-       <p style="margin:0 0 12px">Sign in with the email you applied with and you'll find your queue — tracks that already cleared the fan vote in your genres.</p>
-       <p style="margin:0">You earn a flat fee for every share that sticks: a playlist add or a TikTok/Reel/Short held four days, or a published piece.</p>`,
+      `<p style="margin:0 0 18px">Hi ${username} — we looked at your outlet and we'd like you curating. Here's everything you need.</p>
+
+       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">GETTING IN</p>
+       <p style="margin:0 0 18px">${signInNote}</p>
+
+       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">WHAT LANDS IN YOUR QUEUE</p>
+       <p style="margin:0 0 18px">Nothing unsolicited. A track only reaches you after real listeners voted it through on blind 30-second clips, the artist paid to put it in front of curators, and it matched your genres. It goes to ${CURATORS_PER_TRACK} curators, so you're one opinion of ${CURATORS_PER_TRACK} — not a gatekeeper.</p>
+
+       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">YOUR TWO OPTIONS</p>
+       <p style="margin:0 0 10px"><strong style="color:#fff">Share it</strong> — add it to a playlist, post a short-form video, or write about it. You paste the link as proof.</p>
+       <p style="margin:0 0 18px"><strong style="color:#fff">Pass</strong> — perfectly fine, and often the right call. We ask for a sentence or two on why, and it goes to the artist with your name on it. When the answer is no, that explanation is most of what they paid for.</p>
+
+       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">GETTING PAID</p>
+       <p style="margin:0 0 10px">A flat <strong style="color:#fff">${dollars(FEATURE_FEE_CENTS)}</strong> per verified share. Same fee whatever the track — nobody can pay you more for a better verdict.</p>
+       <p style="margin:0 0 10px">Playlist adds and videos have to stay up for <strong style="color:#fff">${SHARE_HOLD_DAYS} days</strong> before they count. A published article clears straight away. After that, earnings sit for <strong style="color:#fff">${PAYOUT_MATURITY_DAYS} days</strong> before they can be withdrawn.</p>
+       <p style="margin:0 0 18px">Cash out from <strong style="color:#fff">${dollars(MIN_WITHDRAWAL_CENTS)}</strong>, with a ${dollars(WITHDRAWAL_FEE_CENTS)} transfer fee taken off each payout. Your balance and every pending item are on your earnings page.</p>
+
+       <p style="margin:0;color:#8b8b8b;font-size:13px">Questions, or something looks wrong? Just reply to this email.</p>`,
       { label: "Open your queue", url: `${APP_URL}/curate` }
     ),
   };

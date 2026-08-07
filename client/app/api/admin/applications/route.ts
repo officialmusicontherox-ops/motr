@@ -28,9 +28,10 @@ export async function POST(req: NextRequest) {
   }
 
   const { applicationId, decision, note } = await req.json();
-  if (!applicationId || (decision !== "APPROVE" && decision !== "DECLINE")) {
+  const decisions = ["APPROVE", "DECLINE", "RESEND_WELCOME"];
+  if (!applicationId || !decisions.includes(decision)) {
     return NextResponse.json(
-      { error: "applicationId and decision ('APPROVE' | 'DECLINE') are required" },
+      { error: `applicationId and decision (${decisions.join(" | ")}) are required` },
       { status: 400 }
     );
   }
@@ -41,6 +42,24 @@ export async function POST(req: NextRequest) {
   if (!application) {
     return NextResponse.json({ error: "Application not found" }, { status: 404 });
   }
+
+  // Sending again is the whole recovery path for a welcome email that bounced
+  // or never went out — without it, an approved curator who got nothing has no
+  // way of learning the job exists.
+  if (decision === "RESEND_WELCOME") {
+    if (application.status !== "APPROVED") {
+      return NextResponse.json(
+        { error: "Only an approved application has a welcome email to resend." },
+        { status: 409 }
+      );
+    }
+    const mail = await sendEmail(
+      application.email,
+      curatorApprovedEmail(application.username, application.email)
+    );
+    return NextResponse.json({ emailed: mail.ok, emailError: mail.error });
+  }
+
   if (application.status !== "PENDING") {
     return NextResponse.json(
       { error: `This application is already ${application.status}` },
@@ -91,7 +110,7 @@ export async function POST(req: NextRequest) {
   // approval that already succeeded.
   const mail = await sendEmail(
     result.user.email,
-    curatorApprovedEmail(result.user.username)
+    curatorApprovedEmail(result.user.username, result.user.email)
   );
 
   return NextResponse.json({ ...result, emailed: mail.ok, emailError: mail.error });

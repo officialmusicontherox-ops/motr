@@ -203,6 +203,10 @@ function ApplicationsQueue({ onChanged }: { onChanged: () => void }) {
  const [items, setItems] = useState<Application[] | null>(null);
  const [error, setError] = useState<string | null>(null);
  const [busy, setBusy] = useState<string | null>(null);
+ // An approval whose welcome email failed is the worst silent outcome here:
+ // the account exists, the curator knows nothing about it, and nothing on
+ // screen said so. The result of the send is now always reported.
+ const [mailNote, setMailNote] = useState<{ ok: boolean; text: string } | null>(null);
 
  const load = useCallback(async (f: Filter) => {
  setItems(null);
@@ -220,31 +224,69 @@ function ApplicationsQueue({ onChanged }: { onChanged: () => void }) {
  load(filter);
  }, [filter, load]);
 
- async function decide(applicationId: string, decision: "APPROVE" | "DECLINE") {
+ async function decide(
+ applicationId: string,
+ decision: "APPROVE" | "DECLINE" | "RESEND_WELCOME"
+ ) {
  setBusy(applicationId);
+ setMailNote(null);
  const res = await fetch("/api/admin/applications", {
  method: "POST",
  headers: { "content-type": "application/json" },
  body: JSON.stringify({ applicationId, decision }),
  });
  setBusy(null);
+
+ const data = await res.json().catch(() => ({}));
  if (!res.ok) {
- setError((await res.json()).error ?? "Action failed");
+ setError(data.error ?? "Action failed");
  return;
  }
+
+ const who = items?.find((a) => a.id === applicationId);
+ if (decision === "APPROVE" || decision === "RESEND_WELCOME") {
+ setMailNote(
+ data.emailed
+ ? {
+ ok: true,
+ text: `Welcome email sent to ${who?.email ?? "them"} — it explains sign-in, the queue, passing with a reason, and how the $2 per share is paid.`,
+ }
+ : {
+ ok: false,
+ text: `Approved, but the welcome email did NOT send${
+ data.emailError ? ` (${data.emailError})` : ""
+ }. They don't know they're in. Use "Resend welcome" under the Approved tab.`,
+ }
+ );
+ }
+
+ if (decision !== "RESEND_WELCOME") {
  load(filter);
  onChanged();
+ }
  }
 
  return (
  <section className="mt-10">
  <h2 className="text-lg font-semibold">Curator applications</h2>
  <p className="text-sm text-muted">
- Approving creates the curator account automatically.
+ Approving creates the curator account and emails them how it all works.
  </p>
  <FilterTabs value={filter} onChange={setFilter} />
 
  {error && <p className="mt-3 text-sm text-nope">{error}</p>}
+
+ {mailNote && (
+ <p
+ className={`mt-3 rounded-lg border px-3 py-2 text-sm ${
+ mailNote.ok
+ ? "border-emerald-500/40 bg-emerald-500/5 text-emerald-300"
+ : "border-nope/50 bg-nope/5 text-nope"
+ }`}
+ >
+ {mailNote.text}
+ </p>
+ )}
 
  {items === null ? (
  <p className="mt-3 text-sm text-muted">Loading...</p>
@@ -336,13 +378,24 @@ function ApplicationsQueue({ onChanged }: { onChanged: () => void }) {
  </button>
  </div>
  ) : (
+ <div className="flex shrink-0 items-center gap-3">
  <span
- className={`shrink-0 text-sm font-medium ${
+ className={`text-sm font-medium ${
  a.status === "APPROVED" ? "text-hot" : "text-nope"
  }`}
  >
  {a.status}
  </span>
+ {a.status === "APPROVED" && (
+ <button
+ onClick={() => decide(a.id, "RESEND_WELCOME")}
+ disabled={busy === a.id}
+ className="rounded-full border border-edge px-3 py-1.5 text-xs font-medium text-muted transition hover:border-gold hover:text-gold disabled:opacity-40"
+ >
+ {busy === a.id ? "Sending..." : "Resend welcome"}
+ </button>
+ )}
+ </div>
  )}
  </div>
  </li>
