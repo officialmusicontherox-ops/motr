@@ -8,6 +8,27 @@ export class AlreadySwipedError extends Error {
   }
 }
 
+/**
+ * Hearing the clip out makes a verdict count double.
+ *
+ * The average decision was arriving after five seconds of thirty, which is a
+ * reaction to a first impression rather than to a song. Weighting by
+ * attention means the tracks that break through are the ones people actually
+ * sat with, and it costs a fast swiper nothing — their vote still counts.
+ *
+ * Applied to left-swipes too, deliberately. "I heard the whole thing and
+ * still passed" is a stronger no than a three-second skip, and weighting only
+ * the yeses would inflate every approval rate on the platform.
+ *
+ * 28s rather than 30s: the clip is clamped at 30,000ms and a listener who
+ * swipes as it fades shouldn't be punished for the last fraction of a second.
+ */
+export const FULL_LISTEN_MS = 28_000;
+
+export function voteWeight(listenMs?: number | null): number {
+  return typeof listenMs === "number" && listenMs >= FULL_LISTEN_MS ? 2 : 1;
+}
+
 // Fan swipes are the front door: every track starts in DISCOVERY, open to
 // fans (not curators). Once a track wins over a high enough *share* of the
 // fans who heard it, the artist owes a fee to unlock the paid curator-vetting
@@ -27,10 +48,12 @@ export async function recordFanSwipe(params: {
 }) {
   const { fanId, trackId, direction, listenMs } = params;
 
+  const weight = voteWeight(listenMs);
+
   const result = await prisma.$transaction(async (tx) => {
     try {
       await tx.fanSwipe.create({
-        data: { fanId, trackId, direction, listenMs: listenMs ?? null },
+        data: { fanId, trackId, direction, listenMs: listenMs ?? null, weight },
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
@@ -45,8 +68,12 @@ export async function recordFanSwipe(params: {
     const fanRightSwipes = track.fanRightSwipes + (isRight ? 1 : 0);
     const fanLeftSwipes = track.fanLeftSwipes + (isRight ? 0 : 1);
 
-    const totalVotes = fanRightSwipes + fanLeftSwipes;
-    const approvalRate = totalVotes > 0 ? fanRightSwipes / totalVotes : 0;
+    // Headcount stays headcount; the gate runs on the weighted tally.
+    const weightedRightVotes = track.weightedRightVotes + (isRight ? weight : 0);
+    const weightedTotalVotes = track.weightedTotalVotes + weight;
+
+    const totalVotes = weightedTotalVotes;
+    const approvalRate = totalVotes > 0 ? weightedRightVotes / totalVotes : 0;
 
     // A track that misses the rate at 100 votes isn't dead — it can still
     // clear later if opinion improves. Only the sample floor is one-way.
@@ -66,6 +93,8 @@ export async function recordFanSwipe(params: {
       data: {
         fanRightSwipes,
         fanLeftSwipes,
+        weightedRightVotes,
+        weightedTotalVotes,
         ...(feeNowRequested ? { feeStatus: "PENDING" } : {}),
       },
     });

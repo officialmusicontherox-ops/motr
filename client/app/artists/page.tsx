@@ -46,7 +46,9 @@ export default function ArtistsPage() {
     // a fan swipes ~9 of 150-odd tracks and has about a 6% chance of ever
     // reaching this one — which makes sharing close to pointless.
     const shareUrl = `https://app.musicontherox.com/?track=${done.id}`;
-    const shareText = `My track "${done.title}" is on MOTR — 30 seconds, swipe right if you like it: ${shareUrl}`;
+    // Asking for the full listen isn't a nicety: a verdict reached after the
+    // whole clip counts double, so one patient fan is worth two who skip.
+    const shareText = `My track "${done.title}" is on MOTR — give it the full 30 seconds, then swipe right if you like it (full listens count double): ${shareUrl}`;
     return (
       <main className="bg-bg min-h-screen">
         <PageNav />

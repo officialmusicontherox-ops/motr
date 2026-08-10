@@ -16,6 +16,8 @@ type Track = {
   feeStatus: string;
   fanRightSwipes: number;
   fanLeftSwipes: number;
+  weightedRightVotes: number;
+  weightedTotalVotes: number;
   requiredFanVotes: number;
   requiredApprovalRate: number;
   addedAt: string;
@@ -229,8 +231,12 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
       ) : (
         <ul className="mt-4 space-y-2">
           {tracks.slice(0, page.visible).map((t) => {
-            const votes = t.fanRightSwipes + t.fanLeftSwipes;
-            const rate = votes ? t.fanRightSwipes / votes : 0;
+            // The gate runs on weighted votes, so progress has to be shown in
+            // the same currency — otherwise a track reads as "40 of 75" while
+            // the platform considers it 52.
+            const votes = t.weightedTotalVotes;
+            const rate = votes ? t.weightedRightVotes / votes : 0;
+            const people = t.fanRightSwipes + t.fanLeftSwipes;
             return (
               <li
                 key={t.id}
@@ -310,6 +316,16 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                   <p>
                     needs {Math.round(t.requiredApprovalRate * 100)}% of {t.requiredFanVotes}
                   </p>
+                  {/* Only worth saying when the two differ — otherwise it's
+                      noise on every row. */}
+                  {votes > people && (
+                    <p
+                      className="text-gold/80"
+                      title="Listeners who heard the full clip before deciding count twice"
+                    >
+                      from {people} listener{people === 1 ? "" : "s"}
+                    </p>
+                  )}
 
                   {/* What streaming numbers can't tell you: whether people
                       stayed. Says so explicitly when there's nothing yet,

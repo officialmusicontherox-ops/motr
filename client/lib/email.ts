@@ -240,8 +240,9 @@ export function submissionReceivedEmail(params: {
       "Your track is in the feed",
       `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} is now playing in the MOTR feed, where listeners hear thirty seconds with no artist name attached and decide on the music alone.</p>
        <p style="margin:0 0 12px">To reach curators it needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that — it's the one gate money doesn't open.</p>
-       <p style="margin:0 0 12px"><strong style="color:#fff">Share it with your people.</strong> Send them to MOTR and ask them to swipe. Your own fans are the listeners most likely to swipe right, and every swipe counts the same whether it comes from them or a stranger.</p>
-       <p style="margin:0 0 12px;color:#a3a3a3;font-size:14px">Something like: <em>"My track's on MOTR — 30 seconds, swipe right if you like it: app.musicontherox.com"</em></p>
+       <p style="margin:0 0 12px"><strong style="color:#fff">Share it with your people.</strong> Send them to MOTR and ask them to swipe. Your own fans are the listeners most likely to swipe right, and a swipe counts the same whether it comes from them or a stranger.</p>
+       <p style="margin:0 0 12px"><strong style="color:#fff">Ask them to let it play out.</strong> A listener who hears the full thirty seconds before deciding counts double, so one patient fan is worth two who skip early. It's the single most useful thing you can tell them.</p>
+       <p style="margin:0 0 12px;color:#a3a3a3;font-size:14px">Something like: <em>"My track's on MOTR — give it the full 30 seconds and swipe right if you like it: app.musicontherox.com"</em></p>
        <p style="margin:0;color:#8b8b8b;font-size:13px">We'll email you the moment it breaks through. Nothing to do until then.</p>`,
       { label: "See it in the feed", url: APP_URL }
     ),

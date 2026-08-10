@@ -46,7 +46,7 @@ enum PaymentStatus {
 // covers the chargeback/refund window and Stripe's fund-availability delay,
 // so we never pay out money that can still be clawed back.
 enum PayoutStatus {
-  HELD      // inside the holding period
+  HELD // inside the holding period
   AVAILABLE // matured, counts toward the cashout threshold
   WITHDRAWN // included in a paid-out withdrawal
 }
@@ -58,41 +58,41 @@ enum WithdrawalStatus {
 }
 
 enum AssignmentStatus {
-  PENDING  // curator hasn't decided yet
+  PENDING // curator hasn't decided yet
   FEATURED // curator put it on a playlist / wrote about it
-  PASSED   // curator listened and declined
-  EXPIRED  // curator never responded in time
+  PASSED // curator listened and declined
+  EXPIRED // curator never responded in time
 }
 
 enum FeatureType {
   PLAYLIST // added to a playlist
-  VIDEO    // TikTok, Reel, or Short featuring the track
-  ARTICLE  // written piece
+  VIDEO // TikTok, Reel, or Short featuring the track
+  ARTICLE // written piece
 }
 
 enum FeatureStatus {
   SUBMITTED // proof given, playlist hold not yet cleared
-  VERIFIED  // held the required days — this is what earns the fee
-  REJECTED  // pulled early, or proof didn't check out
+  VERIFIED // held the required days — this is what earns the fee
+  REJECTED // pulled early, or proof didn't check out
 }
 
 // Admin review of a paid artist submission, sitting between payment and
 // the curator vetting pool.
 enum ReviewStatus {
   NOT_SUBMITTED // hasn't paid / isn't up for review yet
-  PENDING       // paid, waiting on an admin decision
-  APPROVED      // admin cleared it into curator vetting
-  DECLINED      // admin rejected it
+  PENDING // paid, waiting on an admin decision
+  APPROVED // admin cleared it into curator vetting
+  DECLINED // admin rejected it
 }
 
 // A curator account is never hard-deleted — payouts, withdrawals and past
 // assignments all point at it, and removing the row would erase financial
 // history we're required to keep.
 enum CuratorStatus {
-  ACTIVE    // in the rotation, receives new tracks
-  PAUSED    // no new tracks (holiday, backlog) — can still finish what they have
+  ACTIVE // in the rotation, receives new tracks
+  PAUSED // no new tracks (holiday, backlog) — can still finish what they have
   SUSPENDED // locked out entirely, under review
-  REMOVED   // off the platform; the record stays for the books
+  REMOVED // off the platform; the record stays for the books
 }
 
 enum ApplicationStatus {
@@ -112,7 +112,7 @@ model User {
   rightSwipesOnGraduated Int   @default(0)
   curationWeight         Float @default(1.0)
 
-  submittedTracks Track[] @relation("SubmittedTracks")
+  submittedTracks Track[]             @relation("SubmittedTracks")
   swipes          Swipe[]
   payouts         CuratorPayout[]
   withdrawals     Withdrawal[]
@@ -166,11 +166,11 @@ model Admin {
 // (no real bank/Stripe transfer wired) — distinct from the artist's fee,
 // which is a real Stripe charge.
 model CuratorPayout {
-  id       String @id @default(cuid())
-  userId   String
-  trackId  String
-  user     User   @relation(fields: [userId], references: [id])
-  track    Track  @relation(fields: [trackId], references: [id])
+  id      String @id @default(cuid())
+  userId  String
+  trackId String
+  user    User   @relation(fields: [userId], references: [id])
+  track   Track  @relation(fields: [trackId], references: [id])
 
   // Earned by a verified feature — a flat fee per share, not a cut of the
   // artist's fee, so payment doesn't depend on the track later performing.
@@ -228,7 +228,7 @@ model Feature {
   type     FeatureType
   proofUrl String
 
-  placedAt  DateTime  @default(now())
+  placedAt  DateTime      @default(now())
   holdUntil DateTime // placedAt + the required hold, for playlists
   status    FeatureStatus @default(SUBMITTED)
 
@@ -250,7 +250,7 @@ model Withdrawal {
   // amountCents is the gross balance claimed; netCents is what actually
   // gets sent after the flat transfer fee.
   amountCents Int
-  feeCents    Int  @default(0)
+  feeCents    Int              @default(0)
   netCents    Int?
   status      WithdrawalStatus @default(REQUESTED)
 
@@ -296,24 +296,31 @@ model Track {
   // 25 of 75 votes. Expressed as a rate rather than a raw count so a track
   // shown to far more people still has to earn the same share of them —
   // exposure alone must never carry something through.
-  requiredFanVotes     Int       @default(75)
-  requiredApprovalRate Float     @default(0.33)
-  fanRightSwipes       Int       @default(0)
-  fanLeftSwipes        Int       @default(0)
-  feeStatus            FeeStatus @default(NOT_REQUIRED)
+  requiredFanVotes     Int   @default(75)
+  requiredApprovalRate Float @default(0.33)
+  fanRightSwipes       Int   @default(0)
+  fanLeftSwipes        Int   @default(0)
+
+  // The same verdicts, weighted by how much of the clip the listener actually
+  // heard: a decision made after the full 30 seconds counts double. These are
+  // what the breakthrough gate reads. The raw counts above stay raw, because
+  // "how many people saved this" must keep meaning people, not points.
+  weightedRightVotes Int       @default(0)
+  weightedTotalVotes Int       @default(0)
+  feeStatus          FeeStatus @default(NOT_REQUIRED)
 
   // Admin gate between "artist paid" and "curators see it"
-  reviewStatus   ReviewStatus @default(NOT_SUBMITTED)
-  reviewedAt     DateTime?
-  reviewNote     String?
+  reviewStatus ReviewStatus @default(NOT_SUBMITTED)
+  reviewedAt   DateTime?
+  reviewNote   String?
 
   // Vetting aggregates (VETTING stage, paid entry)
-  requiredListenThreshold Int   @default(50)
-  totalListens            Int   @default(0)
-  rightSwipes             Int   @default(0)
-  leftSwipes              Int   @default(0)
-  consecutiveRightSwipes  Int   @default(0)
-  approvalRatio           Float @default(0)
+  requiredListenThreshold Int       @default(50)
+  totalListens            Int       @default(0)
+  rightSwipes             Int       @default(0)
+  leftSwipes              Int       @default(0)
+  consecutiveRightSwipes  Int       @default(0)
+  approvalRatio           Float     @default(0)
   graduatedAt             DateTime?
 
   // Post-graduation performance, feeds back into curator reputation.
@@ -426,6 +433,11 @@ model FanSwipe {
   // this is the difference between "looked interesting" and "held me".
   listenMs Int?
 
+  // What this verdict was worth: 2 if they heard the clip out, 1 otherwise.
+  // Stored per swipe rather than only summed onto the track, so the weighting
+  // can be audited or retuned from history instead of being lost.
+  weight Int @default(1)
+
   // Set once the fan pushes this save into their own Spotify library, so the
   // UI can show it's already there across devices and reloads.
   savedToSpotifyAt DateTime?
@@ -445,7 +457,7 @@ model ArtistNotification {
   artist   Artist @relation(fields: [artistId], references: [id])
   track    Track  @relation(fields: [trackId], references: [id])
 
-  type   String @default("SUBMIT_TO_CURATORS_FEE_REQUEST")
+  type   String   @default("SUBMIT_TO_CURATORS_FEE_REQUEST")
   sentAt DateTime @default(now())
 }
 
@@ -467,11 +479,11 @@ model Payment {
 }
 
 model Swipe {
-  id      String         @id @default(cuid())
+  id      String @id @default(cuid())
   userId  String
   trackId String
-  user    User           @relation(fields: [userId], references: [id])
-  track   Track          @relation(fields: [trackId], references: [id])
+  user    User   @relation(fields: [userId], references: [id])
+  track   Track  @relation(fields: [trackId], references: [id])
 
   direction        SwipeDirection
   listenDurationMs Int?
@@ -497,8 +509,8 @@ model ErrorLog {
 
   source      ErrorSource
   message     String
-  fingerprint String  @unique
-  count       Int     @default(1)
+  fingerprint String      @unique
+  count       Int         @default(1)
 
   path      String?
   method    String?
@@ -532,8 +544,8 @@ model AdminLoginAttempt {
 }
 
 enum RefusedStatus {
-  PENDING   // waiting on you
-  ADDED     // added by hand, track now exists
+  PENDING // waiting on you
+  ADDED // added by hand, track now exists
   DISMISSED // not going in
 }
 

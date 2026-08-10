@@ -144,6 +144,9 @@ export default function SwipeCard({
   const yes = Math.min(Math.max(dx / SWIPE_THRESHOLD, 0), 1);
   const nope = Math.min(Math.max(-dx / SWIPE_THRESHOLD, 0), 1);
   const played = duration ? currentTime / duration : 0;
+  // Mirrors FULL_LISTEN_MS on the server, in seconds. The 2s of slack is so a
+  // listener who decides as the clip fades still gets the credit.
+  const countsDouble = currentTime >= 28;
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col select-none md:max-w-2xl md:justify-center">
@@ -281,12 +284,30 @@ export default function SwipeCard({
         </button>
       </div>
 
-      <p className="motr-label mt-1.5 flex shrink-0 items-center justify-center gap-2 text-[0.55rem]">
+      {/* One line, both breakpoints, replacing the old hint rather than
+          sitting under it — the swipe screen has to fit a phone without
+          scrolling, so this can't cost any height. It turns gold the moment
+          the listener has actually earned the double, which teaches the rule
+          far better than the sentence does. */}
+      <p
+        className={`motr-label mt-1.5 flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-[0.55rem] ${
+          countsDouble ? "text-gold" : ""
+        }`}
+      >
         <Crown className="text-gold h-3 w-3" />
-        <span className="md:hidden">Tap or swipe to decide</span>
-        <span className="hidden md:inline">
-          ← Nope · → Like · Space to play — or drag the card
-        </span>
+        {countsDouble ? (
+          <span>This vote counts double</span>
+        ) : (
+          <>
+            {/* Kept short deliberately: the line is nowrap so it can never
+                add a second row, which means it must still fit a 320px
+                phone without pushing the page sideways. */}
+            <span className="md:hidden">Full listens count double</span>
+            <span className="hidden md:inline">
+              ← Nope · → Like · Space to play · full listens count double
+            </span>
+          </>
+        )}
         <Crown className="text-gold h-3 w-3" />
       </p>
     </div>

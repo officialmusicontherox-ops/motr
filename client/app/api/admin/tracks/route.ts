@@ -105,6 +105,11 @@ export async function GET(req: NextRequest) {
       reviewStatus: t.reviewStatus,
       fanRightSwipes: t.fanRightSwipes,
       fanLeftSwipes: t.fanLeftSwipes,
+      // What the breakthrough gate actually reads — full listens count twice,
+      // so this runs ahead of the headcount and is the number that matters
+      // when you're asking "how close is this?".
+      weightedRightVotes: t.weightedRightVotes,
+      weightedTotalVotes: t.weightedTotalVotes,
       requiredFanVotes: t.requiredFanVotes,
       requiredApprovalRate: t.requiredApprovalRate,
       addedAt: t.createdAt,

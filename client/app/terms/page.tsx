@@ -137,11 +137,19 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
   {
     title: "For fans",
     body: (
-      <p>
-        Swipe honestly. Automated swiping, multiple accounts, or any attempt to push a particular
-        track through the vote undermines the one part of MOTR that money can&apos;t touch — we&apos;ll
-        remove accounts that do it and discount their votes.
-      </p>
+      <>
+        <p>
+          Swipe honestly. Automated swiping, multiple accounts, or any attempt to push a
+          particular track through the vote undermines the one part of MOTR that money
+          can&apos;t touch — we&apos;ll remove accounts that do it and discount their votes.
+        </p>
+        <p className="mt-3">
+          Votes are weighted by attention. If you listen to a clip all the way through before
+          deciding, your verdict counts double — and that applies whether you swipe left or
+          right, so it rewards listening rather than approving. Everyone else&apos;s vote still
+          counts in full.
+        </p>
+      </>
     ),
   },
   {

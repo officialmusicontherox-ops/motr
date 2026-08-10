@@ -17,7 +17,7 @@ const STEPS = [
   {
     n: "02",
     title: "The crowd decides",
-    body: "Tracks that collect enough right-swipes break through. Nobody can buy their way past this step — it's the one gate money doesn't open.",
+    body: "Tracks that collect enough right-swipes break through. A listener who hears the full 30 seconds before deciding counts double — either way they swipe. Nobody can buy their way past this step; it's the one gate money doesn't open.",
   },
   {
     n: "03",
@@ -40,6 +40,10 @@ const FAQS = [
   {
     q: "Do I have to pay to be heard?",
     a: "No. Getting into the fan feed is free, and staying there is free. A fee only ever comes up after fans have already pushed your track through — and it's optional at that point.",
+  },
+  {
+    q: "Why does hearing the whole clip count double?",
+    a: "A decision made three seconds in is a reaction to the first thing you hear. One made after the full thirty seconds is a verdict on the song. Both count — but the second one counts twice, whether you swiped left or right. Sitting with a track you end up passing on is just as useful to the artist as one you save, so patience is rewarded rather than agreement.",
   },
   {
     q: "Is this payola?",
