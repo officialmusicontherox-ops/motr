@@ -3,13 +3,15 @@
 import PageNav from "@/components/PageNav";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Crown } from "@/components/icons";
 import { GENRES, OUTLET_TYPES } from "@/lib/genres";
 
 export default function ApplyPage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  // Once they've typed their own, the outlet name stops overwriting it.
+  const usernameEdited = useRef(false);
   const [outletName, setOutletName] = useState("");
   const [outletType, setOutletType] = useState("");
   const [outletUrl, setOutletUrl] = useState("");
@@ -110,6 +112,11 @@ export default function ApplyPage() {
         <p className="text-gold/80 mx-auto mt-3 max-w-md text-xs">
           US-based curators only for now — payouts go out through PayPal US.
         </p>
+        {/* Says how long it takes. People abandon a form because they can't
+            see the end of it, not because any one field was hard. */}
+        <p className="text-muted mx-auto mt-2 max-w-md text-xs">
+          Six questions, about a minute. You only ever fill this in once.
+        </p>
       </header>
 
       <form onSubmit={submit} className="mx-auto mt-8 flex max-w-lg flex-col gap-6 px-6">
@@ -117,7 +124,17 @@ export default function ApplyPage() {
           <Field label="Outlet name" required>
             <input
               value={outletName}
-              onChange={(e) => setOutletName(e.target.value)}
+              onChange={(e) => {
+                setOutletName(e.target.value);
+                // Most people want their outlet's name here anyway, so filling
+                // it in removes a field's worth of thinking. Still editable —
+                // typing in it takes over for good.
+                if (!usernameEdited.current) {
+                  setUsername(
+                    e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20)
+                  );
+                }
+              }}
               required
               placeholder="e.g. Basement Tapes Weekly"
               className={inputCls}
@@ -155,7 +172,9 @@ export default function ApplyPage() {
             />
           </Field>
 
-          <Field label="Audience size" hint="Followers, subscribers, or monthly listeners. Be honest — we look.">
+          {/* Marked optional outright. Unlabelled, they read as more required
+              work and make the form look twice as long as it is. */}
+          <Field label="Audience size" optional hint="Followers, subscribers or monthly listeners.">
             <input
               inputMode="numeric"
               value={audienceSize}
@@ -165,11 +184,11 @@ export default function ApplyPage() {
             />
           </Field>
 
-          <Field label="Socials" hint="One per line. Helps us confirm you're real.">
+          <Field label="Socials" optional hint="One per line. Helps us confirm you're real.">
             <textarea
               value={socials}
               onChange={(e) => setSocials(e.target.value)}
-              rows={3}
+              rows={2}
               placeholder={"https://instagram.com/…\nhttps://x.com/…"}
               className={inputCls}
             />
@@ -188,10 +207,13 @@ export default function ApplyPage() {
             />
           </Field>
 
-          <Field label="Username" required hint="What fans see next to your picks.">
+          <Field label="Username" required hint="Filled in from your outlet — change it if you'd rather.">
             <input
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                usernameEdited.current = true;
+                setUsername(e.target.value);
+              }}
               required
               placeholder="basementtapes"
               className={inputCls}
@@ -221,13 +243,16 @@ export default function ApplyPage() {
             </div>
           </Field>
 
-          <Field label="Why you" required hint="How you pick, and how often you post.">
+          {/* Kept, because it's what the application is actually judged on —
+              but asked in a way that can be answered in one line instead of
+              reading like an essay question. */}
+          <Field label="Why you" required hint="A sentence is plenty.">
             <textarea
               value={pitch}
               onChange={(e) => setPitch(e.target.value)}
               required
-              rows={4}
-              placeholder="Tell us how you find music and what you've broken…"
+              rows={2}
+              placeholder="e.g. I run a 4k-follower indie playlist and add 5–10 new tracks every Friday."
               className={inputCls}
             />
           </Field>
@@ -315,11 +340,14 @@ function Field({
   label,
   hint,
   required,
+  optional,
   children,
 }: {
   label: string;
   hint?: string;
   required?: boolean;
+  /** Says so plainly, so the field doesn't read as more work to do. */
+  optional?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -327,6 +355,7 @@ function Field({
       <span className="block text-sm font-semibold">
         {label}
         {required && <span className="text-gold"> *</span>}
+        {optional && <span className="text-muted font-normal"> · optional</span>}
       </span>
       {hint && <span className="text-muted mb-2 mt-0.5 block text-xs">{hint}</span>}
       <span className={hint ? "block" : "mt-2 block"}>{children}</span>
