@@ -128,7 +128,8 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
         <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6 text-center">
           <p className="font-medium text-emerald-300">Nothing waiting</p>
           <p className="mt-1 text-sm text-muted">
-            Every submission so far was verified and added automatically.
+            Nothing needs you. Anything refused earlier is now live or dismissed — check
+            Handled to see it.
           </p>
         </div>
       ) : (

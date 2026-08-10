@@ -13,10 +13,52 @@ import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
  * here so it can be added on their behalf, and they never have to submit
  * the same thing twice.
  */
+/**
+ * Closes out refusals whose track is now on the platform.
+ *
+ * A refusal is only a job while the track is missing. It gets marked ADDED
+ * when it's rescued through this screen, but a track can arrive by other
+ * routes — the artist retries and it works, or it's added by hand elsewhere —
+ * and nothing was watching for that, so the failure sat in the queue asking
+ * to be dealt with long after it was.
+ *
+ * Run on read rather than by a cron: it's two queries, it only ever touches
+ * rows that are provably stale, and there's no schedule to forget.
+ */
+async function reconcile() {
+  const pending = await prisma.refusedSubmission.findMany({
+    where: { status: "PENDING" },
+    select: { id: true, spotifyUrl: true },
+  });
+  if (pending.length === 0) return;
+
+  const ids = new Map<string, string>();
+  for (const row of pending) {
+    const trackId = parseSpotifyTrackId(row.spotifyUrl);
+    if (trackId) ids.set(trackId, row.id);
+  }
+  if (ids.size === 0) return;
+
+  const live = await prisma.track.findMany({
+    where: { source: "SPOTIFY", externalId: { in: [...ids.keys()] } },
+    select: { externalId: true },
+  });
+
+  const resolved = live.map((t) => ids.get(t.externalId)!).filter(Boolean);
+  if (resolved.length > 0) {
+    await prisma.refusedSubmission.updateMany({
+      where: { id: { in: resolved } },
+      data: { status: "ADDED" },
+    });
+  }
+}
+
 export async function GET(req: NextRequest) {
   if (!(await getAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  await reconcile();
 
   const view = req.nextUrl.searchParams.get("view") ?? "pending";
   const where =

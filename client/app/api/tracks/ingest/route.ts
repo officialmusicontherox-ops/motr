@@ -169,6 +169,18 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // The track is live, so any earlier refusal of it is history, not a job.
+  // Without this a successful retry left the failure sitting in the admin
+  // queue asking to be dealt with — a track can't be both live and refused.
+  if (normalized.source === "SPOTIFY") {
+    await prisma.refusedSubmission
+      .updateMany({
+        where: { status: "PENDING", spotifyUrl: { contains: normalized.externalId } },
+        data: { status: "ADDED" },
+      })
+      .catch(() => {});
+  }
+
   // The artist hears back, and is asked to share while they're most
   // motivated to. Never awaited into failure: a mail problem must not turn a
   // good submission into an error for them.
