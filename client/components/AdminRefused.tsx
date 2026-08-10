@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 import { GENRES } from "@/lib/genres";
 
 type Refused = {
@@ -37,6 +37,7 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
   const [genreDraft, setGenreDraft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const page = useVisibleCount(10);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/refused?view=${view}`);
@@ -48,6 +49,8 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
 
   useEffect(() => {
     load();
+    page.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
   async function act(r: Refused, action: "ADD" | "DISMISS" | "REOPEN") {
@@ -130,7 +133,7 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
         </div>
       ) : (
         <ul className="mt-4 space-y-2">
-          {items.map((r) => {
+          {items.slice(0, page.visible).map((r) => {
             const open = openId === r.id;
             return (
               <li key={r.id} className="rounded-xl border border-edge bg-surface">
@@ -238,6 +241,15 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
             );
           })}
         </ul>
+      )}
+
+      {items && items.length > 0 && (
+        <ShowMore
+          shown={page.visible}
+          total={items.length}
+          onMore={page.more}
+          onLess={page.reset}
+        />
       )}
     </AdminSection>
   );

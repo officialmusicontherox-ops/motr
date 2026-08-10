@@ -16,7 +16,10 @@ export async function GET(req: NextRequest) {
 
   const submissions = await prisma.track.findMany({
     where: valid.includes(status as Review) ? { reviewStatus: status as Review } : {},
-    orderBy: { updatedAt: "desc" },
+    // When it arrived, not when it was last touched. Ordering by updatedAt
+    // meant replacing a track's audio or fixing its genre shoved it back to
+    // the top as though it were a new submission.
+    orderBy: { createdAt: "desc" },
     take: 100,
     include: {
       artist: { select: { name: true, email: true } },

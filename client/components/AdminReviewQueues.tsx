@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ShowMore, useVisibleCount } from "./AdminSection";
 
 type Submission = {
  id: string;
@@ -76,6 +77,10 @@ function SubmissionsQueue({ onChanged }: { onChanged: () => void }) {
  const [error, setError] = useState<string | null>(null);
  const [notice, setNotice] = useState<string | null>(null);
  const [busy, setBusy] = useState<string | null>(null);
+ // Newest first, ten at a time. These queues only grow, and an admin page
+ // you have to scroll for a minute to reach the bottom of is one nobody
+ // reads to the bottom of.
+ const page = useVisibleCount(10);
 
  const load = useCallback(async (f: Filter) => {
  setItems(null);
@@ -91,6 +96,8 @@ function SubmissionsQueue({ onChanged }: { onChanged: () => void }) {
 
  useEffect(() => {
  load(filter);
+ page.reset();
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [filter, load]);  async function decide(trackId: string, decision: "APPROVE" | "DECLINE") {
     setBusy(trackId);
     const res = await fetch("/api/admin/submissions", {
@@ -147,7 +154,7 @@ function SubmissionsQueue({ onChanged }: { onChanged: () => void }) {
  <p className="mt-3 text-sm text-muted">Nothing {filter.toLowerCase()}.</p>
  ) : (
  <ul className="mt-3 space-y-3">
- {items.map((s) => (
+ {items.slice(0, page.visible).map((s) => (
  <li
  key={s.id}
  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-edge bg-surface p-4"
@@ -194,6 +201,15 @@ function SubmissionsQueue({ onChanged }: { onChanged: () => void }) {
  ))}
  </ul>
  )}
+
+ {items && items.length > 0 && (
+ <ShowMore
+ shown={page.visible}
+ total={items.length}
+ onMore={page.more}
+ onLess={page.reset}
+ />
+ )}
  </section>
  );
 }
@@ -207,6 +223,7 @@ function ApplicationsQueue({ onChanged }: { onChanged: () => void }) {
  // the account exists, the curator knows nothing about it, and nothing on
  // screen said so. The result of the send is now always reported.
  const [mailNote, setMailNote] = useState<{ ok: boolean; text: string } | null>(null);
+ const page = useVisibleCount(10);
 
  const load = useCallback(async (f: Filter) => {
  setItems(null);
@@ -222,6 +239,8 @@ function ApplicationsQueue({ onChanged }: { onChanged: () => void }) {
 
  useEffect(() => {
  load(filter);
+ page.reset();
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [filter, load]);
 
  async function decide(
@@ -294,7 +313,7 @@ function ApplicationsQueue({ onChanged }: { onChanged: () => void }) {
  <p className="mt-3 text-sm text-muted">Nothing {filter.toLowerCase()}.</p>
  ) : (
  <ul className="mt-3 space-y-3">
- {items.map((a) => (
+ {items.slice(0, page.visible).map((a) => (
  <li
  key={a.id}
  className="rounded-xl border border-edge bg-surface p-4"
@@ -401,6 +420,15 @@ function ApplicationsQueue({ onChanged }: { onChanged: () => void }) {
  </li>
  ))}
  </ul>
+ )}
+
+ {items && items.length > 0 && (
+ <ShowMore
+ shown={page.visible}
+ total={items.length}
+ onMore={page.more}
+ onLess={page.reset}
+ />
  )}
  </section>
  );
