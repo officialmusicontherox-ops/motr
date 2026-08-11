@@ -198,6 +198,11 @@ export async function POST(req: NextRequest) {
             artworkUrl: r.artworkUrl,
             previewUrl: r.previewUrl,
             durationMs: r.durationMs,
+            // This route matched artist and title, unlike the pasted-audio
+            // branch below, so it goes back through the health check on its
+            // own merits rather than being taken on trust.
+            audioVerdict: null,
+            audioCheckedAt: null,
           },
         });
         return NextResponse.json({
@@ -256,9 +261,10 @@ export async function POST(req: NextRequest) {
 
     const updated = await prisma.track.update({
       where: { id: trackId },
-      // Pasting new audio is a new claim about what this track is, so any
-      // previous verdict stops applying and it goes back in the check queue.
-      data: { previewUrl: resolved, audioVerdict: null, audioCheckedAt: null },
+      // Audio pasted by hand is vouched for, not matched. Marking it null
+      // would send it back through the health check, which would fail to
+      // find it on Apple and offer to repair over a deliberate choice.
+      data: { previewUrl: resolved, audioVerdict: "VOUCHED", audioCheckedAt: new Date() },
     });
     return NextResponse.json({ track: { id: updated.id, previewUrl: updated.previewUrl } });
   }

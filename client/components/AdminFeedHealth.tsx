@@ -27,6 +27,7 @@ type Report = {
     matched: number;
     unverified: number;
     remaining: number;
+    vouched: number;
     mismatches: Mismatch[];
   };
   checkedAt: string;
@@ -134,8 +135,11 @@ export default function AdminFeedHealth() {
         {report && (
           <span className="text-sm text-muted">
             {report.playable} of {report.checked} playing · {report.identity.checkedNow} identified
-            this run{report.identity.remaining > 0 ? `, ${report.identity.remaining} still to check` : ""} ·{" "}
-            {new Date(report.checkedAt).toLocaleTimeString()}
+            this run{report.identity.remaining > 0 ? `, ${report.identity.remaining} still to check` : ""}
+            {report.identity.vouched > 0
+              ? ` · ${report.identity.vouched} trusted (audio you supplied by hand, not matched)`
+              : ""}{" "}
+            · {new Date(report.checkedAt).toLocaleTimeString()}
           </span>
         )}
       </div>

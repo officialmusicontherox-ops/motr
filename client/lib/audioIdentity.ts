@@ -101,11 +101,18 @@ export async function verifyFeedIdentity(limit = 12) {
     }
   }
 
-  const remaining = await prisma.track.count({
-    where: { audioVerdict: null, status: { in: ["DISCOVERY", "VETTING", "GRADUATED"] } },
-  });
+  const [remaining, vouched] = await Promise.all([
+    prisma.track.count({
+      where: { audioVerdict: null, status: { in: ["DISCOVERY", "VETTING", "GRADUATED"] } },
+    }),
+    // Audio supplied by hand. Never re-checked, because searching Apple for it
+    // fails for the very reason it was supplied by hand — but worth reporting,
+    // since "trusted" is a weaker claim than "verified" and hiding the
+    // difference would make the all-clear mean less than it appears to.
+    prisma.track.count({ where: { audioVerdict: "VOUCHED", status: "DISCOVERY" } }),
+  ]);
 
-  return { checkedNow: due.length, matched, unverified, mismatches, remaining };
+  return { checkedNow: due.length, matched, unverified, mismatches, remaining, vouched };
 }
 
 /** Every mismatch on record, so the dashboard shows old findings too. */

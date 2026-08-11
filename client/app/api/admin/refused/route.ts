@@ -171,6 +171,11 @@ export async function POST(req: NextRequest) {
   }
 
   let resolved;
+  // Audio an admin supplied by hand is trusted, not matched — and has to be
+  // recorded as such, or the health check hunts for it on Apple, fails for
+  // exactly the reason it was supplied by hand, and offers to "repair" over
+  // the top of a deliberate choice.
+  let vouched = false;
   try {
     resolved = await resolveSpotifyTrack(trackId);
   } catch (e) {
@@ -209,6 +214,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    vouched = true;
     resolved = {
       title: details.title,
       artistName: details.artistName,
@@ -249,6 +255,7 @@ export async function POST(req: NextRequest) {
       durationMs: resolved.durationMs,
       artistId: artist.id,
       genre: (typeof genre === "string" && genre) || refused.genre || null,
+      ...(vouched ? { audioVerdict: "VOUCHED", audioCheckedAt: new Date() } : {}),
     },
   });
 
