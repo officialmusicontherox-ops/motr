@@ -5,7 +5,13 @@ import { comeBackEmail, sendEmail } from "./email";
 /** Away this long and they've probably forgotten the app exists. */
 export const INACTIVE_DAYS = 7;
 
-/** Don't send twice in the same week even if the job runs twice. */
+/**
+ * Days a listener must go between nudges.
+ *
+ * Sending is manual, so this is what stops a second click an hour later
+ * mailing everyone again. Press the button as often as you like: anyone
+ * nudged in the last six days is simply skipped.
+ */
 const MIN_GAP_DAYS = 6;
 
 /**
@@ -52,7 +58,7 @@ export type NudgeResult = {
  * than a reminder. Anonymous listeners have no address by their own choice and
  * are never included.
  */
-export async function sendWeeklyNudges(appUrl: string): Promise<NudgeResult> {
+export async function sendComeBackEmails(appUrl: string): Promise<NudgeResult> {
   const now = Date.now();
   const inactiveSince = new Date(now - INACTIVE_DAYS * 24 * 60 * 60 * 1000);
   const gapCutoff = new Date(now - MIN_GAP_DAYS * 24 * 60 * 60 * 1000);

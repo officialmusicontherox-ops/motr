@@ -36,11 +36,12 @@ export default function AdminNudges() {
   return (
     <AdminSection
       title="Come-back emails"
-      description="Sent every Tuesday to listeners who swiped, then stopped. Stops after three unanswered."
+      description="Sent when you press the button, to listeners who swiped and then stopped. Nobody gets one twice in six days, and it stops after three unanswered."
       defaultOpen={false}
     >
       <p className="text-sm text-muted">
-        Goes to signed-in listeners with no swipe in the last 7 days. It names the tracks they
+        Nothing is scheduled — this only sends when you press it. Goes to signed-in listeners
+        with no swipe in the last 7 days. It names the tracks they
         saved and how those are doing, and carries an unsubscribe link. Anonymous listeners are
         never included — they have no address, by their own choice.
       </p>
@@ -50,7 +51,7 @@ export default function AdminNudges() {
         disabled={busy}
         className="mt-4 rounded-full bg-gold px-5 py-2.5 text-sm font-bold text-bg disabled:opacity-40"
       >
-        {busy ? "Sending..." : "Run it now"}
+        {busy ? "Sending..." : "Send them now"}
       </button>
 
       {error && <p className="mt-3 text-sm text-nope">{error}</p>}

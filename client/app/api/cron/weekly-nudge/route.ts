@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/adminAuth";
-import { sendWeeklyNudges } from "@/lib/nudges";
+import { sendComeBackEmails } from "@/lib/nudges";
 
 /**
- * The weekly come-back email.
+ * The come-back email, sent by hand from the dashboard.
  *
- * Runs on a schedule via Vercel Cron, and can also be fired by hand from the
- * admin dashboard — useful for seeing exactly what goes out before trusting a
- * schedule with it.
+ * Deliberately not scheduled. Sending sits with a person who can look at who
+ * is due first, which for a list this size is better judgement than a cron
+ * would apply — and there's no schedule to quietly stop working.
  *
- * Two ways in, both closed to the public: Vercel sends the CRON_SECRET as a
- * bearer token, and an admin session is accepted so the dashboard button
- * doesn't need a secret in the browser.
+ * Who receives it is still governed by the rules in lib/nudges.ts, so pressing
+ * the button twice in a day mails nobody twice.
+ *
+ * The CRON_SECRET bearer check is kept so this can be scheduled later without
+ * reopening the route; today an admin session is the way in.
  */
 async function authorised(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -32,7 +34,7 @@ async function run(req: NextRequest) {
       : "https://app.musicontherox.com");
 
   try {
-    const result = await sendWeeklyNudges(appUrl);
+    const result = await sendComeBackEmails(appUrl);
     return NextResponse.json(result);
   } catch (e) {
     return NextResponse.json(
