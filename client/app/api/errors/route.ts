@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logError } from "@/lib/errorLog";
+import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 /**
  * Where the browser reports errors a user actually hit.
@@ -10,6 +11,11 @@ import { logError } from "@/lib/errorLog";
  * so a failure here never cascades into the page that's already broken.
  */
 export async function POST(req: NextRequest) {
+  // Always answers OK, so a limited caller is simply ignored rather than
+  // told it was — this endpoint must never make a broken page worse.
+  const gate = await allowRequest("errorReport", req);
+  if (!gate.allowed) return NextResponse.json({ ok: true });
+
   try {
     const body = await req.json();
     const message = typeof body?.message === "string" ? body.message.trim() : "";

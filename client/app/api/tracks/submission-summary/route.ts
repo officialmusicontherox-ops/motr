@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { newSubmissionEmail, sendEmail, submissionReceivedEmail } from "@/lib/email";
+import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 /** Nobody submits six songs in one sitting; the form stops at five. */
 const MAX_BATCH = 5;
@@ -22,6 +23,9 @@ const RECENT_MINUTES = 30;
  * useless for mailing anyone who didn't just submit.
  */
 export async function POST(req: NextRequest) {
+  const gate = await allowRequest("summary", req);
+  if (!gate.allowed) return tooManyRequests(gate.retryAfterSeconds, "Too many requests.");
+
   const { artistEmail, trackIds } = await req.json().catch(() => ({}));
 
   const email = typeof artistEmail === "string" ? artistEmail.trim().toLowerCase() : "";

@@ -8,6 +8,7 @@ import {
 } from "@/lib/email";
 import { TrackLookupError, resolveSpotifyTrack, trackIdentity } from "@/lib/trackLookup";
 import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
+import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 // Two ways to ingest a track into the vetting queue:
 //  - { source: "SPOTIFY", spotifyTrackId, submittedById? } -> we look up
@@ -16,6 +17,15 @@ import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
 //    already resolved the catalog data (e.g. from Apple Music's MusicKit
 //    JS on the client, which we don't have server credentials for yet).
 export async function POST(req: NextRequest) {
+  // Public, and every call does two catalogue lookups and sends two emails.
+  const gate = await allowRequest("ingest", req);
+  if (!gate.allowed) {
+    return tooManyRequests(
+      gate.retryAfterSeconds,
+      "That's a lot of submissions at once. Give it an hour and try the rest."
+    );
+  }
+
   const body = await req.json();
   // deferEmail: the caller is submitting a batch and will ask for one
   // summary email once it's finished. Five songs in a sitting shouldn't mean

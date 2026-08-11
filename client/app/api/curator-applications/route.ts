@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 // Public: anyone can apply to become a curator. An admin reviews it later.
 export async function POST(req: NextRequest) {
+  const gate = await allowRequest("curatorApply", req);
+  if (!gate.allowed) {
+    return tooManyRequests(gate.retryAfterSeconds, "Too many applications from here today.");
+  }
+
   const {
     email,
     username,

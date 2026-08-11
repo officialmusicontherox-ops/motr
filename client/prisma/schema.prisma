@@ -588,3 +588,18 @@ model RefusedSubmission {
   @@unique([spotifyUrl, artistEmail])
   @@index([status, createdAt(sort: Desc)])
 }
+
+/// One recorded hit against a rate-limited public endpoint.
+///
+/// Postgres rather than memory because serverless functions don't share
+/// state — an in-process counter resets on every cold start and stops
+/// nothing. Rows are pruned as they age out of their window.
+model RequestHit {
+  id     String @id @default(cuid())
+  /// endpoint + client, e.g. "ingest:203.0.113.9"
+  bucket String
+
+  createdAt DateTime @default(now())
+
+  @@index([bucket, createdAt])
+}
