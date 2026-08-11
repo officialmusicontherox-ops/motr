@@ -9,3 +9,7 @@ node_modules/
 # Database exports contain emails and password hashes — never commit one.
 motr-backup-*.json
 *.sql
+# ...but schema migrations are source, not data. Without them the database
+# can't be rebuilt from the repo — which is exactly what moving off Neon
+# would need. Ten of them had been silently excluded.
+!client/prisma/migrations/**/*.sql
