@@ -35,6 +35,10 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [linkDraft, setLinkDraft] = useState("");
   const [genreDraft, setGenreDraft] = useState("");
+  // Only revealed once the automatic lookup has actually refused, so the
+  // normal path stays one link and one button.
+  const [audioDraft, setAudioDraft] = useState("");
+  const [needsAudio, setNeedsAudio] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const page = useVisibleCount(10);
@@ -64,6 +68,7 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
         action,
         spotifyUrl: action === "ADD" ? linkDraft.trim() || undefined : undefined,
         genre: action === "ADD" ? genreDraft || undefined : undefined,
+        audioUrl: action === "ADD" ? audioDraft.trim() || undefined : undefined,
       }),
     });
     const data = await res.json().catch(() => ({}));
@@ -71,12 +76,16 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
 
     if (!res.ok) {
       setFlash(data.error ?? "That didn't work.");
+      // Apple has no match for it, so the only way in is audio you supply.
+      if (data.needsAudio) setNeedsAudio(true);
       return;
     }
     if (action === "ADD") {
       setOpenId(null);
       setLinkDraft("");
       setGenreDraft("");
+      setAudioDraft("");
+      setNeedsAudio(false);
       setFlash(
         data.alreadyExisted
           ? "That track was already in the feed — marked handled."
@@ -176,6 +185,8 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
                             setOpenId(open ? null : r.id);
                             setLinkDraft("");
                             setGenreDraft(r.genre ?? "");
+                            setAudioDraft("");
+                            setNeedsAudio(false);
                           }}
                           className="rounded-full bg-gold px-4 py-1.5 text-sm font-bold text-bg"
                         >
@@ -236,6 +247,23 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
                         {busy === r.id ? "Checking..." : "Add to feed"}
                       </button>
                     </div>
+
+                    {needsAudio && (
+                      <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                        <p className="text-xs text-amber-200">
+                          Apple has no recording we can match to this one, so it can&apos;t be
+                          added automatically. Paste the audio yourself — an Apple Music link or
+                          a direct preview URL — and it&apos;ll be checked for playback before
+                          anything is saved. Title and artist still come from Spotify.
+                        </p>
+                        <input
+                          value={audioDraft}
+                          onChange={(e) => setAudioDraft(e.target.value)}
+                          placeholder="https://music.apple.com/... or a direct .m4a link"
+                          className="mt-2 w-full rounded-lg border border-edge bg-bg px-3 py-2 text-sm outline-none transition focus:border-gold placeholder:text-neutral-600"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </li>
