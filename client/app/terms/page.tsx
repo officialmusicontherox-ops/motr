@@ -124,7 +124,12 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           </li>
           <li>
             Earnings clear seven days after verification. Cash out at $50 or more, less a flat $2
-            transfer fee.
+            transfer fee. Payouts are in US dollars through PayPal, wherever you are.
+          </li>
+          <li>
+            <span className="text-white">You&apos;re independent, not employed by us.</span> You
+            choose what you feature, when you work, and for whom else you work. Nothing here makes
+            you an employee, partner or agent of MOTR.
           </li>
           <li>
             <span className="text-white">Don&apos;t game it.</span> Fake placements, bought
@@ -174,6 +179,36 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         converts the payment at their own rate when it arrives, and that rate is theirs, not ours.
         We may change pricing, but never for a submission already paid for.
       </p>
+    ),
+  },
+  {
+    title: "Taxes",
+    body: (
+      <>
+        <p>
+          <span className="text-white">We don&apos;t withhold or deduct tax from anything we
+          pay you.</span> Every curator payout is gross: what leaves us is what you earned, less
+          only the transfer fee we&apos;ve already told you about.
+        </p>
+        <p className="mt-3">
+          Whatever you owe on that income, and to whom, is between you and the tax authority
+          where you live — not between you and MOTR. Declaring it is your responsibility, and it
+          stays your responsibility whichever country you curate from. If you&apos;re unsure what
+          applies to you, ask someone qualified where you are; we can&apos;t advise you on it and
+          nothing here is tax advice.
+        </p>
+        <p className="mt-3">
+          PayPal may send you their own records or tax forms depending on your country and how
+          much you receive. Those come from PayPal, under their rules, and any question about
+          them is for PayPal — we don&apos;t issue them and can&apos;t change them.
+        </p>
+        <p className="mt-3">
+          If the law ever requires us to collect tax details from you, or to report what
+          we&apos;ve paid you, we&apos;ll ask for exactly what&apos;s needed and tell you why.
+          Payouts can be held until that information is provided, because we&apos;re not able to
+          pay in breach of it.
+        </p>
+      </>
     ),
   },
   {

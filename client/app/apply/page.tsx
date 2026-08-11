@@ -287,7 +287,9 @@ export default function ApplyPage() {
               I have a PayPal account that can receive payments in USD.
               <span className="text-muted mt-0.5 block text-xs">
                 Earnings are tracked and paid in US dollars wherever you are. If your PayPal
-                holds another currency, PayPal converts it at their rate when it lands.
+                holds another currency, PayPal converts it at their rate when it lands. Payouts
+                are gross — we don&apos;t withhold tax, and what you owe is between you and the
+                tax authority where you live.
               </span>
             </span>
           </label>

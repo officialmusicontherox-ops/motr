@@ -62,6 +62,10 @@ const FAQS = [
     a: "Earnings clear after a short holding period, then can be withdrawn once the balance reaches the minimum. The hold exists so payouts aren't sent on money that could still be refunded.",
   },
   {
+    q: "Is tax taken out of curator payouts?",
+    a: "No. We don't withhold or deduct tax from anything we pay you — payouts are gross, less only the flat transfer fee. What you owe on that income, and to whom, is between you and the tax authority where you live, and declaring it is your responsibility. PayPal may send you their own records or forms depending on your country and how much you receive; those are theirs, not ours. We can't give tax advice — if you're unsure, ask someone qualified where you are.",
+  },
+  {
     q: "Can I curate from outside the US?",
     a: "Yes. Curating is open worldwide. Payouts go out through PayPal in US dollars, so what you need is a PayPal account that can receive USD in your country — PayPal reaches most of the world, but the rules differ from place to place, and a few countries can receive USD without being able to withdraw it locally. Check your own account can take a USD payment before you apply. If your PayPal holds another currency, PayPal converts it at their rate when it lands.",
   },

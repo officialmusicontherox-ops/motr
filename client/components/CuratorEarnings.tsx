@@ -143,7 +143,8 @@ export default function CuratorEarnings({ curator }: { curator: User }) {
               </p>
               <p className="text-muted mt-1 text-center text-xs">
                 Paid in USD through PayPal, wherever you are. If your account holds another
-                currency, PayPal converts it at their rate.
+                currency, PayPal converts it at their rate. Payouts are gross — no tax is
+                withheld, and what you owe is between you and your own tax authority.
               </p>
               {error && <p className="text-nope mt-3 text-sm">{error}</p>}
             </div>
