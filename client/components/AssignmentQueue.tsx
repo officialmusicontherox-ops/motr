@@ -77,7 +77,7 @@ export default function AssignmentQueue({ curator }: { curator: User }) {
           <div>
             <h1 className="font-display text-3xl uppercase tracking-wide">Your queue</h1>
             <p className="text-muted mt-1 text-sm">
-              Share one to earn — playlist, TikTok/Reel/Short, or a write-up.
+              Share one to earn — playlist, video, radio, podcast, or a write-up.
             </p>
           </div>
           <a
@@ -235,6 +235,22 @@ const SHARE_TYPES = [
     placeholder: "link to the article",
     hint: "Link the published piece.",
   },
+  {
+    // Airplay can't be checked the way a playlist can, so the proof has to be
+    // something anyone can open: the episode itself, or the station's own
+    // published tracklist. A timestamp turns verification from an hour of
+    // listening into ten seconds.
+    value: "RADIO" as const,
+    label: "Radio play",
+    placeholder: "link to the episode or the station's tracklist",
+    hint: "Archived show (Mixcloud, Soundcloud, station on-demand) with a timestamp, or the station's published tracklist showing the date. Keep it up at least 4 days — we check before paying out.",
+  },
+  {
+    value: "PODCAST" as const,
+    label: "Podcast",
+    placeholder: "link to the episode",
+    hint: "Link the episode, with a timestamp if you can — it's the difference between us checking in ten seconds and listening to an hour. Keep it up at least 4 days.",
+  },
 ];
 
 function FeatureForm({
@@ -243,10 +259,10 @@ function FeatureForm({
   onCancel,
 }: {
   busy: boolean;
-  onSubmit: (type: "PLAYLIST" | "VIDEO" | "ARTICLE", proofUrl: string) => void;
+  onSubmit: (type: "PLAYLIST" | "VIDEO" | "ARTICLE" | "RADIO" | "PODCAST", proofUrl: string) => void;
   onCancel: () => void;
 }) {
-  const [type, setType] = useState<"PLAYLIST" | "VIDEO" | "ARTICLE">("PLAYLIST");
+  const [type, setType] = useState<"PLAYLIST" | "VIDEO" | "ARTICLE" | "RADIO" | "PODCAST">("PLAYLIST");
   const [proofUrl, setProofUrl] = useState("");
   const active = SHARE_TYPES.find((t) => t.value === type)!;
 

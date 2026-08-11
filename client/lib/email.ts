@@ -121,12 +121,12 @@ export function curatorApprovedEmail(username: string, email?: string) {
        <p style="margin:0 0 18px">Nothing unsolicited. A track only reaches you after real listeners voted it through on blind 30-second clips, the artist paid to put it in front of curators, and it matched your genres. It goes to ${CURATORS_PER_TRACK} curators, so you're one opinion of ${CURATORS_PER_TRACK} — not a gatekeeper.</p>
 
        <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">YOUR TWO OPTIONS</p>
-       <p style="margin:0 0 10px"><strong style="color:#fff">Share it</strong> — add it to a playlist, post a short-form video, or write about it. You paste the link as proof.</p>
+       <p style="margin:0 0 10px"><strong style="color:#fff">Share it</strong> — add it to a playlist, post a short-form video, play it on air or on your podcast, or write about it. You paste the link as proof.</p>
        <p style="margin:0 0 18px"><strong style="color:#fff">Pass</strong> — perfectly fine, and often the right call. We ask for a sentence or two on why, and it goes to the artist with your name on it. When the answer is no, that explanation is most of what they paid for.</p>
 
        <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">GETTING PAID</p>
        <p style="margin:0 0 10px">A flat <strong style="color:#fff">${dollars(FEATURE_FEE_CENTS)}</strong> per verified share. Same fee whatever the track — nobody can pay you more for a better verdict.</p>
-       <p style="margin:0 0 10px">Playlist adds and videos have to stay up for <strong style="color:#fff">${SHARE_HOLD_DAYS} days</strong> before they count. A published article clears straight away. After that, earnings sit for <strong style="color:#fff">${PAYOUT_MATURITY_DAYS} days</strong> before they can be withdrawn.</p>
+       <p style="margin:0 0 10px">Playlist adds, videos, radio and podcast proof have to stay up for <strong style="color:#fff">${SHARE_HOLD_DAYS} days</strong> before they count. A published article clears straight away. After that, earnings sit for <strong style="color:#fff">${PAYOUT_MATURITY_DAYS} days</strong> before they can be withdrawn.</p>
        <p style="margin:0 0 10px">Cash out from <strong style="color:#fff">${dollars(MIN_WITHDRAWAL_CENTS)}</strong>, with a ${dollars(WITHDRAWAL_FEE_CENTS)} transfer fee taken off each payout. It goes out through PayPal in US dollars wherever you are — if your account holds another currency, PayPal converts it at their rate. Your balance and every pending item are on your earnings page.</p>
        <p style="margin:0 0 18px">You're independent, not employed by us, and payouts are gross: we don't withhold tax. What you owe on it is between you and the tax authority where you live. Full detail is in the <a href="${APP_URL}/terms" style="color:#dcb55f">terms</a>.</p>
 

@@ -18,8 +18,14 @@ export const FEATURE_FEE_CENTS = 200; // $2.00
  */
 export const SHARE_HOLD_DAYS = 4;
 
-/** Share types that have to survive the hold period. */
-export const HELD_SHARE_TYPES = ["PLAYLIST", "VIDEO"] as const;
+/**
+ * Share types that have to survive the hold period.
+ *
+ * Radio is here because the proof is an archived episode or a tracklist page,
+ * and an archive can be taken down exactly the way a playlist add can be
+ * pulled. The broadcast itself can't be undone, but the evidence can.
+ */
+export const HELD_SHARE_TYPES = ["PLAYLIST", "VIDEO", "RADIO", "PODCAST"] as const;
 
 /**
  * Holding period before earned money can be cashed out. Covers the

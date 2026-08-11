@@ -8,7 +8,7 @@ import {
   daysFromNow,
 } from "./payouts";
 
-export type ShareType = "PLAYLIST" | "VIDEO" | "ARTICLE";
+export type ShareType = "PLAYLIST" | "VIDEO" | "ARTICLE" | "RADIO" | "PODCAST";
 
 export class FeatureError extends Error {}
 

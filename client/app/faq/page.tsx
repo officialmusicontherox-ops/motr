@@ -32,7 +32,7 @@ const STEPS = [
   {
     n: "05",
     title: "Real placements only",
-    body: "A curator earns by putting the track on a playlist, posting it in a TikTok, Reel or Short, or writing about it. Playlist adds and videos have to stay up at least four days — placements that vanish overnight don't count.",
+    body: "A curator earns by putting the track on a playlist, posting it in a TikTok, Reel or Short, playing it on air or on a podcast, or writing about it. Everything except a written piece has to stay up at least four days — placements that vanish overnight don't count.",
   },
 ];
 
@@ -55,7 +55,7 @@ const FAQS = [
   },
   {
     q: "How do curators get paid?",
-    a: "A flat fee per verified share — a playlist add or a short-form video held four days, or a published piece. Curators aren't paid for passing, and they aren't paid more for saying nice things.",
+    a: "A flat fee per verified share — a playlist add, a short-form video, a radio play, or a podcast episode (each held four days), or a published piece. Curators aren't paid for passing, and they aren't paid more for saying nice things.",
   },
   {
     q: "When can a curator cash out?",

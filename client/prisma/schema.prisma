@@ -68,6 +68,8 @@ enum FeatureType {
   PLAYLIST // added to a playlist
   VIDEO // TikTok, Reel, or Short featuring the track
   ARTICLE // written piece
+  RADIO // played on air — proved by an archived episode or a published tracklist
+  PODCAST // played or discussed in an episode — proved by the episode, timestamped
 }
 
 enum FeatureStatus {
