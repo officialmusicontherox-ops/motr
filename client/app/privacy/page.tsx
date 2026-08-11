@@ -93,7 +93,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <li>To take artist payments and pay curators what they&apos;ve earned.</li>
         <li>
           To email you about things that concern you — an application decision, a track breaking
-          through, a cashout.
+          through, a cashout. If you signed in as a listener, that also includes the occasional
+          reminder when you haven&apos;t swiped in a while, and news about tracks you saved. Those
+          carry an unsubscribe link and stop the moment you use it. We never sell your address or
+          email you on anyone else&apos;s behalf.
         </li>
         <li>To detect fraud and abuse, and to meet our tax and accounting obligations.</li>
       </ul>

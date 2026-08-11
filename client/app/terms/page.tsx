@@ -155,6 +155,13 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           right, so it rewards listening rather than approving. Everyone else&apos;s vote still
           counts in full.
         </p>
+        <p className="mt-3">
+          <span className="text-white">If you sign in, we may email you.</span> That means things
+          like a reminder when you haven&apos;t swiped in a while, or news about tracks you
+          saved — not adverts for anyone else. Every one carries an unsubscribe link and a single
+          click ends them permanently, without touching your account or your saves. Swipe without
+          an account and we have no address for you, so there&apos;s nothing to opt out of.
+        </p>
       </>
     ),
   },

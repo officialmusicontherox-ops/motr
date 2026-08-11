@@ -9,6 +9,7 @@ import AdminCurators from "./AdminCurators";
 import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
 import AdminFeedHealth from "./AdminFeedHealth";
+import AdminNudges from "./AdminNudges";
 import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
@@ -272,6 +273,9 @@ export default function AdminDashboard({
  </AdminSection>
 
  <AdminFeedHealth />
+
+
+ <AdminNudges />
 
 
  <AdminErrors />

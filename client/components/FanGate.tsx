@@ -214,6 +214,22 @@ export default function FanGate({
         into your own library.
       </p>
 
+      {/* Consent belongs at the point the address is handed over, not buried
+          in a policy page. Only applies to signing in — swiping without an
+          account gives us no address to email. */}
+      <p className="text-muted relative mt-2 max-w-xs text-[0.7rem] leading-relaxed">
+        By continuing with Google you agree to our{" "}
+        <Link href="/terms" className="text-gold underline underline-offset-2">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="text-gold underline underline-offset-2">
+          Privacy Policy
+        </Link>
+        , and to MOTR emailing you occasionally about the app and the tracks you save. Every one
+        of those has an unsubscribe link, and one click stops them for good.
+      </p>
+
       {error && <p className="text-nope relative mt-4 text-sm">{error}</p>}
 
       <div className="relative mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2">

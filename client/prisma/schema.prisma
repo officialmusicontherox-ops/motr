@@ -415,6 +415,14 @@ model Fan {
 
   swipes FanSwipe[]
 
+  // Re-engagement email state. A nudge is only worth sending to someone who
+  // might come back, so it stops after a few unanswered ones rather than
+  // becoming a weekly nag — which costs the sending domain far more than the
+  // listener was ever worth.
+  emailOptOut Boolean   @default(false)
+  lastNudgeAt DateTime?
+  nudgeCount  Int       @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

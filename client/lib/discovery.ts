@@ -105,6 +105,13 @@ export async function recordFanSwipe(params: {
       });
     }
 
+    // They came back, so the come-back emails start over. Without this a
+    // listener who returns after two nudges only ever has one left.
+    await tx.fan.updateMany({
+      where: { id: fanId, nudgeCount: { gt: 0 } },
+      data: { nudgeCount: 0 },
+    });
+
     return { track: updatedTrack, feeNowRequested };
   });
 

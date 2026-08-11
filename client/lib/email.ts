@@ -310,6 +310,60 @@ export function curatorPassedEmail(params: {
   };
 }
 
+/**
+ * The come-back email, for a listener who swiped and then stopped.
+ *
+ * Built around what they already backed rather than "we miss you": the tracks
+ * they saved, and how those are doing since. That's the one thing MOTR knows
+ * about them that nowhere else does, and it's the reason they'd open it.
+ *
+ * The unsubscribe link isn't optional decoration — a recurring email has to
+ * carry one, and it has to work.
+ */
+export function comeBackEmail(params: {
+  username: string;
+  saved: { title: string; artistName: string; votes: number }[];
+  newTracks: number;
+  unsubscribeUrl: string;
+}) {
+  const { username, saved, newTracks, unsubscribeUrl } = params;
+
+  const list = saved
+    .map(
+      (t) =>
+        `<div style="margin:0 0 8px;padding:10px 12px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
+           <div style="color:#fff;font-weight:600;font-size:14px">${t.title}</div>
+           <div style="color:#8b8b8b;font-size:12px;margin-top:2px">${t.artistName}${
+             t.votes > 0 ? ` · ${t.votes} vote${t.votes === 1 ? "" : "s"} so far` : ""
+           }</div>
+         </div>`
+    )
+    .join("");
+
+  return {
+    subject: newTracks > 0 ? `${newTracks} new tracks since you were last on MOTR` : "Still swiping?",
+    html:
+      shell(
+        saved.length > 0 ? "The ones you backed" : "There's new music waiting",
+        `<p style="margin:0 0 12px">Hi ${username} —${
+          newTracks > 0
+            ? ` <strong style="color:#fff">${newTracks}</strong> new track${newTracks === 1 ? " has" : "s have"} landed in the feed since you were last here.`
+            : " there's new music in the feed since you were last here."
+        }</p>
+         ${
+           saved.length > 0
+             ? `<p style="margin:0 0 10px">You backed ${saved.length === 1 ? "this" : "these"} early:</p>${list}
+                <p style="margin:12px 0 0">Tracks only reach curators if enough listeners push them there. Yours are still climbing.</p>`
+             : `<p style="margin:0">Thirty seconds each, no artist names, and the ones you like are saved for you.</p>`
+         }`,
+        { label: "Pick up where you left off", url: APP_URL }
+      ) +
+      `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
+         Not interested? <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> and we won't email you again.
+       </p>`,
+  };
+}
+
 export async function sendEmail(to: string, template: { subject: string; html: string }) {
   return send(to, template.subject, template.html);
 }
