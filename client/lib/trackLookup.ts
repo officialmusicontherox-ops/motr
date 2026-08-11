@@ -125,15 +125,82 @@ function normaliseName(s: string): string {
  * collaborators — Spotify's "Luis Martelo, Badoxa" is Apple's "Luis Martelo
  * & Badoxa" or just "Luis Martelo" — but they agree on who leads.
  */
+
+/**
+ * Is this Apple result credited to the artist Spotify says made the track?
+ *
+ * The previous rule split the expected name on "&" to pull out a lead artist,
+ * then accepted any candidate whose name merely *contained* it. That is right
+ * for "Calvin Harris & Dua Lipa" and catastrophic for a band whose own name
+ * contains an ampersand: "Loveless & Company" collapsed to "Loveless", which
+ * appears inside "Patty Loveless", and an artist's track played a stranger's
+ * recording under their name.
+ *
+ * So: the full name has to be credited, or the two lead artists have to agree
+ * exactly. A surname landing somewhere inside a longer name is no longer
+ * enough. This refuses more than it used to, and that is the right direction —
+ * a refusal lands in the failed queue and can be added by hand, while wrong
+ * audio goes out under someone's name and is found by the artist.
+ */
 export function artistMatches(expected: string, candidate: string): boolean {
+  const full = normaliseName(expected);
+  const cand = normaliseName(candidate);
+  if (!full || !cand) return false;
+
+  if (full === cand) return true;
+
+  // Credited among several artists — but only as a whole credit, never as a
+  // fragment of one. "Luis Martelo" is genuinely one of "Luis Martelo &
+  // Friends"; "Tribe" is not one of "A Tribe Called Quest".
+  const segments = candidate
+    .split(/[,&]/)
+    .map((s) => normaliseName(s))
+    .filter(Boolean);
+  if (segments.includes(full)) return true;
+
+  // Genuine collaborations: lead artist against lead artist, both reduced the
+  // same way, and identical rather than one sitting inside the other.
   const lead = normaliseName(expected.split(/[,&]/)[0]);
-  const candidateLead = normaliseName(candidate.split(/[,&]/)[0]);
+  const candidateLead = segments[0];
   if (!lead || !candidateLead) return false;
 
-  // Leads agree, or the candidate credits our lead among its artists.
-  // Deliberately not the reverse: "Tribe" must not match "A Tribe Called
-  // Quest", or a short name would sweep up unrelated acts.
-  return lead === candidateLead || normaliseName(candidate).includes(lead);
+  return lead === candidateLead;
+}
+
+/**
+ * Does this Apple result claim to be the same song?
+ *
+ * Nothing checked the title before: a candidate was accepted on artist alone,
+ * so a correctly-matched artist could still hand back an entirely different
+ * song from their own catalogue. "Outlaw" was served as "You'll Never Leave
+ * Harlan Alive" that way.
+ *
+ * Store-specific suffixes are stripped from both sides first, because Apple
+ * and Spotify disagree constantly about "- Radio Edit", "(feat. …)" and
+ * remaster tags on what is plainly the same recording.
+ */
+export function titleMatches(expected: string, candidate: string): boolean {
+  // Spotify writes "Song - Summer Mix" where Apple writes "Song (Summer Mix)"
+  // for the identical recording, so brackets and dashes are flattened to
+  // nothing rather than treated as a boundary. What does get removed is the
+  // part that genuinely isn't the song's identity: featured-artist credits,
+  // and the store tags each side adds on its own.
+  const strip = (v: string) =>
+    v
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[([\-–]\s*(feat\.?|ft\.?|featuring|with)\s[^)\]]*[)\]]?/g, " ")
+      .replace(
+        /\b(remaster(ed)?(\s*\d{4})?|explicit|clean|mono|stereo|bonus track|single version|album version|radio edit)\b/g,
+        " "
+      )
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+  const a = strip(expected);
+  const b = strip(candidate);
+  return Boolean(a) && a === b;
 }
 
 export async function fetchSpotifyOembed(trackId: string): Promise<Oembed> {
@@ -277,7 +344,12 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
     // cover, an interlude or a same-titled song by someone far more famous,
     // and the real recording sits below it.
     const candidates = await searchItunesAll(term, 20);
-    const hit = candidates.find((c) => artistMatches(spotifyArtist, c.artistName));
+    // Both have to agree. The artist alone was never enough — it let a
+    // correctly-identified artist hand back the wrong song of theirs, and a
+    // near-miss on the name hand back someone else's entirely.
+    const hit = candidates.find(
+      (c) => artistMatches(spotifyArtist, c.artistName) && titleMatches(title, c.trackName)
+    );
     if (hit?.previewUrl) {
       return {
         title: displayTitle,
