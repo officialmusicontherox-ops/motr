@@ -76,6 +76,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ application: declined, user: null, emailed: mail.ok });
   }
 
+  // A collision can only reach here if one was created before the check
+  // above was case-insensitive, or if two pending applications claimed the
+  // same name. Either way it used to surface as an unhandled 500 and an
+  // "Action failed" with no explanation, leaving the application stuck.
+  const clash = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { email: { equals: application.email, mode: "insensitive" } },
+        { username: { equals: application.username, mode: "insensitive" } },
+      ],
+    },
+    select: { email: true, username: true },
+  });
+  if (clash) {
+    const sameEmail = clash.email.toLowerCase() === application.email.toLowerCase();
+    return NextResponse.json(
+      {
+        error: sameEmail
+          ? `There's already a curator account for ${application.email}. This application is a duplicate — dismiss it.`
+          : `The username "${application.username}" is already taken by ${clash.email}. Ask them for a different one, or edit it before approving.`,
+      },
+      { status: 409 }
+    );
+  }
+
   // Approve: create the curator and link it back to the application, so a
   // half-applied state can't exist if either write fails.
   const result = await prisma.$transaction(async (tx) => {

@@ -69,13 +69,58 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Don't let someone apply for a username/email already curating.
+  // Case-insensitively, because the check was exact-match while emails are
+  // stored lowercased — so "Bob@X.com" sailed past a stored "bob@x.com",
+  // and the collision only surfaced later as an unexplained failure when
+  // the application was approved.
+  //
+  // Usernames matter for a different reason: a curator's name is shown to
+  // artists on every decline. "BlueRadio" and "blueradio" being two accounts
+  // is an impersonation waiting to happen.
+  const cleanEmail = String(email).trim().toLowerCase();
+  const cleanUsername = String(username).trim();
+
   const existingUser = await prisma.user.findFirst({
-    where: { OR: [{ email }, { username }] },
+    where: {
+      OR: [
+        { email: { equals: cleanEmail, mode: "insensitive" } },
+        { username: { equals: cleanUsername, mode: "insensitive" } },
+      ],
+    },
+    select: { email: true },
   });
   if (existingUser) {
     return NextResponse.json(
-      { error: "That email or username is already a curator." },
+      {
+        error:
+          existingUser.email.toLowerCase() === cleanEmail
+            ? "There's already a curator account for that email. Open the Curate page and choose Continue with Google."
+            : "That username is taken by another curator. Pick a different one.",
+      },
+      { status: 409 }
+    );
+  }
+
+  // The same collision can sit in a pending application rather than a live
+  // account, where it would only fail at approval time.
+  const existingApplication = await prisma.curatorApplication.findFirst({
+    where: {
+      status: { not: "DECLINED" },
+      OR: [
+        { email: { equals: cleanEmail, mode: "insensitive" } },
+        { username: { equals: cleanUsername, mode: "insensitive" } },
+      ],
+    },
+    select: { email: true, status: true },
+  });
+  if (existingApplication) {
+    return NextResponse.json(
+      {
+        error:
+          existingApplication.email.toLowerCase() === cleanEmail
+            ? "We already have an application from that email — we'll be in touch."
+            : "That username is already spoken for by another application. Pick a different one.",
+      },
       { status: 409 }
     );
   }
