@@ -1,3 +1,19 @@
+/**
+ * Blind curator vetting — the superseded model.
+ *
+ * Tracks used to graduate by collecting consecutive right-swipes from
+ * curators. That was replaced by paid assignments, where a track goes to five
+ * named curators who each accept or pass with a reason.
+ *
+ * The HTTP routes that drove this were removed: they were public and
+ * unauthenticated, took the curator id from the request body, and could set a
+ * track to GRADUATED or raise a curator's curationWeight — which decides who
+ * gets assigned work. Nothing rendered the UI that called them, so they were
+ * an open door onto a room nobody used.
+ *
+ * The logic stays because the tables it writes still exist and blind vetting
+ * may come back; if it does, it needs a session first.
+ */
 import { Prisma, SwipeDirection } from "@prisma/client";
 import { prisma } from "./prisma";
 
