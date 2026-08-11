@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { WithdrawalError, getCuratorBalance, requestWithdrawal } from "@/lib/payouts";
+import { requireCurator } from "@/lib/curatorAuth";
 
 export async function GET(req: NextRequest) {
-  const userId = req.nextUrl.searchParams.get("userId");
-  if (!userId) {
-    return NextResponse.json({ error: "userId query param is required" }, { status: 400 });
-  }
+  // Balances and payout destinations are nobody else's business.
+  const auth = await requireCurator(req.nextUrl.searchParams.get("userId"));
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const userId = auth.userId;
 
   const [balance, payouts, withdrawals] = await Promise.all([
     getCuratorBalance(userId),
@@ -27,10 +28,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { userId, payoutDestination } = await req.json();
-  if (!userId) {
-    return NextResponse.json({ error: "userId is required" }, { status: 400 });
-  }
+  const { userId: claimed, payoutDestination } = await req.json();
+
+  // Money moves through here. The payout destination is taken from the same
+  // body as the id, so without proving the session an attacker holding a
+  // curator's id could send that curator's balance to their own PayPal.
+  const auth = await requireCurator(claimed);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const userId = auth.userId;
 
   try {
     const withdrawal = await requestWithdrawal(userId, payoutDestination);

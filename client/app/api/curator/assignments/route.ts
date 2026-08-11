@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { FeatureError, passOnAssignment, submitFeature } from "@/lib/features";
+import { requireCurator } from "@/lib/curatorAuth";
 
 export async function GET(req: NextRequest) {
-  const userId = req.nextUrl.searchParams.get("userId");
+  const auth = await requireCurator(req.nextUrl.searchParams.get("userId"));
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const userId = auth.userId;
   if (!userId) {
     return NextResponse.json({ error: "userId query param is required" }, { status: 400 });
   }
@@ -38,7 +41,12 @@ export async function GET(req: NextRequest) {
 
 // Curator decides: share it (with proof) or pass.
 export async function POST(req: NextRequest) {
-  const { userId, assignmentId, action, type, proofUrl , reason } = await req.json();
+  const { userId: claimed, assignmentId, action, type, proofUrl , reason } = await req.json();
+
+  // The id in the body is only honoured if it matches the signed session.
+  const auth = await requireCurator(claimed);
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+  const userId = auth.userId;
 
   if (!userId || !assignmentId) {
     return NextResponse.json({ error: "userId and assignmentId are required" }, { status: 400 });

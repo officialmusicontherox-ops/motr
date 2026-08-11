@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { CURATOR_SESSION_TTL_MS, signCuratorPayload } from "@/lib/curatorAuth";
 
 /**
  * Google returns here for both fans and curators. We trade the code for an
@@ -81,7 +82,20 @@ export async function GET(req: NextRequest) {
     if (user.status === "SUSPENDED" || user.status === "REMOVED") {
       return back("auth_error=account_inactive");
     }
-    return back(`curator=${user.id}`);
+    // Google has proved who they are, so issue the signed session here.
+    // The id still goes in the URL because the client stores it for its own
+    // display, but it is no longer what authorises anything — the cookie is.
+    const res = back(`curator=${user.id}`);
+    const expiresAt = Date.now() + CURATOR_SESSION_TTL_MS;
+    const payload = `${user.id}.${expiresAt}`;
+    res.cookies.set("curator_session", `${payload}.${signCuratorPayload(payload)}`, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: CURATOR_SESSION_TTL_MS / 1000,
+    });
+    return res;
   }
 
   // No account: say which situation they're in rather than a dead end.
