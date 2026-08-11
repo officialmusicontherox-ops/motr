@@ -256,7 +256,9 @@ export async function POST(req: NextRequest) {
 
     const updated = await prisma.track.update({
       where: { id: trackId },
-      data: { previewUrl: resolved },
+      // Pasting new audio is a new claim about what this track is, so any
+      // previous verdict stops applying and it goes back in the check queue.
+      data: { previewUrl: resolved, audioVerdict: null, audioCheckedAt: null },
     });
     return NextResponse.json({ track: { id: updated.id, previewUrl: updated.previewUrl } });
   }

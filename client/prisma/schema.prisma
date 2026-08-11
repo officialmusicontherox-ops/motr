@@ -309,6 +309,16 @@ model Track {
   // "how many people saved this" must keep meaning people, not points.
   weightedRightVotes Int       @default(0)
   weightedTotalVotes Int       @default(0)
+
+  // Whether the audio behind this track is provably the recording it claims
+  // to be — MATCH, MISMATCH, or UNVERIFIED when Apple's search can't surface
+  // it at all. Persisted because confirming one costs an iTunes search and
+  // Apple throttles at roughly twenty a minute: re-checking the whole feed on
+  // every click isn't possible, but checking each track once is.
+  //
+  // Cleared whenever the preview changes, because a new URL is a new claim.
+  audioVerdict   String?
+  audioCheckedAt DateTime?
   feeStatus          FeeStatus @default(NOT_REQUIRED)
 
   // Admin gate between "artist paid" and "curators see it"

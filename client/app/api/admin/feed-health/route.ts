@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
 import { searchItunes } from "@/lib/trackLookup";
+import { knownMismatches, verifyFeedIdentity } from "@/lib/audioIdentity";
 
 /**
  * Checks that every track in the feed still has audio behind it.
@@ -48,10 +49,22 @@ export async function POST(req: NextRequest) {
     for (const r of results) if (r) broken.push(r);
   }
 
+  // Playing isn't the same as being the right recording. A track serving
+  // someone else's song passes every check above — artwork, title, sound —
+  // and the artist is the one who finds out. Two of the last two artists to
+  // submit had one, so identity is now part of the same button.
+  const identity = await verifyFeedIdentity();
+  const mismatches = await knownMismatches();
+
   return NextResponse.json({
     checked: tracks.length,
     playable: tracks.length - broken.length,
     broken,
+    identity: {
+      ...identity,
+      // Everything ever found wrong and not yet repaired, not just this run's.
+      mismatches,
+    },
     checkedAt: new Date().toISOString(),
   });
 }
@@ -103,6 +116,8 @@ export async function PATCH(req: NextRequest) {
               data: {
                 previewUrl: d.preview,
                 durationMs: d.duration ? d.duration * 1000 : track.durationMs,
+                audioVerdict: null,
+                audioCheckedAt: null,
               },
             });
             return NextResponse.json({
@@ -133,6 +148,9 @@ export async function PATCH(req: NextRequest) {
       artworkUrl:
         (found.artworkUrl100 ?? "").replace(/\/\d+x\d+bb\./, "/600x600bb.") || track.artworkUrl,
       durationMs: found.trackTimeMillis ?? track.durationMs,
+      // New audio is a new claim, so it has to earn its verdict again.
+      audioVerdict: null,
+      audioCheckedAt: null,
     },
   });
 
