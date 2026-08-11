@@ -17,7 +17,10 @@ import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
 //    JS on the client, which we don't have server credentials for yet).
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { source, submittedById, artistEmail, requiredFanVotes, genre } = body;
+  // deferEmail: the caller is submitting a batch and will ask for one
+  // summary email once it's finished. Five songs in a sitting shouldn't mean
+  // five near-identical emails to the artist and five more to the operator.
+  const { source, submittedById, artistEmail, requiredFanVotes, genre, deferEmail } = body;
 
   if (source !== "SPOTIFY" && source !== "APPLE_MUSIC") {
     return NextResponse.json(
@@ -184,25 +187,22 @@ export async function POST(req: NextRequest) {
   // The artist hears back, and is asked to share while they're most
   // motivated to. Never awaited into failure: a mail problem must not turn a
   // good submission into an error for them.
-  if (artistEmail) {
+  if (artistEmail && !deferEmail) {
     await sendEmail(
       String(artistEmail),
       submissionReceivedEmail({
-        trackTitle: track.title,
-        artistName: track.artistName,
+        tracks: [{ id: track.id, title: track.title, artistName: track.artistName }],
         requiredVotes: track.requiredFanVotes,
         requiredRate: track.requiredApprovalRate,
       })
     );
   }
 
-  if (artistEmail && process.env.EMAIL_REPLY_TO) {
+  if (artistEmail && !deferEmail && process.env.EMAIL_REPLY_TO) {
     await sendEmail(
       process.env.EMAIL_REPLY_TO,
       newSubmissionEmail({
-        trackTitle: track.title,
-        artistName: track.artistName,
-        genre: track.genre,
+        tracks: [{ title: track.title, artistName: track.artistName, genre: track.genre }],
         submitterEmail: String(artistEmail),
       })
     );

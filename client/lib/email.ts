@@ -176,19 +176,29 @@ export function trackBrokeThroughEmail(params: {
  * theirs.
  */
 export function newSubmissionEmail(params: {
-  trackTitle: string;
-  artistName: string;
-  genre: string | null;
+  tracks: { title: string; artistName: string; genre: string | null }[];
   submitterEmail: string;
 }) {
-  const { trackTitle, artistName, genre, submitterEmail } = params;
+  const { tracks, submitterEmail } = params;
+  const many = tracks.length > 1;
+  const first = tracks[0];
+
+  const list = tracks
+    .map(
+      (t) =>
+        `<li style="margin:0 0 6px"><strong style="color:#fff">${t.title}</strong> — ${t.artistName} <span style="color:#8b8b8b">(${t.genre ?? "no genre"})</span></li>`
+    )
+    .join("");
+
   return {
-    subject: `New submission: ${trackTitle} — ${artistName}`,
+    subject: many
+      ? `New submission: ${tracks.length} tracks from ${submitterEmail}`
+      : `New submission: ${first.title} — ${first.artistName}`,
     html: shell(
-      "A track just went live",
-      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} is now in the feed.</p>
-       <p style="margin:0 0 12px;color:#a3a3a3">Genre: ${genre ?? "not set"}<br/>Submitted by: ${submitterEmail}</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">If it isn't their music, or the genre looks wrong, you can pull it from the Tracks section of the dashboard.</p>`,
+      many ? `${tracks.length} tracks just went live` : "A track just went live",
+      `<ul style="margin:0 0 12px;padding-left:18px;color:#c9c9c9">${list}</ul>
+       <p style="margin:0 0 12px;color:#a3a3a3">Submitted by: ${submitterEmail}</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">If any of it isn't their music, or a genre looks wrong, you can pull it from the Tracks section of the dashboard.</p>`,
       { label: "Open the dashboard", url: `${APP_URL}/admin` }
     ),
   };
@@ -229,23 +239,46 @@ export function refusedSubmissionEmail(params: {
  * right, so the ask belongs here rather than in a later nudge.
  */
 export function submissionReceivedEmail(params: {
-  trackTitle: string;
-  artistName: string;
+  tracks: { id: string; title: string; artistName: string }[];
   requiredVotes: number;
   requiredRate: number;
 }) {
-  const { trackTitle, artistName, requiredVotes, requiredRate } = params;
+  const { tracks, requiredVotes, requiredRate } = params;
+  const many = tracks.length > 1;
+  const first = tracks[0];
+
+  // One email per batch, not one per track. Someone adding five songs in a
+  // sitting shouldn't get five near-identical emails — and a single one can
+  // carry every share link, which five separate ones can't.
+  const list = tracks
+    .map(
+      (t) =>
+        `<div style="margin:0 0 10px;padding:12px 14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
+           <div style="color:#fff;font-weight:600">${t.title}</div>
+           <div style="color:#8b8b8b;font-size:13px;margin-top:2px">${t.artistName}</div>
+           <a href="${APP_URL}/?track=${t.id}" style="color:#dcb55f;font-size:13px;word-break:break-all">${APP_URL.replace(/^https?:\/\//, "")}/?track=${t.id}</a>
+         </div>`
+    )
+    .join("");
+
   return {
-    subject: `"${trackTitle}" is live on MOTR`,
+    subject: many
+      ? `Your ${tracks.length} tracks are live on MOTR`
+      : `"${first.title}" is live on MOTR`,
     html: shell(
-      "Your track is in the feed",
-      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} is now playing in the MOTR feed, where listeners hear thirty seconds with no artist name attached and decide on the music alone.</p>
-       <p style="margin:0 0 12px">To reach curators it needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that — it's the one gate money doesn't open.</p>
-       <p style="margin:0 0 12px"><strong style="color:#fff">Share it with your people.</strong> Send them to MOTR and ask them to swipe. Your own fans are the listeners most likely to swipe right, and a swipe counts the same whether it comes from them or a stranger.</p>
-       <p style="margin:0 0 12px"><strong style="color:#fff">Ask them to let it play out.</strong> A listener who hears the full thirty seconds before deciding counts double, so one patient fan is worth two who skip early. It's the single most useful thing you can tell them.</p>
-       <p style="margin:0 0 12px;color:#a3a3a3;font-size:14px">Something like: <em>"My track's on MOTR — give it the full 30 seconds and swipe right if you like it: app.musicontherox.com"</em></p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">We'll email you the moment it breaks through. Nothing to do until then.</p>`,
-      { label: "See it in the feed", url: APP_URL }
+      many ? "Your tracks are in the feed" : "Your track is in the feed",
+      `<p style="margin:0 0 12px">${
+        many
+          ? `All <strong style="color:#fff">${tracks.length}</strong> are now playing in the MOTR feed`
+          : `<strong style="color:#fff">${first.title}</strong> by ${first.artistName} is now playing in the MOTR feed`
+      }, where listeners hear thirty seconds with no artist name attached and decide on the music alone.</p>
+       <p style="margin:0 0 12px">To reach curators, a track needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that — it's the one gate money doesn't open.</p>
+       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${many ? "YOUR LINKS" : "YOUR LINK"}</p>
+       <p style="margin:0 0 10px;font-size:14px">${many ? "Each link opens straight on that track" : "This link opens straight on your track"} rather than a random one, so everyone you send lands on it.</p>
+       ${list}
+       <p style="margin:14px 0 12px"><strong style="color:#fff">Ask them to let it play out.</strong> A listener who hears the full thirty seconds before deciding counts double, so one patient fan is worth two who skip early. It's the single most useful thing you can tell them.</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">We'll email you the moment ${many ? "one of them breaks" : "it breaks"} through. Nothing to do until then.</p>`,
+      { label: "See the feed", url: APP_URL }
     ),
   };
 }
