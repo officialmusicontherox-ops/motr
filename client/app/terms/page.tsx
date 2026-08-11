@@ -35,8 +35,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         You need to be 13 or older to swipe. You need to be 18 or older to submit music or curate,
-        because both involve money. Curators must currently be based in the United States, since
-        payouts run through PayPal US.
+        because both involve money. Curating is open worldwide, but payouts are sent in US dollars
+        through PayPal — so you need a PayPal account that can receive USD in your country. What
+        PayPal allows differs from country to country, and that part is between you and them.
       </p>
     ),
   },
@@ -168,8 +169,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         Artist fees are processed by Stripe; card details never reach our servers. Curator payouts
-        go out through PayPal after a cashout request. Prices are in US dollars. We may change
-        pricing, but never for a submission already paid for.
+        go out through PayPal after a cashout request. Everything — prices, balances and payouts —
+        is in US dollars, wherever you are. If your PayPal account holds another currency, PayPal
+        converts the payment at their own rate when it arrives, and that rate is theirs, not ours.
+        We may change pricing, but never for a submission already paid for.
       </p>
     ),
   },

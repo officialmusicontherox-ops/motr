@@ -141,7 +141,10 @@ export default function CuratorEarnings({ curator }: { curator: User }) {
                   ? ` — ${money(balance.availableCents)} balance, ${money(balance.netIfWithdrawnCents)} to you.`
                   : "."}
               </p>
-              <p className="text-muted mt-1 text-center text-xs">Payouts are US only for now.</p>
+              <p className="text-muted mt-1 text-center text-xs">
+                Paid in USD through PayPal, wherever you are. If your account holds another
+                currency, PayPal converts it at their rate.
+              </p>
               {error && <p className="text-nope mt-3 text-sm">{error}</p>}
             </div>
 

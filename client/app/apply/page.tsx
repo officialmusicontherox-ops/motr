@@ -19,7 +19,8 @@ export default function ApplyPage() {
   const [socials, setSocials] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [pitch, setPitch] = useState("");
-  const [inUs, setInUs] = useState(false);
+  const [country, setCountry] = useState("");
+  const [paypalOk, setPaypalOk] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -45,7 +46,8 @@ export default function ApplyPage() {
           .filter(Boolean),
         genres,
         pitch,
-        country: inUs ? "US" : "",
+        country: country.trim(),
+        paypalOk,
       }),
     });
     setPending(false);
@@ -87,7 +89,8 @@ export default function ApplyPage() {
     outletUrl.trim() &&
     genres.length > 0 &&
     pitch.trim().length >= 20 &&
-    inUs;
+    country.trim().length > 1 &&
+    paypalOk;
 
   return (
     <main className="bg-bg min-h-screen pb-20">
@@ -110,12 +113,13 @@ export default function ApplyPage() {
           hand, so tell us what you run.
         </p>
         <p className="text-gold/80 mx-auto mt-3 max-w-md text-xs">
-          US-based curators only for now — payouts go out through PayPal US.
+          Open worldwide. You need a PayPal account that can receive USD — earnings are tracked
+          and paid in US dollars wherever you are.
         </p>
         {/* Says how long it takes. People abandon a form because they can't
             see the end of it, not because any one field was hard. */}
         <p className="text-muted mx-auto mt-2 max-w-md text-xs">
-          Six questions, about a minute. You only ever fill this in once.
+          Seven questions, about a minute. You only ever fill this in once.
         </p>
       </header>
 
@@ -257,19 +261,33 @@ export default function ApplyPage() {
             />
           </Field>
 
-          {/* US-only is a payout constraint, so it's confirmed on the form
-              rather than inferred later from a payout address. */}
+          <Field label="Country" required hint="Where you're paid from PayPal's point of view.">
+            <input
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              required
+              placeholder="e.g. United States, Canada, Germany"
+              className={inputCls}
+            />
+          </Field>
+
+          {/* PayPal reaches 190+ countries but the rules differ everywhere —
+              some can receive USD but not withdraw it locally, and a few are
+              blocked outright. Rather than maintain that list, the curator
+              confirms their own account can take a USD payment; PayPal is the
+              one that actually knows, and it fails the payout if it can't. */}
           <label className="border-edge bg-bg flex cursor-pointer items-start gap-3 rounded-xl border p-3">
             <input
               type="checkbox"
-              checked={inUs}
-              onChange={(e) => setInUs(e.target.checked)}
+              checked={paypalOk}
+              onChange={(e) => setPaypalOk(e.target.checked)}
               className="accent-gold mt-0.5 h-4 w-4 shrink-0"
             />
             <span className="text-sm">
-              I&apos;m based in the United States and can receive payouts in USD.
+              I have a PayPal account that can receive payments in USD.
               <span className="text-muted mt-0.5 block text-xs">
-                We&apos;re US-only while payouts run through PayPal US.
+                Earnings are tracked and paid in US dollars wherever you are. If your PayPal
+                holds another currency, PayPal converts it at their rate when it lands.
               </span>
             </span>
           </label>

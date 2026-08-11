@@ -225,9 +225,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         MOTR is operated in the United States and your information is stored and processed there.
-        Curator payouts are US-only for now. If you&apos;re in the UK or EU, you may have
-        additional rights over your data under UK GDPR or GDPR — email us and we&apos;ll honour
-        them.
+        Curating is open worldwide — if you apply, the country you give us and your PayPal address
+        are used to pay you, and shared with PayPal for that purpose. If you&apos;re in the UK or
+        EU, you may have additional rights over your data under UK GDPR or GDPR — email us and
+        we&apos;ll honour them.
       </p>
     ),
   },

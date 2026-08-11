@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     audienceSize,
     socialLinks,
     country,
+    paypalOk,
   } = await req.json();
 
   if (!email || !username || !pitch) {
@@ -37,10 +38,18 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
-  // Payouts run through PayPal US, so we can't onboard curators we can't pay.
-  if (String(country ?? "").trim().toUpperCase() !== "US") {
+  // Curating is open worldwide. PayPal reaches 190+ countries, but what it
+  // allows differs in each one — some can receive USD without being able to
+  // withdraw it locally, and a few are blocked outright. Keeping that list
+  // accurate is not a job worth having, so the applicant confirms their own
+  // account can take a USD payment and PayPal remains the authority: if it
+  // can't be paid, the payout fails rather than the application being wrong.
+  if (String(country ?? "").trim().length < 2) {
+    return NextResponse.json({ error: "Tell us which country you're in." }, { status: 400 });
+  }
+  if (!paypalOk) {
     return NextResponse.json(
-      { error: "Curator payouts are US-only right now, so we can only take US-based applicants." },
+      { error: "Payouts are sent in USD via PayPal, so you need an account that can receive them." },
       { status: 400 }
     );
   }
@@ -82,7 +91,7 @@ export async function POST(req: NextRequest) {
         socialLinks: Array.isArray(socialLinks)
           ? socialLinks.filter((s: unknown) => typeof s === "string").slice(0, 6)
           : [],
-        country: "US",
+        country: String(country).trim().slice(0, 60),
       },
     });
     return NextResponse.json({ application }, { status: 201 });

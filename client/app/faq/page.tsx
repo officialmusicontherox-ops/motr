@@ -62,6 +62,10 @@ const FAQS = [
     a: "Earnings clear after a short holding period, then can be withdrawn once the balance reaches the minimum. The hold exists so payouts aren't sent on money that could still be refunded.",
   },
   {
+    q: "Can I curate from outside the US?",
+    a: "Yes. Curating is open worldwide. Payouts go out through PayPal in US dollars, so what you need is a PayPal account that can receive USD in your country — PayPal reaches most of the world, but the rules differ from place to place, and a few countries can receive USD without being able to withdraw it locally. Check your own account can take a USD payment before you apply. If your PayPal holds another currency, PayPal converts it at their rate when it lands.",
+  },
+  {
     q: "Where does my saved music go?",
     a: "Everything you swipe right on lands in Saved. Connecting a streaming account so those tracks flow into a real playlist is on the way.",
   },
