@@ -72,13 +72,23 @@ export default function SavedList({ fan }: { fan: Fan }) {
           </div>
         ) : (
           <ul className="mt-6 space-y-3">
-            {saved.map((t) => (
+            {saved.map((t) => {
+              // REJECTED is not DISCOVERY either, so the old check crowned a
+              // pulled track as "Broke through" — the opposite of the truth.
+              // Some were pulled precisely because they played the wrong
+              // recording, so they aren't offered for playback at all.
+              const brokeThrough = t.status === "VETTING" || t.status === "GRADUATED";
+              const removed = t.status === "REJECTED";
+              return (
               <li
                 key={t.id}
-                className="border-edge bg-surface flex items-center gap-3 rounded-2xl border p-3"
+                className={`border-edge bg-surface flex items-center gap-3 rounded-2xl border p-3 ${
+                  removed ? "opacity-60" : ""
+                }`}
               >
                 <button
-                  onClick={() => toggle(t)}
+                  onClick={() => !removed && toggle(t)}
+                  disabled={removed}
                   aria-label={playing === t.id ? `Pause ${t.title}` : `Play ${t.title}`}
                   className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl"
                 >
@@ -98,9 +108,14 @@ export default function SavedList({ fan }: { fan: Fan }) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{t.title}</p>
                   <p className="text-gold truncate text-sm">{t.artistName}</p>
-                  {t.status !== "DISCOVERY" && (
+                  {brokeThrough && (
                     <span className="text-hot mt-1 inline-flex items-center gap-1 text-[0.65rem] font-semibold uppercase tracking-widest">
                       <Crown className="h-2.5 w-2.5" /> Broke through
+                    </span>
+                  )}
+                  {removed && (
+                    <span className="text-muted mt-1 block text-[0.65rem] uppercase tracking-widest">
+                      No longer on MOTR
                     </span>
                   )}
                 </div>
@@ -127,7 +142,8 @@ export default function SavedList({ fan }: { fan: Fan }) {
                   className="hidden"
                 />
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>
