@@ -125,7 +125,50 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { userId, status, note } = await req.json().catch(() => ({}));
+  const { userId, status, note, email } = await req.json().catch(() => ({}));
+
+  /**
+   * Change the address a curator signs in with.
+   *
+   * Sign-in is Google, and a curator applies with their outlet's contact
+   * address — which for a radio show or a podcast is usually a custom domain
+   * with no Google account behind it. They then can't get in at all, and the
+   * only fix was editing the database by hand.
+   *
+   * The application row is moved too, so "Resend welcome" doesn't mail the
+   * address they can't use.
+   */
+  if (typeof email === "string" && email.trim()) {
+    const next = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) {
+      return NextResponse.json({ error: "That doesn't look like an email address." }, { status: 400 });
+    }
+    if (!userId) {
+      return NextResponse.json({ error: "userId is required" }, { status: 400 });
+    }
+
+    const clash = await prisma.user.findFirst({
+      where: { email: { equals: next, mode: "insensitive" }, NOT: { id: userId } },
+      select: { username: true },
+    });
+    if (clash) {
+      return NextResponse.json(
+        { error: `${next} is already the sign-in for ${clash.username}.` },
+        { status: 409 }
+      );
+    }
+
+    const before = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!before) return NextResponse.json({ error: "Curator not found" }, { status: 404 });
+
+    const user = await prisma.user.update({ where: { id: userId }, data: { email: next } });
+    await prisma.curatorApplication.updateMany({
+      where: { email: { equals: before.email, mode: "insensitive" } },
+      data: { email: next },
+    });
+
+    return NextResponse.json({ curator: { id: user.id, email: user.email }, was: before.email });
+  }
 
   if (!userId || !STATUSES.includes(status)) {
     return NextResponse.json(

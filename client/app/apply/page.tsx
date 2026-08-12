@@ -7,6 +7,18 @@ import { useRef, useState } from "react";
 import { Crown } from "@/components/icons";
 import { GENRES, OUTLET_TYPES } from "@/lib/genres";
 
+/**
+ * A rough check, not a verdict.
+ *
+ * Plenty of custom domains are Google Workspace and sign in perfectly well,
+ * so this only warns — it never blocks. The aim is to make someone pause on
+ * the one field that decides whether they can get in at all.
+ */
+function looksGoogle(email: string) {
+  const domain = email.trim().toLowerCase().split("@")[1] ?? "";
+  return domain === "gmail.com" || domain === "googlemail.com";
+}
+
 export default function ApplyPage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -113,8 +125,9 @@ export default function ApplyPage() {
           hand, so tell us what you run.
         </p>
         <p className="text-gold/80 mx-auto mt-3 max-w-md text-xs">
-          Open worldwide. You need a PayPal account that can receive USD — earnings are tracked
-          and paid in US dollars wherever you are.
+          Open worldwide. Sign-in is Google, so apply with an address you can sign into Google
+          with. You&apos;ll also need a PayPal account that can receive USD — earnings are
+          tracked and paid in US dollars wherever you are.
         </p>
         {/* Says how long it takes. People abandon a form because they can't
             see the end of it, not because any one field was hard. */}
@@ -200,15 +213,30 @@ export default function ApplyPage() {
         </Section>
 
         <Section title="You">
-          <Field label="Email" required>
+          {/* Sign-in is Google, and this is the address it matches on. A
+              curator applying with their outlet's own domain — which most
+              radio shows and podcasts have — gets approved and then can't get
+              in at all, which is exactly what happened before this said so. */}
+          <Field
+            label="Email"
+            required
+            hint="Must be a Google account — a Gmail address, or a work address that signs into Google. It's how you sign in, not just how we reach you."
+          >
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="you@example.com"
+              placeholder="you@gmail.com"
               className={inputCls}
             />
+            {email.trim() !== "" && !looksGoogle(email) && (
+              <span className="mt-2 block text-xs text-amber-300">
+                Heads up — you&apos;ll sign in with Google using this address. If{" "}
+                {email.trim()} isn&apos;t a Google account, give us one that is, or you
+                won&apos;t be able to get into your queue.
+              </span>
+            )}
           </Field>
 
           <Field label="Username" required hint="Filled in from your outlet — change it if you'd rather.">

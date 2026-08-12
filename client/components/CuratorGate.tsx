@@ -46,7 +46,7 @@ export default function CuratorGate({
       const tried = params.get("email");
       setError(
         authError === "no_account" && tried
-          ? `${tried} isn't a curator account. If you applied with a different address, sign in with that one — otherwise apply below.`
+          ? `${tried} isn't a curator account. If you applied with a different address, sign in with that one. If the address you applied with isn't a Google account, reply to your approval email and we'll switch it over.`
           : (AUTH_ERRORS[authError] ?? "Sign-in didn't go through. Try again.")
       );
       window.history.replaceState({}, "", window.location.pathname);

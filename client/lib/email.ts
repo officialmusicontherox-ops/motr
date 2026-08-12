@@ -105,7 +105,7 @@ function shell(heading: string, body: string, cta?: { label: string; url: string
  */
 export function curatorApprovedEmail(username: string, email?: string) {
   const signInNote = email
-    ? `Sign in with Google using <strong style="color:#fff">${email}</strong> — the address you applied with. A different Google account won't find your account.`
+    ? `Sign in with Google using <strong style="color:#fff">${email}</strong> — the address you applied with. A different Google account won't find your account. <strong style="color:#fff">If that address isn't a Google account</strong>, reply to this email with one that is and we'll switch it over.`
     : `Sign in with Google using the address you applied with. A different Google account won't find your account.`;
 
   return {

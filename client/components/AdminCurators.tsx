@@ -123,6 +123,11 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
   const [filter, setFilter] = useState<"all" | Curator["status"]>("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [pending, setPending] = useState<{ curator: Curator; action: Action } | null>(null);
+  // Changing the sign-in address, for curators whose outlet email has no
+  // Google account behind it — common for radio shows and podcasts.
+  const [editingEmail, setEditingEmail] = useState<string | null>(null);
+  const [emailDraft, setEmailDraft] = useState("");
+  const [emailNote, setEmailNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -141,6 +146,26 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
   useEffect(() => {
     load();
   }, [load]);
+
+  async function saveEmail(curator: Curator) {
+    setEmailNote(null);
+    const res = await fetch("/api/admin/curators", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: curator.id, email: emailDraft.trim() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setEmailNote(data.error ?? "Couldn't change it.");
+      return;
+    }
+    setEmailNote(
+      `${curator.username} now signs in with ${data.curator.email}. Tell them to use that Google account.`
+    );
+    setEditingEmail(null);
+    setEmailDraft("");
+    load();
+  }
 
   async function apply(curator: Curator, action: Action, note: string) {
     const res = await fetch("/api/admin/curators", {
@@ -361,6 +386,17 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
                         Email {c.username}
                       </a>
 
+                      <button
+                        onClick={() => {
+                          setEditingEmail(editingEmail === c.id ? null : c.id);
+                          setEmailDraft(c.email);
+                          setEmailNote(null);
+                        }}
+                        className="rounded-full border border-edge px-4 py-2 text-sm font-semibold transition hover:border-gold hover:text-gold"
+                      >
+                        {editingEmail === c.id ? "Cancel" : "Change sign-in email"}
+                      </button>
+
                       {ACTIONS[c.status].map((a) => (
                         <button
                           key={a.to}
@@ -377,6 +413,34 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
                         </button>
                       ))}
                     </div>
+
+                    {editingEmail === c.id && (
+                      <div className="mt-3 rounded-xl border border-edge bg-bg p-3">
+                        <p className="text-xs text-muted">
+                          Sign-in is Google, so this has to be an address they can sign into
+                          Google with. Their application moves too, so a resent welcome goes to
+                          the right place.
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <input
+                            value={emailDraft}
+                            onChange={(e) => setEmailDraft(e.target.value)}
+                            placeholder="their-google-address@gmail.com"
+                            className="min-w-[240px] flex-1 rounded-lg border border-edge bg-surface px-3 py-2 text-sm outline-none transition focus:border-gold"
+                          />
+                          <button
+                            onClick={() => saveEmail(c)}
+                            className="rounded-full bg-gold px-5 py-2 text-sm font-bold text-bg"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {emailNote && editingEmail === null && (
+                      <p className="mt-3 text-sm text-muted">{emailNote}</p>
+                    )}
                   </div>
                 )}
               </li>
