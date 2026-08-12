@@ -34,6 +34,31 @@ export default function CuratorGate({
   const [curator, setCurator] = useState<User | null>(null);
   const [checked, setChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Email sign-in, for curators whose address has no Google account behind
+  // it. Two of the first four were in exactly that position.
+  const [email, setEmail] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+
+  async function requestLink(e: React.FormEvent) {
+    e.preventDefault();
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/email/request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) setError(data.error ?? "Couldn't send that.");
+      else setSentTo(data.to);
+    } catch {
+      setError("Network problem — try again.");
+    } finally {
+      setSending(false);
+    }
+  }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -100,8 +125,8 @@ export default function CuratorGate({
       <div>
         <h1 className="font-display text-3xl uppercase tracking-wide">Curator sign in</h1>
         <p className="text-muted mx-auto mt-2 max-w-xs text-sm leading-relaxed">
-          Curator accounts are created when an application is approved. Sign in with Google using
-          that same email.
+          Curator accounts are created when an application is approved. Use Google, or have a
+          sign-in link emailed to you — whichever your address supports.
         </p>
       </div>
 
@@ -113,9 +138,57 @@ export default function CuratorGate({
           <GoogleMark className="h-5 w-5" />
           Continue with Google
         </a>
+        {sentTo ? (
+          <div className="border-gold/40 bg-surface rounded-2xl border p-4">
+            <p className="text-sm">
+              Link sent to <span className="text-gold">{sentTo}</span>.
+            </p>
+            <p className="text-muted mt-1 text-xs leading-relaxed">
+              It works once and lasts 15 minutes. Check spam if it&apos;s not there in a minute.
+            </p>
+            <button
+              onClick={() => {
+                setSentTo(null);
+                setError(null);
+              }}
+              className="text-muted mt-2 text-xs underline underline-offset-2"
+            >
+              Use a different address
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-3">
+              <span className="border-edge h-px flex-1 border-t" />
+              <span className="motr-label text-[0.6rem]">or</span>
+              <span className="border-edge h-px flex-1 border-t" />
+            </div>
+
+            {/* No password: every curator address is approved by hand before
+                it can be used, so opening the inbox is the proof. */}
+            <form onSubmit={requestLink} className="flex flex-col gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="the email on your application"
+                className="border-edge bg-surface focus:border-gold w-full rounded-full border px-5 py-3 text-center text-sm outline-none transition placeholder:text-neutral-600"
+              />
+              <button
+                type="submit"
+                disabled={sending || !email.trim()}
+                className="border-gold/50 text-gold rounded-full border px-5 py-3 text-sm font-semibold transition hover:bg-gold hover:text-bg disabled:opacity-40"
+              >
+                {sending ? "Sending..." : "Email me a sign-in link"}
+              </button>
+            </form>
+          </>
+        )}
+
         <p className="text-muted text-xs leading-relaxed">
-          Sign in with the Google account matching the email on your application. Your earnings and
-          payout details sit behind this, so it&apos;s a real sign-in rather than just an address.
+          Either way works. Your earnings and payout details sit behind this, so it&apos;s a real
+          sign-in rather than just an address.
         </p>
       </div>
 

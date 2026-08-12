@@ -364,6 +364,26 @@ export function comeBackEmail(params: {
   };
 }
 
+/**
+ * The sign-in link itself.
+ *
+ * Deliberately plain: a curator is looking for one thing, and everything else
+ * on the page is a reason to hesitate. It says who asked and how long the
+ * link lasts, because a login email that explains itself is one people click.
+ */
+export function curatorLoginLinkEmail(params: { url: string; minutes: number }) {
+  const { url, minutes } = params;
+  return {
+    subject: "Your MOTR sign-in link",
+    html: shell(
+      "Sign in to MOTR",
+      `<p style="margin:0 0 12px">Here's your link. It signs you into your curator queue — no password needed.</p>
+       <p style="margin:0 0 12px;color:#8b8b8b;font-size:13px">It works once and expires in ${minutes} minutes. If you didn't ask for it, ignore this email; nothing happens until the link is opened.</p>`,
+      { label: "Sign in", url }
+    ),
+  };
+}
+
 export async function sendEmail(to: string, template: { subject: string; html: string }) {
   return send(to, template.subject, template.html);
 }

@@ -603,3 +603,20 @@ model RequestHit {
 
   @@index([bucket, createdAt])
 }
+
+/// A one-time sign-in link for a curator.
+///
+/// Only the SHA-256 of the token is stored: a copy of this table is then
+/// useless for signing in as anyone, which a table of live tokens would not
+/// be. Rows are consumed on use and pruned once expired.
+model CuratorLoginToken {
+  id        String   @id @default(cuid())
+  /// Lowercased, matched against User.email.
+  email     String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email, expiresAt])
+}

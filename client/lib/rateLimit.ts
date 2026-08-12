@@ -27,6 +27,8 @@ export const LIMITS = {
   curatorApply: { max: 5, windowMs: 24 * 60 * 60 * 1000 },
   errorReport: { max: 40, windowMs: 60 * 60 * 1000 },
   summary: { max: 20, windowMs: 60 * 60 * 1000 },
+  /** Per address caps are in curatorLoginLink.ts; this caps one machine. */
+  signInLink: { max: 10, windowMs: 60 * 60 * 1000 },
 } as const;
 
 export type LimitName = keyof typeof LIMITS;
