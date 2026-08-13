@@ -40,6 +40,9 @@ export default function CuratorEarnings({ curator }: { curator: User }) {
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [destination, setDestination] = useState("");
+  const [savedDestination, setSavedDestination] = useState<string | null>(null);
+  const [savingDest, setSavingDest] = useState(false);
+  const [destNote, setDestNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -50,11 +53,46 @@ export default function CuratorEarnings({ curator }: { curator: User }) {
     setBalance(d.balance);
     setPayouts(d.payouts);
     setWithdrawals(d.withdrawals);
+    setSavedDestination(d.payoutDestination ?? null);
+    setDestination((prev) => prev || d.payoutDestination || "");
   }, [curator.id]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  /**
+   * Saving the address is its own action now.
+   *
+   * It used to travel with the cashout request, which meant it couldn't be
+   * recorded until there was $50 to withdraw — and it isn't the same address
+   * as sign-in, so people need somewhere to put it long before then.
+   */
+  async function savePayout() {
+    setSavingDest(true);
+    setDestNote(null);
+    try {
+      const res = await fetch("/api/curator/earnings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          userId: curator.id,
+          action: "SET_PAYOUT",
+          payoutDestination: destination.trim(),
+        }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) setDestNote(d.error ?? "Couldn't save that.");
+      else {
+        setSavedDestination(d.payoutDestination);
+        setDestNote("Saved. This is where your cashouts will go.");
+      }
+    } catch {
+      setDestNote("Network problem — try again.");
+    } finally {
+      setSavingDest(false);
+    }
+  }
 
   async function cashOut() {
     setBusy(true);
@@ -117,12 +155,34 @@ export default function CuratorEarnings({ curator }: { curator: User }) {
                 />
               </div>
 
-              <input
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                placeholder="PayPal email for payment"
-                className="border-edge bg-bg focus:border-gold mt-4 w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition placeholder:text-neutral-600"
-              />
+              <div className="border-edge mt-4 rounded-xl border p-3">
+                <p className="motr-label text-[0.6rem]">Where you get paid</p>
+                <p className="text-muted mt-1 text-xs leading-relaxed">
+                  The email on your PayPal account. It doesn&apos;t have to be the address you
+                  sign in with — plenty of people sign in with one and get paid at another.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <input
+                    value={destination}
+                    onChange={(e) => setDestination(e.target.value)}
+                    placeholder="you@yourpaypal.com"
+                    className="border-edge bg-bg focus:border-gold min-w-[200px] flex-1 rounded-lg border px-3 py-2.5 text-sm outline-none transition placeholder:text-neutral-600"
+                  />
+                  <button
+                    onClick={savePayout}
+                    disabled={savingDest || !destination.trim() || destination.trim() === savedDestination}
+                    className="border-gold/50 text-gold rounded-full border px-4 py-2 text-sm font-semibold transition hover:bg-gold hover:text-bg disabled:opacity-30"
+                  >
+                    {savingDest ? "Saving..." : savedDestination ? "Update" : "Save"}
+                  </button>
+                </div>
+                {destNote && <p className="text-muted mt-2 text-xs">{destNote}</p>}
+                {!savedDestination && !destNote && (
+                  <p className="mt-2 text-xs text-amber-300">
+                    Nothing on file yet — add it now and cashing out is one click later.
+                  </p>
+                )}
+              </div>
               <button
                 onClick={cashOut}
                 disabled={!balance.canWithdraw || busy}

@@ -125,7 +125,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { userId, status, note, email } = await req.json().catch(() => ({}));
+  const { userId, status, note, email, payoutDestination } = await req.json().catch(() => ({}));
+
+  /**
+   * Set where a curator gets paid.
+   *
+   * Separate from their sign-in address on purpose — Blue Radio signs in with
+   * a Gmail account and is paid at their outlet's own domain, which is the
+   * normal shape for an outlet rather than an exception. Curators can set
+   * this themselves on their earnings page; this is for when they'd rather
+   * just tell you.
+   */
+  if (typeof payoutDestination === "string" && payoutDestination.trim()) {
+    const next = payoutDestination.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) {
+      return NextResponse.json({ error: "That doesn't look like an email address." }, { status: 400 });
+    }
+    if (!userId) return NextResponse.json({ error: "userId is required" }, { status: 400 });
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { payoutDestination: next },
+      select: { id: true, username: true, payoutDestination: true },
+    });
+    return NextResponse.json({ curator: user });
+  }
 
   /**
    * Change the address a curator signs in with.

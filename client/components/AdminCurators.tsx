@@ -128,6 +128,8 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
   const [editingEmail, setEditingEmail] = useState<string | null>(null);
   const [emailDraft, setEmailDraft] = useState("");
   const [emailNote, setEmailNote] = useState<string | null>(null);
+  const [editingPayout, setEditingPayout] = useState<string | null>(null);
+  const [payoutDraft, setPayoutDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -164,6 +166,24 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
     );
     setEditingEmail(null);
     setEmailDraft("");
+    load();
+  }
+
+  async function savePayout(curator: Curator) {
+    setEmailNote(null);
+    const res = await fetch("/api/admin/curators", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ userId: curator.id, payoutDestination: payoutDraft.trim() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setEmailNote(data.error ?? "Couldn't save that.");
+      return;
+    }
+    setEmailNote(`${curator.username} will be paid at ${data.curator.payoutDestination}.`);
+    setEditingPayout(null);
+    setPayoutDraft("");
     load();
   }
 
@@ -397,6 +417,17 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
                         {editingEmail === c.id ? "Cancel" : "Change sign-in email"}
                       </button>
 
+                      <button
+                        onClick={() => {
+                          setEditingPayout(editingPayout === c.id ? null : c.id);
+                          setPayoutDraft(c.payoutDestination ?? "");
+                          setEmailNote(null);
+                        }}
+                        className="rounded-full border border-edge px-4 py-2 text-sm font-semibold transition hover:border-gold hover:text-gold"
+                      >
+                        {editingPayout === c.id ? "Cancel" : "Payout address"}
+                      </button>
+
                       {ACTIONS[c.status].map((a) => (
                         <button
                           key={a.to}
@@ -438,7 +469,31 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
                       </div>
                     )}
 
-                    {emailNote && editingEmail === null && (
+                    {editingPayout === c.id && (
+                      <div className="mt-3 rounded-xl border border-edge bg-bg p-3">
+                        <p className="text-xs text-muted">
+                          The email on their PayPal account. Doesn&apos;t have to match their
+                          sign-in — most outlets are paid at their own domain. They can also set
+                          this themselves on their earnings page.
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <input
+                            value={payoutDraft}
+                            onChange={(e) => setPayoutDraft(e.target.value)}
+                            placeholder="their-paypal@example.com"
+                            className="min-w-[240px] flex-1 rounded-lg border border-edge bg-surface px-3 py-2 text-sm outline-none transition focus:border-gold"
+                          />
+                          <button
+                            onClick={() => savePayout(c)}
+                            className="rounded-full bg-gold px-5 py-2 text-sm font-bold text-bg"
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {emailNote && editingEmail === null && editingPayout === null && (
                       <p className="mt-3 text-sm text-muted">{emailNote}</p>
                     )}
                   </div>
