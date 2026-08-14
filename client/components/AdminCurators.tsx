@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 
 type Curator = {
   id: string;
@@ -130,6 +130,9 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
   const [emailNote, setEmailNote] = useState<string | null>(null);
   const [editingPayout, setEditingPayout] = useState<string | null>(null);
   const [payoutDraft, setPayoutDraft] = useState("");
+  // Each curator card is tall — outlet, genres, pitch, actions — so a full
+  // list buries everything below it once the pool grows.
+  const page = useVisibleCount(5);
   const [error, setError] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
 
@@ -147,6 +150,8 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
 
   useEffect(() => {
     load();
+    page.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
   async function saveEmail(curator: Curator) {
@@ -256,7 +261,7 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
         </div>
       ) : (
         <ul className="mt-4 space-y-3">
-          {curators.map((c) => {
+          {curators.slice(0, page.visible).map((c) => {
             const open = openId === c.id;
             return (
               <li key={c.id} className="rounded-xl border border-edge bg-surface">
@@ -502,6 +507,15 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
             );
           })}
         </ul>
+      )}
+
+      {curators && curators.length > 0 && (
+        <ShowMore
+          shown={page.visible}
+          total={curators.length}
+          onMore={page.more}
+          onLess={page.reset}
+        />
       )}
 
       {pending && (

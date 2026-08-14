@@ -44,6 +44,9 @@ export default function AdminAudience() {
   const [fans, setFans] = useState<AudienceFan[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSaves, setShowSaves] = useState(false);
+  // The listener list only grows, and it sat above every other section —
+  // pushing tracks, curators and errors off the screen entirely.
+  const page = useVisibleCount(10);
 
   const load = useCallback(async (t: "google" | "anonymous") => {
     setFans(null);
@@ -61,6 +64,8 @@ export default function AdminAudience() {
 
   useEffect(() => {
     load(type);
+    page.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, load]);
 
   return (
@@ -140,7 +145,7 @@ export default function AdminAudience() {
               </tr>
             </thead>
             <tbody>
-              {fans.map((f) => (
+              {fans.slice(0, page.visible).map((f) => (
                 <tr key={f.id} className="border-t border-edge">
                   <td className="max-w-[18rem] truncate p-3">
                     {f.displayName ?? f.username}
@@ -160,6 +165,15 @@ export default function AdminAudience() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {fans && fans.length > 0 && (
+        <ShowMore
+          shown={page.visible}
+          total={fans.length}
+          onMore={page.more}
+          onLess={page.reset}
+        />
       )}
     </AdminSection>
   );
