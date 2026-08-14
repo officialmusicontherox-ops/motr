@@ -50,6 +50,15 @@ export const metadata: Metadata = {
   // compete with it in search results.
   alternates: { canonical: "/" },
 
+  // Proves ownership of app.musicontherox.com to Search Console, which is
+  // how we'd learn if Google ever flagged the domain — the thing that would
+  // make a phone call an install unsafe. Deliberately the HTML-tag method:
+  // the Domain property type asks for control of DNS, and the mail records
+  // for musicontherox.com live there.
+  verification: {
+    google: "Mgyclzlsz9mgozalwt65ymeKIjLrG9PdNWzlparOV-Q",
+  },
+
   twitter: {
     card: "summary_large_image",
     title: "MOTR — Music On The Rox",
