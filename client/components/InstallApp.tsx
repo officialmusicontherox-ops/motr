@@ -24,6 +24,24 @@ function isStandalone() {
   );
 }
 
+/**
+ * Samsung Internet, which is the default browser on Galaxy phones.
+ *
+ * It supports the install prompt, but instead of handing off to Google's
+ * packaging service the way Chrome does, it builds its own APK around the
+ * site — and that wrapper targets an old Android SDK. Android 14 and 15
+ * refuse to install anything that dated, so Play Protect throws up "Unsafe
+ * app blocked: this app was built for an older version of Android".
+ *
+ * Nothing served from here changes that: the targetSdkVersion belongs to
+ * Samsung's browser, not to the site being installed. All we can do is say
+ * so before someone meets a security warning about our app.
+ */
+function isSamsungInternet() {
+  if (typeof navigator === "undefined") return false;
+  return /SamsungBrowser/i.test(navigator.userAgent);
+}
+
 function isIos() {
   if (typeof navigator === "undefined") return false;
   return (
@@ -44,12 +62,22 @@ function isIos() {
 export default function InstallApp({ variant = "banner" }: { variant?: "banner" | "inline" }) {
   const [deferred, setDeferred] = useState<InstallPromptEvent | null>(null);
   const [showIosHelp, setShowIosHelp] = useState(false);
+  const [samsung, setSamsung] = useState(false);
   const [eligible, setEligible] = useState(false);
   const [hidden, setHidden] = useState(true);
 
   useEffect(() => {
     if (isStandalone()) return;
     if (variant === "banner" && localStorage.getItem(DISMISSED_KEY)) return;
+
+    // Offer guidance rather than a button that ends in a Play Protect
+    // warning about our own app.
+    if (isSamsungInternet()) {
+      setSamsung(true);
+      setEligible(true);
+      setHidden(false);
+      return;
+    }
 
     // iOS has no install API at all — the only route is Share → Add to Home
     // Screen, so we show instructions rather than a button that can't work.
@@ -106,11 +134,13 @@ export default function InstallApp({ variant = "banner" }: { variant?: "banner" 
           Install MOTR
         </p>
         <p className="text-muted mt-1 text-sm leading-relaxed">
-          {iosOnly
-            ? "Tap the Share button, then “Add to Home Screen”. MOTR opens like an app — no App Store needed."
-            : "Add MOTR to your home screen or dock. Opens in its own window, no browser bars."}
+          {samsung
+            ? "On Samsung Internet, Android blocks the install and calls it unsafe — that's Samsung's installer being out of date, not MOTR. Open app.musicontherox.com in Chrome and install from there."
+            : iosOnly
+              ? "Tap the Share button, then “Add to Home Screen”. MOTR opens like an app — no App Store needed."
+              : "Add MOTR to your home screen or dock. Opens in its own window, no browser bars."}
         </p>
-        {!iosOnly && (
+        {!iosOnly && !samsung && (
           <button
             onClick={install}
             className="bg-gold text-bg mt-3 rounded-full px-5 py-2.5 text-sm font-bold uppercase tracking-wide transition hover:brightness-110"
@@ -128,15 +158,19 @@ export default function InstallApp({ variant = "banner" }: { variant?: "banner" 
         <Crown className="text-gold h-6 w-6 shrink-0" />
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Get MOTR on your home screen</p>
+          <p className="text-sm font-semibold">
+            {samsung ? "Install MOTR from Chrome" : "Get MOTR on your home screen"}
+          </p>
           <p className="text-muted mt-0.5 text-xs leading-snug">
-            {showIosHelp || iosOnly
-              ? "Tap Share, then “Add to Home Screen”."
-              : "Installs in a second. No app store, no download."}
+            {samsung
+              ? "Samsung Internet's installer is out of date, so Android blocks it. Open this page in Chrome instead."
+              : showIosHelp || iosOnly
+                ? "Tap Share, then “Add to Home Screen”."
+                : "Installs in a second. No app store, no download."}
           </p>
         </div>
 
-        {!iosOnly && (
+        {!iosOnly && !samsung && (
           <button
             onClick={install}
             className="bg-gold text-bg shrink-0 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide"
