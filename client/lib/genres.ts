@@ -15,6 +15,10 @@ export const GENRES = [
   "Metal / Punk",
   "Folk / Acoustic",
   "Ambient / Experimental",
+  // Added 2026-08-13. Christian and gospel are a large, well-organised scene
+  // with their own playlists, stations and press, and filing them under Pop
+  // sent them to curators who don't cover the music.
+  "Christian / Gospel",
 ] as const;
 
 export type Genre = (typeof GENRES)[number];
