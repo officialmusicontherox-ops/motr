@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import { Bookmark, Crown, Pause, Play } from "./icons";
 import type { Fan } from "@/lib/types";
+import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 
 type SavedTrack = {
   id: string;
@@ -30,6 +31,13 @@ export default function SavedList({ fan }: { fan: Fan }) {
       .then((d) => setSaved(d.saved ?? []))
       .catch(() => setSaved([]));
   }, [fan.id]);
+
+  useRefreshOnReturn(() => {
+    fetch(`/api/fans/saved?fanId=${fan.id}`)
+      .then((r) => r.json())
+      .then((d) => setSaved(d.saved ?? []))
+      .catch(() => {});
+  });
 
   function toggle(t: SavedTrack) {
     const el = document.getElementById(`a-${t.id}`) as HTMLAudioElement | null;

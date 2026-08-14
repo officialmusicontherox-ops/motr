@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import { Crown } from "./icons";
 import type { User } from "@/lib/types";
+import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 
 type Assignment = {
   id: string;
@@ -53,6 +54,10 @@ export default function AssignmentQueue({ curator }: { curator: User }) {
     setPassReason("");
     load(tab);
   }, [tab, load]);
+
+  // Installed to a home screen there's no reload button, so returning to the
+  // app is the only natural moment to refetch.
+  useRefreshOnReturn(() => load(tab));
 
   async function act(assignmentId: string, body: Record<string, unknown>) {
     setBusy(assignmentId);

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import { Crown } from "./icons";
 import type { User } from "@/lib/types";
+import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 
 type Balance = {
   heldCents: number;
@@ -60,6 +61,8 @@ export default function CuratorEarnings({ curator }: { curator: User }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useRefreshOnReturn(load);
 
   /**
    * Saving the address is its own action now.

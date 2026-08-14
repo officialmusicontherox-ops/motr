@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 import AdminReviewQueues from "./AdminReviewQueues";
 import AdminPayoutQueues from "./AdminPayoutQueues";
 import AdminAudience from "./AdminAudience";
@@ -14,6 +15,7 @@ import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
 import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
+import PullToRefresh from "./PullToRefresh";
 
 type Stats = {
  counts: {
@@ -57,6 +59,23 @@ export default function AdminDashboard({
  onLogout: () => void;
 }) {
  const [stats, setStats] = useState<Stats | null>(null);
+ /**
+  * Bumped to refetch everything.
+  *
+  * Each section loads its own data once when it mounts, so the only way to
+  * make all of them fetch again is to remount them — which changing this key
+  * does. Installed to a home screen there's no address bar and no reload
+  * button, so without this the numbers were whatever they were when the app
+  * was last opened.
+  */
+ const [refreshKey, setRefreshKey] = useState(0);
+ const [refreshing, setRefreshing] = useState(false);
+
+ const refreshAll = useCallback(() => {
+   setRefreshing(true);
+   setRefreshKey((k) => k + 1);
+   window.setTimeout(() => setRefreshing(false), 600);
+ }, []);
  const [tab, setTab] = useState<Tab>("tracks");
  const [records, setRecords] = useState<Record<string, unknown>[] | null>(null);
  const [recordsError, setRecordsError] = useState<string | null>(null);
@@ -84,7 +103,13 @@ export default function AdminDashboard({
 
  useEffect(() => {
  loadStats();
- }, [loadStats]);
+ }, [loadStats, refreshKey]);
+
+ // Reopening the app is the moment you expect current numbers.
+ useRefreshOnReturn(() => {
+   loadStats();
+   setRefreshKey((k) => k + 1);
+ });
 
  useEffect(() => {
  loadRecords(tab);
@@ -96,6 +121,7 @@ export default function AdminDashboard({
  }
 
  return (
+ <PullToRefresh onRefresh={refreshAll}>
  <main className="mx-auto min-h-screen max-w-6xl p-8">
  <header className="flex flex-wrap items-center justify-between gap-4 border-b border-edge pb-6 ">
  <div>
@@ -103,6 +129,13 @@ export default function AdminDashboard({
  <p className="text-sm text-muted">{admin.email}</p>
  </div>
  <div className="flex flex-wrap items-center gap-2">
+ <button
+ onClick={refreshAll}
+ disabled={refreshing}
+ className="rounded-full border border-edge px-4 py-2 text-sm transition hover:border-gold hover:text-gold disabled:opacity-40"
+ >
+ {refreshing ? "Refreshing..." : "↻ Refresh"}
+ </button>
  {/* Getting back to the app required editing the URL by hand. */}
  <Link
  href="/"
@@ -179,6 +212,7 @@ export default function AdminDashboard({
  )}
  </div>
 
+ <div key={refreshKey}>
  <AdminReports />
 
 
@@ -308,9 +342,11 @@ export default function AdminDashboard({
  </ul>
  )}
  </AdminSection>
+ </div>
  </>
  )}
  </main>
+ </PullToRefresh>
  );
 }
 

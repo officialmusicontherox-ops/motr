@@ -7,6 +7,7 @@ import { useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
 import { Bookmark, Crown, Menu } from "./icons";
+import PullToRefresh from "./PullToRefresh";
 
 // Only what a fan can actually use. Curating needs an approved account, so
 // it sits in the menu rather than taking a quarter of the main navigation.
@@ -41,6 +42,7 @@ export default function MotrShell({
     : 0;
 
   return (
+    <PullToRefresh>
     <div
       className={`bg-bg flex flex-col ${
         // dvh, not vh: on mobile the browser's own chrome makes vh taller
@@ -189,6 +191,7 @@ export default function MotrShell({
         </ul>
       </nav>
     </div>
+    </PullToRefresh>
   );
 }
 
