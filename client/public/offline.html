@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline — MOTR</title>
+    <style>
+      body {
+        margin: 0; min-height: 100dvh; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 12px; text-align: center;
+        background: #09090a; color: #ece7f2; padding: 24px;
+        font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+      .brand { color: #dcb55f; font-size: 12px; letter-spacing: 3px; font-weight: 700; }
+      h1 { font-size: 22px; margin: 8px 0 0; }
+      p { color: #9b91ac; font-size: 14px; line-height: 1.6; max-width: 320px; margin: 0; }
+      button {
+        margin-top: 8px; border: 0; border-radius: 999px; padding: 12px 26px;
+        background: #dcb55f; color: #09090a; font-weight: 700; font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="brand">M O T R</div>
+    <h1>No connection</h1>
+    <p>MOTR streams every clip as you swipe, so it needs a connection. Your saved tracks are
+      waiting as soon as you're back.</p>
+    <button onclick="location.reload()">Try again</button>
+  </body>
+</html>
