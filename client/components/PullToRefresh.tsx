@@ -152,11 +152,19 @@ export default function PullToRefresh({
         </div>
       </div>
 
+      {/* No transform at rest. A transformed ancestor becomes the containing
+          block for any position:fixed descendant, which would quietly
+          re-anchor the install banner and the breakthrough toast to this
+          wrapper instead of the viewport. */}
       <div
-        style={{
-          transform: `translateY(${distance}px)`,
-          transition: dragging ? "none" : "transform 200ms ease",
-        }}
+        style={
+          distance === 0
+            ? undefined
+            : {
+                transform: `translateY(${distance}px)`,
+                transition: dragging ? "none" : "transform 200ms ease",
+              }
+        }
       >
         {children}
       </div>

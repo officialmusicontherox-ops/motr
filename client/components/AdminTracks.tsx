@@ -240,8 +240,9 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
             return (
               <li
                 key={t.id}
-                className="flex flex-wrap items-center gap-3 rounded-xl border border-edge bg-surface p-3"
+                className="rounded-xl border border-edge bg-surface p-3 md:flex md:flex-wrap md:items-center md:gap-3"
               >
+                <div className="flex min-w-0 items-start gap-3 md:contents">
                 <button
                   onClick={() => preview(t)}
                   title="Listen — check the audio is right before pulling it"
@@ -306,8 +307,11 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                     )}
                   </p>
                 </div>
+                </div>
 
-                <div className="shrink-0 text-right text-xs text-muted">
+                {/* Full width and left-aligned on a phone; a right-hand
+                    column only once the row is wide enough to hold one. */}
+                <div className="mt-3 text-xs text-muted md:mt-0 md:shrink-0 md:text-right">
                   <p className="tabular-nums">
                     {votes === 0
                       ? "no votes yet"
@@ -351,6 +355,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                   )}
                 </div>
 
+                <div className="mt-3 flex flex-wrap items-center gap-2 md:mt-0 md:contents">
                 <button
                   onClick={() => {
                     setFixing(fixing === t.id ? null : t.id);
@@ -378,6 +383,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                     Pull
                   </button>
                 )}
+                </div>
                 {fixing === t.id && (
                   <div className="w-full border-t border-edge pt-3">
                     <label className="block text-xs text-muted">
