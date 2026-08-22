@@ -144,6 +144,21 @@ export default function SwipeCard({
   const yes = Math.min(Math.max(dx / SWIPE_THRESHOLD, 0), 1);
   const nope = Math.min(Math.max(-dx / SWIPE_THRESHOLD, 0), 1);
   const played = duration ? currentTime / duration : 0;
+
+  /**
+   * The verdict, as colour.
+   *
+   * Driven by the same drag distance as the NOPE/LIKE stamps rather than any
+   * new state, so the two can never disagree — and because tapping a button
+   * throws the card the full exit distance, a tap glows exactly like a swipe.
+   *
+   * Colour is added to the wording, never instead of it: on its own it would
+   * mean nothing to anyone who can't separate red from green.
+   */
+  const verdict = yes > 0 ? "yes" : nope > 0 ? "no" : null;
+  const strength = Math.max(yes, nope);
+  // The same greens and reds the buttons and stamps already use.
+  const rgb = verdict === "yes" ? "71, 202, 65" : "211, 50, 73";
   // Mirrors FULL_LISTEN_MS on the server, in seconds. The 2s of slack is so a
   // listener who decides as the clip fades still gets the credit.
   const countsDouble = currentTime >= 28;
@@ -163,11 +178,34 @@ export default function SwipeCard({
         onPointerCancel={onPointerUp}
         style={{
           transform: `translateX(${dx}px) rotate(${rotation}deg)`,
-          transition: dragging ? "none" : "transform 180ms ease-out",
+          transition: dragging
+            ? "none"
+            : "transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out",
           touchAction: "pan-y",
+          // Grows with the drag, so the card is lit before it's committed and
+          // a half-hearted pull reads as exactly that.
+          ...(verdict
+            ? {
+                boxShadow: `0 0 ${18 + strength * 46}px ${strength * 8}px rgba(${rgb}, ${0.38 * strength})`,
+                borderColor: `rgba(${rgb}, ${0.25 + 0.65 * strength})`,
+              }
+            : {}),
         }}
         className="border-edge bg-surface relative flex min-h-0 flex-1 cursor-grab flex-col overflow-hidden rounded-[28px] border shadow-2xl active:cursor-grabbing"
       >
+        {/* Inner wash, from the edge the card is heading toward. Sits above
+            the artwork but below the stamps and controls, and never takes a
+            pointer event. */}
+        {verdict && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[5] rounded-[28px]"
+            style={{
+              opacity: strength,
+              background: `linear-gradient(to ${verdict === "yes" ? "left" : "right"}, rgba(${rgb}, 0.34), rgba(${rgb}, 0.06) 45%, transparent 70%)`,
+            }}
+          />
+        )}
         <div
           className="text-hot border-hot pointer-events-none absolute left-5 top-5 z-10 -rotate-12 rounded-xl border-4 px-3 py-1 text-2xl font-black"
           style={{ opacity: yes }}
