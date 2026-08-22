@@ -21,7 +21,7 @@ export default function PageNav() {
       </Link>
 
       <Link href="/" aria-label="MOTR home" className="shrink-0">
-        <Image src="/motr-logo.png" alt="MOTR" width={325} height={145} className="h-8 w-auto" />
+        <Image src="/motr-logo.png" alt="MOTR" width={1000} height={550} className="h-8 w-auto" />
       </Link>
     </div>
   );

@@ -81,7 +81,7 @@ export default function FaqPage() {
       <PageNav />
       <header className="border-edge border-b px-6 py-8 text-center">
         <Link href="/" aria-label="MOTR home" className="inline-block">
-          <Image src="/motr-logo.png" alt="MOTR" width={325} height={145} className="mx-auto h-12 w-auto" />
+          <Image src="/motr-logo.png" alt="MOTR" width={1000} height={550} className="mx-auto h-12 w-auto" />
         </Link>
         <h1 className="font-display mt-6 text-4xl uppercase tracking-wide">How it works</h1>
         <p className="text-muted mx-auto mt-2 max-w-md text-sm">

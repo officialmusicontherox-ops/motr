@@ -133,3 +133,15 @@ body {
 .print-only {
   display: none;
 }
+
+/* Loading indicator — bars rising and falling like a level meter.
+   Staggered per bar in the component, so they never move as one block. */
+@keyframes motr-bar {
+  0%,
+  100% {
+    transform: scaleY(0.28);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}

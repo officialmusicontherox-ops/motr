@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import { Crown } from "./icons";
+import Equalizer from "./Equalizer";
 import type { User } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 
@@ -133,7 +134,7 @@ export default function CuratorEarnings({ curator }: { curator: User }) {
 
         {!balance ? (
           <div className="mt-12 flex justify-center">
-            <Crown className="text-gold/30 h-8 w-8 animate-pulse" />
+            <Equalizer className="text-gold/30 h-8 w-8 " />
           </div>
         ) : (
           <>

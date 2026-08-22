@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Crown } from "./icons";
+import Equalizer from "./Equalizer";
 import type { User } from "@/lib/types";
 
 const STORAGE_KEY = "md_curator_id";
@@ -104,7 +105,7 @@ export default function CuratorGate({
   if (!checked) {
     return (
       <div className="bg-bg flex h-[100dvh] items-center justify-center">
-        <Crown className="text-gold/30 h-10 w-10 animate-pulse" />
+        <Equalizer className="text-gold/30 h-10 w-10 " />
       </div>
     );
   }
@@ -115,8 +116,8 @@ export default function CuratorGate({
         <Image
           src="/motr-logo.png"
           alt="MOTR"
-          width={325}
-          height={145}
+          width={1000}
+          height={550}
           priority
           className="h-14 w-auto"
         />

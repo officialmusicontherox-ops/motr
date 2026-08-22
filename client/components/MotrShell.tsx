@@ -66,8 +66,8 @@ export default function MotrShell({
           <Image
             src="/motr-logo.png"
             alt="MOTR"
-            width={325}
-            height={145}
+            width={1000}
+            height={550}
             priority
             className={fill ? "h-10 w-auto sm:h-12" : "h-14 w-auto"}
           />

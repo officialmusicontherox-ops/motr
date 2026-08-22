@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import { Bookmark, Crown, Pause, Play } from "./icons";
+import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 
@@ -62,7 +63,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
 
         {saved === null ? (
           <div className="mt-10 flex justify-center">
-            <Crown className="text-gold/30 h-8 w-8 animate-pulse" />
+            <Equalizer className="text-gold/30 h-8 w-8 " />
           </div>
         ) : saved.length === 0 ? (
           <div className="mt-14 flex flex-col items-center gap-3 text-center">

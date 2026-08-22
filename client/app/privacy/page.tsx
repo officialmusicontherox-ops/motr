@@ -278,8 +278,8 @@ export default function PrivacyPage() {
           <Image
             src="/motr-logo.png"
             alt="MOTR"
-            width={325}
-            height={145}
+            width={1000}
+            height={550}
             className="mx-auto h-12 w-auto"
           />
         </Link>

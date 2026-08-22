@@ -5,6 +5,7 @@ import MotrShell from "./MotrShell";
 import SwipeCard from "./SwipeCard";
 import GenrePicker from "./GenrePicker";
 import { Crown } from "./icons";
+import Equalizer from "./Equalizer";
 import type { Fan, Track } from "@/lib/types";
 
 const GENRE_KEY = "motr:genre";
@@ -155,7 +156,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
       {track === undefined && (
         <div className="flex flex-1 items-center justify-center">
-          <Crown className="text-gold/30 h-10 w-10 animate-pulse" />
+          <Equalizer className="text-gold/30 h-10 w-10 " />
         </div>
       )}
 
