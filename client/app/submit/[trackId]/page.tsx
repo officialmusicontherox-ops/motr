@@ -57,7 +57,7 @@ export default function SubmitPage({ params }: { params: Promise<{ trackId: stri
           alt="MOTR"
           width={1000}
           height={550}
-          className="mx-auto h-12 w-auto"
+          className="mx-auto h-16 w-auto"
         />
         <h1 className="font-display mt-6 text-3xl uppercase tracking-wide">
           Submit to curators

@@ -58,8 +58,8 @@ export default function MotrShell({
 
       {/* Pinned: the menu button must never scroll out of reach. */}
       <header
-        className={`bg-bg/95 sticky top-0 z-30 flex shrink-0 flex-col items-center px-5 pb-2 pt-4 backdrop-blur ${
-          fill ? "pt-3" : ""
+        className={`bg-bg/95 sticky top-0 z-30 flex shrink-0 flex-col items-center px-5 pb-1.5 pt-3 backdrop-blur ${
+          fill ? "pt-2" : ""
         }`}
       >
         <Link href="/" aria-label="MOTR home">
@@ -69,7 +69,7 @@ export default function MotrShell({
             width={1000}
             height={550}
             priority
-            className={fill ? "h-10 w-auto sm:h-12" : "h-14 w-auto"}
+            className={fill ? "h-14 w-auto sm:h-16" : "h-20 w-auto"}
           />
         </Link>
         <p className="motr-label mt-0.5 text-[0.58rem]">

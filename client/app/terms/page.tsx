@@ -259,7 +259,7 @@ export default function TermsPage() {
             alt="MOTR"
             width={1000}
             height={550}
-            className="mx-auto h-12 w-auto"
+            className="mx-auto h-16 w-auto"
           />
         </Link>
         <h1 className="font-display mt-6 text-4xl uppercase tracking-wide">Terms of Service</h1>
