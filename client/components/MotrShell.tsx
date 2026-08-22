@@ -72,9 +72,6 @@ export default function MotrShell({
             className={fill ? "h-14 w-auto sm:h-16" : "h-20 w-auto"}
           />
         </Link>
-        <p className="motr-label mt-0.5 text-[0.58rem]">
-          Based on <span className="text-gold">musicontherox.com</span>
-        </p>
 
         {/* Desktop gets a real nav row. A fixed bottom bar is a phone idiom —
             on a laptop it strands the controls at the bottom of a big screen. */}

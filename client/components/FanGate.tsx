@@ -167,9 +167,6 @@ export default function FanGate({
         priority
         className="relative h-16 w-auto sm:h-20"
       />
-      <p className="motr-label mt-1">
-        Based on <span className="text-gold">musicontherox.com</span>
-      </p>
 
       <h1 className="font-display relative mt-6 max-w-md text-3xl uppercase leading-[1.05] tracking-wide sm:mt-8 sm:text-4xl">
         Find your next
