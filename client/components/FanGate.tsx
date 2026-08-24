@@ -230,13 +230,38 @@ export default function FanGate({
 
       {error && <p className="text-nope relative mt-4 text-sm">{error}</p>}
 
-      <div className="relative mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2">
-        <Link href="/artists" className="motr-label hover:text-gold underline-offset-4 hover:underline">
-          Submit your song
-        </Link>
-        <Link href="/apply" className="motr-label hover:text-gold underline-offset-4 hover:underline">
-          Apply to curate
-        </Link>
+      {/* Artists and curators are the two audiences the platform actually
+          runs on, and these were 11px muted uppercase — the same styling used
+          for captions, which made them read as fine print. Secondary to
+          signing in, but they shouldn't look like a footnote, and saying what
+          each one gets you is worth more than the label alone. */}
+      <div className="relative mt-7 w-full max-w-xs">
+        <div className="flex items-center gap-3">
+          <span className="border-edge h-px flex-1 border-t" />
+          <span className="motr-label text-[0.6rem]">Not here to listen?</span>
+          <span className="border-edge h-px flex-1 border-t" />
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Link
+            href="/artists"
+            className="border-gold/40 text-gold hover:bg-gold hover:text-bg rounded-xl border px-3 py-2.5 text-center text-sm font-bold transition"
+          >
+            Submit your song
+            <span className="mt-0.5 block text-[0.65rem] font-medium opacity-75">
+              Artists — free
+            </span>
+          </Link>
+          <Link
+            href="/apply"
+            className="border-gold/40 text-gold hover:bg-gold hover:text-bg rounded-xl border px-3 py-2.5 text-center text-sm font-bold transition"
+          >
+            Apply to curate
+            <span className="mt-0.5 block text-[0.65rem] font-medium opacity-75">
+              Get paid to share
+            </span>
+          </Link>
+        </div>
       </div>
     </div>
   );
