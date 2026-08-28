@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
-import { Crown } from "./icons";
+import { Disc } from "./icons";
 import Equalizer from "./Equalizer";
 import type { User } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
@@ -118,7 +118,7 @@ export default function AssignmentQueue({ curator }: { curator: User }) {
           </div>
         ) : items.length === 0 ? (
           <div className="mt-14 flex flex-col items-center gap-3 text-center">
-            <Crown className="text-gold/40 h-10 w-10" />
+            <Disc className="text-gold/40 h-10 w-10" />
             <p className="font-display text-xl uppercase tracking-wide">
               {tab === "PENDING" ? "Queue's empty" : `Nothing ${tab.toLowerCase()}`}
             </p>

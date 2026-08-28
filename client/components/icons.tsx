@@ -1,6 +1,9 @@
 /**
  * Inline SVG rather than emoji — emoji render differently on every platform
- * and can't take brand color. The crown is the through-line from the logo.
+ * and can't take brand color.
+ *
+ * The recurring mark is a vinyl record. It used to be a crown, which read as a
+ * badge or a ranking and said nothing about music.
  */
 
 type IconProps = { className?: string };
@@ -9,6 +12,31 @@ export function Crown({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg viewBox="0 0 24 18" fill="currentColor" className={className} aria-hidden="true">
       <path d="M1.6 4.2c.9 0 1.6.8 1.6 1.7 0 .5-.2 1-.6 1.3l2.2 4.1 3.5-6.1a1.7 1.7 0 0 1-.7-1.4c0-1 .7-1.8 1.6-1.8s1.6.8 1.6 1.8c0 .5-.2 1-.6 1.3L12 8l1.8-2.9a1.7 1.7 0 0 1-.6-1.3c0-1 .7-1.8 1.6-1.8s1.6.8 1.6 1.8c0 .6-.3 1.1-.7 1.4l3.5 6.1 2.2-4.1a1.7 1.7 0 0 1-.6-1.3c0-.9.7-1.7 1.6-1.7s1.6.8 1.6 1.7-.6 1.6-1.4 1.7L21 17H3L1.4 7.6C.6 7.5 0 6.9 0 6c0-1 .7-1.8 1.6-1.8Z" />
+    </svg>
+  );
+}
+
+/**
+ * Vinyl record — the app's mark wherever an icon stands for MOTR itself.
+ *
+ * Replaced a crown, which said nothing about music and read as a badge or a
+ * ranking. A record is unmistakable at any size and doesn't imply hierarchy.
+ */
+export function Disc({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="9.25" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.2" opacity="0.55" />
+      <circle cx="12" cy="12" r="1.9" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** A single note, for small inline flourishes where a record reads as a blob. */
+export function Note({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M20 3.5v11.2a3.4 3.4 0 1 1-1.8-3V7.4l-7.4 1.7v8.6a3.4 3.4 0 1 1-1.8-3V6.4l11-2.9Z" />
     </svg>
   );
 }

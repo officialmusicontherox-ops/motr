@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
-import { Bookmark, Crown, Pause, Play } from "./icons";
+import { Bookmark, Disc, Pause, Play } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
@@ -106,7 +106,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
                     <img src={t.artworkUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <span className="bg-surface-2 flex h-full w-full items-center justify-center">
-                      <Crown className="text-gold/30 h-6 w-6" />
+                      <Disc className="text-gold/30 h-6 w-6" />
                     </span>
                   )}
                   <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
@@ -119,7 +119,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
                   <p className="text-gold truncate text-sm">{t.artistName}</p>
                   {brokeThrough && (
                     <span className="text-hot mt-1 inline-flex items-center gap-1 text-[0.65rem] font-semibold uppercase tracking-widest">
-                      <Crown className="h-2.5 w-2.5" /> Broke through
+                      <Disc className="h-2.5 w-2.5" /> Broke through
                     </span>
                   )}
                   {removed && (

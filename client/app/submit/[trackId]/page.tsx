@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { use } from "react";
-import { Crown } from "@/components/icons";
+import { Disc } from "@/components/icons";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   EmbeddedCheckout,
@@ -39,7 +39,7 @@ export default function SubmitPage({ params }: { params: Promise<{ trackId: stri
   if (paid) {
     return (
       <main className="bg-bg flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-        <Crown className="text-gold h-12 w-12" />
+        <Disc className="text-gold h-12 w-12" />
         <h1 className="font-display text-3xl uppercase tracking-wide">You&apos;re in</h1>
         <p className="text-muted max-w-sm text-sm leading-relaxed">
           Your track is headed to five curators in your genre. We&apos;ll let you know how it

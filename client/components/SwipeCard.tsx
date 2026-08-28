@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Track } from "@/lib/types";
-import { Cross, Crown, Heart, Pause, Play } from "./icons";
+import { Cross, Disc, Heart, Note, Pause, Play } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
 
 const SWIPE_THRESHOLD = 100;
@@ -241,7 +241,7 @@ export default function SwipeCard({
             />
           ) : (
             <div className="from-surface-2 to-bg flex aspect-square h-full max-w-full items-center justify-center bg-gradient-to-br md:aspect-auto md:h-full md:w-full">
-              <Crown className="text-gold/25 h-16 w-16" />
+              <Disc className="text-gold/25 h-16 w-16" />
             </div>
           )}
         </div>
@@ -338,7 +338,7 @@ export default function SwipeCard({
           countsDouble ? "text-gold" : ""
         }`}
       >
-        <Crown className="text-gold h-3 w-3" />
+        <Note className="text-gold h-3 w-3" />
         {countsDouble ? (
           <span>This vote counts double</span>
         ) : (
@@ -352,7 +352,7 @@ export default function SwipeCard({
             </span>
           </>
         )}
-        <Crown className="text-gold h-3 w-3" />
+        <Note className="text-gold h-3 w-3" />
       </p>
     </div>
   );

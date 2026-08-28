@@ -1,7 +1,7 @@
 import PageNav from "@/components/PageNav";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowOut, Crown } from "@/components/icons";
+import { ArrowOut, Disc, Note } from "@/components/icons";
 
 export const metadata = {
   title: "Contact — MOTR",
@@ -43,7 +43,7 @@ export default function ContactPage() {
           href={`mailto:${EMAIL}`}
           className="border-gold/40 bg-surface hover:border-gold block rounded-2xl border p-6 text-center transition"
         >
-          <Crown className="text-gold mx-auto h-6 w-6" />
+          <Disc className="text-gold mx-auto h-6 w-6" />
           <span className="motr-label mt-3 block">Email us</span>
           <span className="text-gold mt-1 block break-all text-lg font-semibold">{EMAIL}</span>
         </a>
@@ -56,7 +56,7 @@ export default function ContactPage() {
                 key={t}
                 className="border-edge bg-surface text-muted flex items-center gap-3 rounded-xl border p-3.5 text-sm"
               >
-                <Crown className="text-gold/50 h-3.5 w-3.5 shrink-0" />
+                <Note className="text-gold/50 h-3.5 w-3.5 shrink-0" />
                 {t}
               </li>
             ))}

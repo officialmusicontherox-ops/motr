@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowOut, Crown } from "./icons";
+import { ArrowOut, Note } from "./icons";
 import InstallApp from "./InstallApp";
 
 const LINKS = [
@@ -98,7 +98,7 @@ export default function MotrMenu({
                   className="hover:bg-surface-2 group block rounded-xl px-3 py-3 transition"
                 >
                   <span className="group-hover:text-gold flex items-center gap-2 font-semibold transition">
-                    <Crown className="text-gold/50 group-hover:text-gold h-3.5 w-3.5 transition" />
+                    <Note className="text-gold/50 group-hover:text-gold h-3.5 w-3.5 transition" />
                     {l.label}
                   </span>
                   <span className="text-muted mt-0.5 block pl-[1.4rem] text-xs">{l.note}</span>

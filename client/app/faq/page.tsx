@@ -1,7 +1,7 @@
 import PageNav from "@/components/PageNav";
 import Image from "next/image";
 import Link from "next/link";
-import { Crown } from "@/components/icons";
+import { Disc } from "@/components/icons";
 
 export const metadata = {
   title: "How it works — MOTR",
@@ -105,7 +105,7 @@ export default function FaqPage() {
 
       <section id="expect" className="mx-auto max-w-2xl scroll-mt-6 px-6">
         <h2 className="font-display flex items-center gap-2 text-2xl uppercase tracking-wide">
-          <Crown className="text-gold h-5 w-5" />
+          <Disc className="text-gold h-5 w-5" />
           What to expect
         </h2>
 

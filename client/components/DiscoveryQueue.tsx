@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
 import SwipeCard from "./SwipeCard";
 import GenrePicker from "./GenrePicker";
-import { Crown } from "./icons";
+import { Disc, Note } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan, Track } from "@/lib/types";
 
@@ -135,7 +135,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           <span className="text-white">{fan.username}</span>
         </span>
         <span className="motr-label flex items-center gap-1.5">
-          <Crown className="text-gold h-3 w-3" />
+          <Note className="text-gold h-3 w-3" />
           <span className="text-gold">{savedCount}</span> saved
         </span>
       </div>
@@ -145,7 +145,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       {breakout && (
         <div className="fixed inset-x-0 top-0 z-30 flex justify-center px-5 pt-4">
           <div className="border-gold/40 bg-surface flex items-center gap-3 rounded-2xl border px-5 py-3 shadow-2xl">
-            <Crown className="text-gold h-6 w-6 shrink-0" />
+            <Disc className="text-gold h-6 w-6 shrink-0" />
             <p className="text-sm">
               <span className="text-gold font-semibold">{breakout}</span> broke through — it&apos;s
               going to curators.
@@ -162,7 +162,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
       {track === null && (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-          <Crown className="text-gold/40 h-12 w-12" />
+          <Disc className="text-gold/40 h-12 w-12" />
           <p className="font-display text-2xl uppercase tracking-wide">
             {exhausted ? `That's all the ${genre?.split(" / ")[0]}` : "You're all caught up"}
           </p>

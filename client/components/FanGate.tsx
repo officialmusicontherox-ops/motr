@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Crown } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 

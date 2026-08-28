@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
-import { Crown } from "./icons";
 import Equalizer from "./Equalizer";
 import type { User } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";

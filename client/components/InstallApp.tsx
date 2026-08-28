@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Crown, Cross } from "./icons";
+import { Cross, Disc } from "./icons";
 
 /**
  * Chrome/Edge/Android fire this instead of showing their own install bar,
@@ -130,7 +130,7 @@ export default function InstallApp({ variant = "banner" }: { variant?: "banner" 
     return (
       <div className="border-gold/30 bg-surface rounded-2xl border p-4">
         <p className="flex items-center gap-2 font-semibold">
-          <Crown className="text-gold h-4 w-4" />
+          <Disc className="text-gold h-4 w-4" />
           Install MOTR
         </p>
         <p className="text-muted mt-1 text-sm leading-relaxed">
@@ -155,7 +155,7 @@ export default function InstallApp({ variant = "banner" }: { variant?: "banner" 
   return (
     <div className="fixed inset-x-0 bottom-[4.6rem] z-40 flex justify-center px-4 md:bottom-6">
       <div className="border-gold/40 bg-surface flex w-full max-w-md items-center gap-3 rounded-2xl border p-3 shadow-2xl">
-        <Crown className="text-gold h-6 w-6 shrink-0" />
+        <Disc className="text-gold h-6 w-6 shrink-0" />
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">

@@ -4,7 +4,7 @@ import PageNav from "@/components/PageNav";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Crown } from "@/components/icons";
+import { Disc } from "@/components/icons";
 import { GENRES } from "@/lib/genres";
 
 /** Songs per submission. Past this they start a fresh batch. */
@@ -103,7 +103,7 @@ export default function ArtistsPage() {
       <main className="bg-bg min-h-screen">
         <PageNav />
         <div className="mx-auto flex max-w-lg flex-col items-center gap-4 px-6 py-12 text-center">
-          <Crown className="text-gold h-12 w-12" />
+          <Disc className="text-gold h-12 w-12" />
           <h1 className="font-display text-3xl uppercase tracking-wide">
             {many ? "You're in the feed" : "You're in the feed"}
           </h1>

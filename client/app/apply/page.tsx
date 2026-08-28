@@ -4,7 +4,7 @@ import PageNav from "@/components/PageNav";
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { Crown } from "@/components/icons";
+import { Disc } from "@/components/icons";
 import { GENRES, OUTLET_TYPES } from "@/lib/genres";
 
 /**
@@ -76,7 +76,7 @@ export default function ApplyPage() {
       <main className="bg-bg min-h-screen">
         <PageNav />
         <div className="flex min-h-[75vh] flex-col items-center justify-center gap-4 px-6 text-center">
-          <Crown className="text-gold h-12 w-12" />
+          <Disc className="text-gold h-12 w-12" />
           <h1 className="font-display text-3xl uppercase tracking-wide">Application in</h1>
           <p className="text-muted max-w-sm text-sm leading-relaxed">
             We check every outlet by hand. If it&apos;s a fit you&apos;ll hear from us, and

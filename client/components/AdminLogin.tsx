@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Crown, Eye, EyeOff } from "./icons";
+import { Disc, Eye, EyeOff } from "./icons";
 
 export default function AdminLogin({ onAuthenticated }: { onAuthenticated: () => void }) {
   const [email, setEmail] = useState("");
@@ -38,7 +38,7 @@ export default function AdminLogin({ onAuthenticated }: { onAuthenticated: () =>
         className="border-edge bg-surface flex w-full max-w-sm flex-col gap-4 rounded-2xl border p-8"
       >
         <div className="text-center">
-          <Crown className="text-gold mx-auto h-8 w-8" />
+          <Disc className="text-gold mx-auto h-8 w-8" />
           <h1 className="font-display mt-3 text-2xl uppercase tracking-wide">Admin</h1>
           <p className="text-muted mt-1 text-sm">Password plus your authenticator code.</p>
         </div>
