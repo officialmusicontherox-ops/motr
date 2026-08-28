@@ -222,7 +222,13 @@ export default function SwipeCard({
         {/* Stacked on a phone; side-by-side on a wider screen, where a tall
             single column would leave the artwork tiny and the sides empty. */}
         <div className="flex min-h-0 flex-1 flex-col md:flex-row md:items-stretch">
-        <div className="bg-bg relative flex min-h-0 flex-1 justify-center md:w-1/2 md:flex-none">
+        {/* Capped against the viewport, not left to flex.
+            A percentage height on an image inside a flex item doesn't
+            reliably resolve — the picture takes its natural size, grows the
+            card, and pushes the Nope/Like buttons off the bottom of the
+            screen where nothing can scroll them back. A hard ceiling in svh
+            means the controls always have room, whatever the phone. */}
+        <div className="bg-bg relative flex max-h-[34svh] min-h-0 flex-1 justify-center sm:max-h-[40svh] md:max-h-none md:w-1/2 md:flex-none">
           {track.artworkUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
