@@ -28,6 +28,9 @@ type Report = {
     unverified: number;
     remaining: number;
     vouched: number;
+    total: number;
+    verified: number;
+    throttled: boolean;
     mismatches: Mismatch[];
   };
   checkedAt: string;
@@ -49,13 +52,63 @@ export default function AdminFeedHealth() {
   const [repairing, setRepairing] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
-  async function check() {
+  /**
+   * Runs the check, then keeps going until nothing is left to verify.
+   *
+   * A track Apple has never been asked about costs one throttled search, so a
+   * single request can only settle a dozen. That's why this used to look like
+   * it gave up partway. The passes are automatic now: the first one does the
+   * playability sweep, the rest chip at the identity queue until it's empty.
+   * Once a track's Apple id is known it's settled in bulk, so the crawl only
+   * ever happens once — later runs finish in a single pass.
+   */
+  async function check(recheckAll = false) {
     setRunning(true);
     setNote(null);
     try {
-      const res = await fetch("/api/admin/feed-health", { method: "POST" });
-      if (res.ok) setReport(await res.json());
-      else setNote("Couldn't run the check.");
+      const first = await fetch(
+        `/api/admin/feed-health${recheckAll ? "?recheck=all" : ""}`,
+        { method: "POST" }
+      );
+      if (!first.ok) {
+        setNote("Couldn't run the check.");
+        setRunning(false);
+        return;
+      }
+
+      let latest: Report = await first.json();
+      setReport(latest);
+
+      // Bounded so a track Apple simply can't identify — which stays in the
+      // queue forever — can't spin this loop indefinitely.
+      for (let pass = 0; pass < 60 && latest.identity.remaining > 0; pass++) {
+        const before = latest.identity.remaining;
+        const res = await fetch("/api/admin/feed-health?identityOnly=1", { method: "POST" });
+        if (!res.ok) break;
+        const next = (await res.json()) as { identity: Report["identity"] };
+        latest = { ...latest, identity: next.identity };
+        setReport(latest);
+
+        if (next.identity.throttled) {
+          // Apple's limit resets on the minute. Waiting it out is the whole
+          // difference between finishing the library and stopping a tenth of
+          // the way in, which is what it did before.
+          setNote("Apple's rate limit — waiting a moment, then carrying on.");
+          await new Promise((r) => setTimeout(r, 30_000));
+          setNote(null);
+          continue;
+        }
+        // No progress and no throttling means every remaining track is one
+        // Apple won't answer for; carrying on would repeat failed searches.
+        if (next.identity.remaining >= before) break;
+      }
+
+      if (latest.identity.remaining > 0) {
+        setNote(
+          `${latest.identity.remaining} couldn't be identified — Apple's search doesn't ` +
+            `surface them, which is common for small releases and doesn't mean the audio is wrong.`
+        );
+      }
     } catch {
       setNote("Couldn't run the check.");
     }
@@ -126,16 +179,36 @@ export default function AdminFeedHealth() {
     >
       <div className="flex flex-wrap items-center gap-3">
         <button
-          onClick={check}
+          onClick={() => check(false)}
           disabled={running}
           className="rounded-full bg-gold px-5 py-2 text-sm font-bold text-bg transition hover:brightness-110 disabled:opacity-40"
         >
-          {running ? "Checking every track..." : "Run check"}
+          {running
+            ? report
+              ? `Checking... ${report.identity.verified} of ${report.identity.total}`
+              : "Checking every track..."
+            : "Run check"}
+        </button>
+        {/* Re-verifying everything used to be impossible: one throttled search
+            per track meant a run could only ever get through a handful. Known
+            tracks are settled by batched lookup now, so the whole library is a
+            couple of requests. */}
+        <button
+          onClick={() => check(true)}
+          disabled={running}
+          className="rounded-full border border-edge px-4 py-2 text-sm font-semibold text-muted transition hover:border-gold hover:text-gold disabled:opacity-40"
+        >
+          Re-check everything
         </button>
         {report && (
           <span className="text-sm text-muted">
-            {report.playable} of {report.checked} playing · {report.identity.checkedNow} identified
-            this run{report.identity.remaining > 0 ? `, ${report.identity.remaining} still to check` : ""}
+            {report.playable} of {report.checked} playing ·{" "}
+            {/* The number that was missing: how much of the library carries a
+                verdict at all, rather than how many one run happened to do. */}
+            <span className={report.identity.remaining === 0 ? "text-emerald-300" : "text-amber-300"}>
+              {report.identity.verified} of {report.identity.total} verified
+            </span>
+            {report.identity.remaining > 0 ? ` · ${report.identity.remaining} still to check` : ""}
             {report.identity.vouched > 0
               ? ` · ${report.identity.vouched} trusted (audio you supplied by hand, not matched)`
               : ""}{" "}
@@ -152,8 +225,8 @@ export default function AdminFeedHealth() {
 
       {!report && !running && (
         <p className="mt-3 text-sm text-muted">
-          Worth running weekly, or any time someone reports a track that won&apos;t play. It takes
-          a few seconds.
+          Worth running weekly, or any time someone reports a track that won&apos;t play. It keeps
+          going until the whole library is done, so the first full run can take a few minutes.
         </p>
       )}
 

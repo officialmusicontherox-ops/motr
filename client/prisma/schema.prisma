@@ -319,6 +319,15 @@ model Track {
   // Cleared whenever the preview changes, because a new URL is a new claim.
   audioVerdict   String?
   audioCheckedAt DateTime?
+
+  // Apple's own id for the recording behind previewUrl.
+  //
+  // Verifying used to mean a *search* per track, and Apple throttles those at
+  // roughly twenty a minute — so a full library check was impossible and the
+  // button could only ever nibble at a backlog. With the id stored, checking
+  // is a lookup instead, and lookups take up to two hundred ids per request:
+  // the whole library becomes one or two calls.
+  appleTrackId String?
   feeStatus          FeeStatus @default(NOT_REQUIRED)
 
   // Admin gate between "artist paid" and "curators see it"

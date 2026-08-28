@@ -4,6 +4,9 @@ import { getAdminSession } from "@/lib/adminAuth";
 import { searchItunes } from "@/lib/trackLookup";
 import { knownMismatches, verifyFeedIdentity } from "@/lib/audioIdentity";
 
+/** The identity pass talks to Apple one track at a time; give it room. */
+export const maxDuration = 60;
+
 /**
  * Checks that every track in the feed still has audio behind it.
  *
@@ -13,8 +16,8 @@ import { knownMismatches, verifyFeedIdentity } from "@/lib/audioIdentity";
  * reads as a broken app rather than a broken track. Fifty-eight went dead
  * overnight once and nothing in the dashboard showed it.
  *
- * Runs on demand rather than on a schedule: it makes one request per track,
- * which is fine occasionally and rude every few minutes.
+ * Runs on demand rather than on a schedule: the playability sweep makes one
+ * request per track, which is fine occasionally and rude every few minutes.
  */
 export async function POST(req: NextRequest) {
   if (!(await getAdminSession())) {
@@ -22,6 +25,18 @@ export async function POST(req: NextRequest) {
   }
 
   const includeAll = req.nextUrl.searchParams.get("scope") === "all";
+
+  // Continuation passes work through the identity queue only. Re-fetching
+  // every preview on each one would triple the time and tell us nothing new,
+  // since playability doesn't change between passes seconds apart.
+  if (req.nextUrl.searchParams.get("identityOnly") === "1") {
+    const identity = await verifyFeedIdentity(false);
+    return NextResponse.json({
+      identityOnly: true,
+      identity: { ...identity, mismatches: await knownMismatches() },
+      checkedAt: new Date().toISOString(),
+    });
+  }
 
   const tracks = await prisma.track.findMany({
     where: includeAll ? {} : { status: "DISCOVERY" },
@@ -53,7 +68,7 @@ export async function POST(req: NextRequest) {
   // someone else's song passes every check above — artwork, title, sound —
   // and the artist is the one who finds out. Two of the last two artists to
   // submit had one, so identity is now part of the same button.
-  const identity = await verifyFeedIdentity();
+  const identity = await verifyFeedIdentity(req.nextUrl.searchParams.get("recheck") === "all");
   const mismatches = await knownMismatches();
 
   return NextResponse.json({

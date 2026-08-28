@@ -229,6 +229,9 @@ export function searchableTitle(title: string): string {
 }
 
 type ItunesResult = {
+  /** Apple's own id, so a verified track can later be re-checked by lookup
+   *  rather than by another rate-limited search. */
+  trackId?: number;
   trackName: string;
   artistName: string;
   collectionName?: string;
@@ -246,15 +249,39 @@ type ItunesResult = {
  * release could be refused while its correct match went unexamined.
  */
 export async function searchItunesAll(term: string, limit = 15): Promise<ItunesResult[]> {
+  return (await searchItunesChecked(term, limit)).results;
+}
+
+/**
+ * The same search, but saying whether Apple refused rather than answered.
+ *
+ * Apple throttles at roughly twenty searches a minute and replies 403/429
+ * once you cross it. Collapsing that into an empty result set is actively
+ * harmful for the identity check: "Apple has never heard of this track" and
+ * "Apple wouldn't talk to us just now" look identical, and the second one was
+ * being written into the database as a permanent UNVERIFIED verdict that
+ * nothing would ever revisit.
+ */
+export async function searchItunesChecked(
+  term: string,
+  limit = 15
+): Promise<{ results: ItunesResult[]; throttled: boolean }> {
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
     term
   )}&media=music&entity=song&limit=${limit}`;
 
-  const res = await fetch(url);
-  if (!res.ok) return [];
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch {
+    return { results: [], throttled: false };
+  }
 
-  const data = (await res.json()) as { results?: ItunesResult[] };
-  return (data.results ?? []).filter((r) => r.previewUrl);
+  if (res.status === 403 || res.status === 429) return { results: [], throttled: true };
+  if (!res.ok) return { results: [], throttled: false };
+
+  const data = (await res.json().catch(() => ({}))) as { results?: ItunesResult[] };
+  return { results: (data.results ?? []).filter((r) => r.previewUrl), throttled: false };
 }
 
 export async function searchItunes(term: string): Promise<ItunesResult | null> {
