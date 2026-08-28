@@ -146,14 +146,14 @@ export default function FanGate({
 
   if (!checked) {
     return (
-      <div className="bg-bg flex h-[100dvh] items-center justify-center">
+      <div className="bg-bg flex h-viewport items-center justify-center">
         <Equalizer className="text-gold/30 h-10 w-10 " />
       </div>
     );
   }
 
   return (
-    <div className="bg-bg relative flex h-[100dvh] flex-col items-center justify-center overflow-y-auto px-6 py-6 text-center">
+    <div className="bg-bg relative flex h-viewport flex-col items-center justify-center overflow-y-auto px-6 py-6 text-center">
       <div
         aria-hidden
         className="bg-gold/10 pointer-events-none absolute -top-24 h-72 w-72 rounded-full blur-3xl"

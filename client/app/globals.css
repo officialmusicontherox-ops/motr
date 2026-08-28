@@ -145,3 +145,25 @@ body {
     transform: scaleY(1);
   }
 }
+
+/* Full-screen layouts that must never exceed what's actually visible.
+ *
+ * dvh is the *dynamic* viewport, which in-app browsers — Facebook's and
+ * Instagram's in particular — report as though their toolbars were retracted.
+ * The container then stands taller than the visible area, the top is pushed
+ * off screen, and because the layout doesn't scroll there's no way to get it
+ * back: the logo simply isn't there.
+ *
+ * svh is the viewport with browser chrome fully expanded, so it always fits.
+ * The cost is a little background at the bottom when chrome retracts, which
+ * is invisible on a dark page.
+ */
+.h-viewport {
+  height: 100vh; /* for anything without svh support */
+  height: 100svh;
+}
+
+/* No rubber-band bounce revealing the page edges on a fixed layout. */
+html {
+  overscroll-behavior-y: none;
+}

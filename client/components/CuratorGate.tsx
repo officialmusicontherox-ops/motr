@@ -104,14 +104,14 @@ export default function CuratorGate({
 
   if (!checked) {
     return (
-      <div className="bg-bg flex h-[100dvh] items-center justify-center">
+      <div className="bg-bg flex h-viewport items-center justify-center">
         <Equalizer className="text-gold/30 h-10 w-10 " />
       </div>
     );
   }
 
   return (
-    <div className="bg-bg flex h-[100dvh] flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-6 text-center">
+    <div className="bg-bg flex h-viewport flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-6 text-center">
       <Link href="/" aria-label="MOTR home">
         <Image
           src="/motr-logo.png"

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
 import { Bookmark, Crown, Menu } from "./icons";
@@ -41,6 +41,25 @@ export default function MotrShell({
     ? Math.min(100, (clip.currentTime / (clip.duration || 30)) * 100)
     : 0;
 
+  /**
+   * A full-screen page must not let the document scroll behind it.
+   *
+   * The shell sizes itself to the viewport, but if that measurement comes out
+   * even slightly tall the body overflows and the whole shell — logo and all —
+   * gets pushed up out of view. Sticky doesn't save it, because what moved is
+   * the document, not the shell's own scroll box. Locking the body means the
+   * top of the page is always the top of the page.
+   */
+  useEffect(() => {
+    if (!fill) return;
+    const { style } = document.body;
+    const previous = style.overflow;
+    style.overflow = "hidden";
+    return () => {
+      style.overflow = previous;
+    };
+  }, [fill]);
+
   return (
     <PullToRefresh>
     <div
@@ -50,7 +69,7 @@ export default function MotrShell({
         // Auto rather than hidden: when it all fits there is nothing to
         // scroll and no scrollbar, but on a landscape phone the buttons stay
         // reachable instead of being clipped away.
-        fill ? "h-[100dvh] overflow-y-auto" : "min-h-screen"
+        fill ? "h-viewport overflow-y-auto" : "min-h-screen"
       }`}
     >
       <MotrMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
