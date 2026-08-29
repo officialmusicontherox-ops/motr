@@ -152,7 +152,7 @@ export default function FanGate({
   }
 
   return (
-    <div className="bg-bg relative flex h-viewport flex-col items-center justify-center overflow-y-auto px-6 py-6 text-center">
+    <div className="bg-bg relative flex h-viewport flex-col items-center justify-center overflow-y-auto px-6 py-safe-6 text-center">
       <div
         aria-hidden
         className="bg-gold/10 pointer-events-none absolute -top-24 h-72 w-72 rounded-full blur-3xl"

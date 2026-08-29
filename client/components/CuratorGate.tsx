@@ -110,7 +110,7 @@ export default function CuratorGate({
   }
 
   return (
-    <div className="bg-bg flex h-viewport flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-6 text-center">
+    <div className="bg-bg flex h-viewport flex-col items-center justify-center gap-5 overflow-y-auto px-6 py-safe-6 text-center">
       <Link href="/" aria-label="MOTR home">
         <Image
           src="/motr-logo.png"

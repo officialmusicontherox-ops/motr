@@ -163,6 +163,64 @@ body {
   height: 100svh;
 }
 
+/* Installed to an iOS home screen, the window runs edge to edge.
+ *
+ * viewport-fit=cover plus a translucent status bar means the page starts
+ * *behind* the clock and the home indicator floats over the bottom bar. The
+ * layout already promised to "clear the notch and home indicator" and never
+ * actually did, so on a home-screen install the logo sat underneath the
+ * status bar — the reason it only appeared while a pull-to-refresh dragged
+ * it clear.
+ *
+ * Every one of these rules is gated on display-mode: standalone, so the site
+ * in a phone browser is untouched. That gate is doing real work rather than
+ * being belt-and-braces: Safari reports a bottom inset of its own once its
+ * toolbar retracts, so an ungated env() would quietly move the browser
+ * layout too.
+ */
+
+/* Base values first — these are what the browser site has always had. */
+.pb-nav {
+  padding-bottom: 5rem;
+}
+
+.pb-nav-tall {
+  padding-bottom: 9rem;
+}
+
+.py-safe-6 {
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+@media (display-mode: standalone) {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .py-safe-6 {
+    padding-top: calc(1.5rem + env(safe-area-inset-top));
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+
+  /* Held below Tailwind's md breakpoint deliberately: the tab bar is
+   * md:hidden, and an unscoped rule would outrank the md:pb-* utilities that
+   * shrink this padding on desktop. */
+  @media (width < 48rem) {
+    .pb-nav {
+      padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    }
+
+    .pb-nav-tall {
+      padding-bottom: calc(9rem + env(safe-area-inset-bottom));
+    }
+  }
+}
+
 /* No rubber-band bounce revealing the page edges on a fixed layout. */
 html {
   overscroll-behavior-y: none;

@@ -63,7 +63,7 @@ export default function MotrShell({
   return (
     <PullToRefresh>
     <div
-      className={`bg-bg flex flex-col ${
+      className={`bg-bg pt-safe flex flex-col ${
         // dvh, not vh: on mobile the browser's own chrome makes vh taller
         // than what you can actually see, which is itself a cause of scroll.
         // Auto rather than hidden: when it all fits there is nothing to
@@ -152,14 +152,14 @@ export default function MotrShell({
           fill
             ? // min-h-0 lets this shrink below its content, which is what
               // allows the card inside to size itself to the space left.
-              "flex min-h-0 flex-1 flex-col items-center px-5 pb-20 pt-2 md:px-8 md:pb-4"
-            : "flex flex-1 flex-col items-center px-5 pb-36 pt-4 md:px-8 md:pb-16"
+              "pb-nav flex min-h-0 flex-1 flex-col items-center px-5 pt-2 md:px-8 md:pb-4"
+            : "pb-nav-tall flex flex-1 flex-col items-center px-5 pt-4 md:px-8 md:pb-16"
         }
       >
         {children}
       </main>
 
-      <nav className="border-edge bg-bg/95 fixed inset-x-0 bottom-0 z-20 border-t backdrop-blur md:hidden">
+      <nav className="border-edge bg-bg/95 pb-safe fixed inset-x-0 bottom-0 z-20 border-t backdrop-blur md:hidden">
         <ul className="mx-auto flex max-w-md">
           {TABS.map(({ href, label, Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
