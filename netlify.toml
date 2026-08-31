@@ -1,0 +1,33 @@
+# Netlify build settings.
+#
+# Here rather than typed into the dashboard so the settings live with the
+# code: the next person to import this repo gets them for free, and a change
+# to how the app builds arrives in the same commit as the change itself.
+#
+# Vercel ignores this file entirely, so app.musicontherox.com is unaffected
+# while we test.
+
+[build]
+  # The app is not at the repo root. This is an npm workspace — the root
+  # package.json exists only to declare `client` as a member — so every path
+  # below is relative to client/, not to the repo.
+  base = "client"
+
+  # Already defined in client/package.json as `prisma generate && next build`.
+  # The generate step is not optional: the build caches node_modules, which
+  # leaves the generated Prisma client stale and the site 500s on every page
+  # that touches the database.
+  command = "npm run build"
+
+  # Relative to base, so this is client/.next.
+  publish = ".next"
+
+[build.environment]
+  # Pinned rather than left to drift. Next 16 wants a modern runtime, and a
+  # silent major-version bump on the build image is the kind of thing that
+  # breaks a deploy weeks after the change that caused it.
+  NODE_VERSION = "22"
+
+# No [[plugins]] block on purpose: Netlify detects Next.js and installs its
+# own runtime at the version it supports. Pinning the plugin here is how you
+# end up with a runtime that disagrees with the build image.
