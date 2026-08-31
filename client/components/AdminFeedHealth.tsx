@@ -51,67 +51,96 @@ export default function AdminFeedHealth() {
   const [running, setRunning] = useState(false);
   const [repairing, setRepairing] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [progress, setProgress] = useState<string | null>(null);
 
   /**
-   * Runs the check, then keeps going until nothing is left to verify.
+   * Runs the whole check as a series of small requests.
    *
-   * A track Apple has never been asked about costs one throttled search, so a
-   * single request can only settle a dozen. That's why this used to look like
-   * it gave up partway. The passes are automatic now: the first one does the
-   * playability sweep, the rest chip at the identity queue until it's empty.
-   * Once a track's Apple id is known it's settled in bulk, so the crawl only
-   * ever happens once — later runs finish in a single pass.
+   * It used to be one request for everything, which is why this button
+   * appeared to give up: the host kills anything running longer than about
+   * ten seconds, so a sweep of the library never reached the end.
+   *
+   * Now it walks the feed in slices — audio first, then identity — and keeps
+   * asking until each phase reports it is finished. Slower on the clock,
+   * but it actually completes, and progress is visible while it does.
    */
   async function check(recheckAll = false) {
     setRunning(true);
     setNote(null);
+    setProgress("Checking audio...");
+
     try {
-      const first = await fetch(
-        `/api/admin/feed-health${recheckAll ? "?recheck=all" : ""}`,
-        { method: "POST" }
-      );
-      if (!first.ok) {
-        setNote("Couldn't run the check.");
-        setRunning(false);
-        return;
+      // Phase one: is there still a sound behind every track?
+      let broken: BrokenTrack[] = [];
+      let checked = 0;
+      let playable = 0;
+      let offset: number | null = 0;
+
+      while (offset !== null) {
+        const res: Response = await fetch(`/api/admin/feed-health?offset=${offset}`, {
+          method: "POST",
+        });
+        if (!res.ok) {
+          setNote("Couldn't run the check.");
+          setRunning(false);
+          setProgress(null);
+          return;
+        }
+        const slice = await res.json();
+        broken = broken.concat(slice.broken);
+        checked += slice.checked;
+        playable += slice.playable;
+        offset = slice.nextOffset;
+        setProgress(`Checking audio... ${checked} of ${slice.total}`);
       }
 
-      let latest: Report = await first.json();
-      setReport(latest);
+      // Phase two: is it the right recording? Known tracks settle in bulk;
+      // the rest cost one rate-limited search each, so this repeats.
+      setProgress("Identifying recordings...");
+      let identity: Report["identity"] | null = null;
 
-      // Bounded so a track Apple simply can't identify — which stays in the
-      // queue forever — can't spin this loop indefinitely.
-      for (let pass = 0; pass < 60 && latest.identity.remaining > 0; pass++) {
-        const before = latest.identity.remaining;
-        const res = await fetch("/api/admin/feed-health?identityOnly=1", { method: "POST" });
+      for (let pass = 0; pass < 60; pass++) {
+        const url = `/api/admin/feed-health?phase=identity${
+          pass === 0 && recheckAll ? "&recheck=all" : ""
+        }`;
+        const res = await fetch(url, { method: "POST" });
         if (!res.ok) break;
-        const next = (await res.json()) as { identity: Report["identity"] };
-        latest = { ...latest, identity: next.identity };
-        setReport(latest);
 
-        if (next.identity.throttled) {
+        const next = (await res.json()) as { identity: Report["identity"] };
+        const before = identity?.remaining ?? Infinity;
+        identity = next.identity;
+
+        setReport({ checked, playable, broken, identity, checkedAt: new Date().toISOString() });
+        setProgress(`Identifying... ${identity.verified} of ${identity.total}`);
+
+        if (identity.remaining === 0) break;
+
+        if (identity.throttled) {
           // Apple's limit resets on the minute. Waiting it out is the whole
           // difference between finishing the library and stopping a tenth of
           // the way in, which is what it did before.
-          setNote("Apple's rate limit — waiting a moment, then carrying on.");
+          setProgress("Apple is rate-limiting — waiting, then carrying on...");
           await new Promise((r) => setTimeout(r, 30_000));
-          setNote(null);
           continue;
         }
-        // No progress and no throttling means every remaining track is one
-        // Apple won't answer for; carrying on would repeat failed searches.
-        if (next.identity.remaining >= before) break;
+        // No progress and no throttling means the remainder are tracks Apple
+        // will not answer for; asking again just repeats failed searches.
+        if (identity.remaining >= before) break;
       }
 
-      if (latest.identity.remaining > 0) {
-        setNote(
-          `${latest.identity.remaining} couldn't be identified — Apple's search doesn't ` +
-            `surface them, which is common for small releases and doesn't mean the audio is wrong.`
-        );
+      if (identity) {
+        setReport({ checked, playable, broken, identity, checkedAt: new Date().toISOString() });
+        if (identity.remaining > 0) {
+          setNote(
+            `${identity.remaining} couldn't be identified — Apple's search doesn't surface ` +
+              `them, which is common for small releases and doesn't mean the audio is wrong.`
+          );
+        }
       }
     } catch {
       setNote("Couldn't run the check.");
     }
+    setProgress(null);
     setRunning(false);
   }
 
@@ -183,11 +212,7 @@ export default function AdminFeedHealth() {
           disabled={running}
           className="rounded-full bg-gold px-5 py-2 text-sm font-bold text-bg transition hover:brightness-110 disabled:opacity-40"
         >
-          {running
-            ? report
-              ? `Checking... ${report.identity.verified} of ${report.identity.total}`
-              : "Checking every track..."
-            : "Run check"}
+          {running ? progress ?? "Checking..." : "Run check"}
         </button>
         {/* Re-verifying everything used to be impossible: one throttled search
             per track meant a run could only ever get through a handful. Known

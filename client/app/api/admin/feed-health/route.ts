@@ -4,8 +4,18 @@ import { getAdminSession } from "@/lib/adminAuth";
 import { searchItunes } from "@/lib/trackLookup";
 import { knownMismatches, verifyFeedIdentity } from "@/lib/audioIdentity";
 
-/** The identity pass talks to Apple one track at a time; give it room. */
-export const maxDuration = 60;
+/**
+ * Every request here is deliberately small.
+ *
+ * The host cuts a request off after about ten seconds, and this route talks
+ * to Apple once per track — so a sweep of the whole library in one call gets
+ * killed halfway and reports nothing. Both halves of the check therefore run
+ * in slices, and the dashboard asks repeatedly until they are done.
+ *
+ * (An earlier `export const maxDuration = 60` lived here. That is a Vercel
+ * directive and does nothing now — the cap is the platform's, not ours.)
+ */
+const PLAYABILITY_CHUNK = 40;
 
 /**
  * Checks that every track in the feed still has audio behind it.
@@ -24,24 +34,38 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const includeAll = req.nextUrl.searchParams.get("scope") === "all";
+  const params = req.nextUrl.searchParams;
+  const includeAll = params.get("scope") === "all";
 
-  // Continuation passes work through the identity queue only. Re-fetching
-  // every preview on each one would triple the time and tell us nothing new,
-  // since playability doesn't change between passes seconds apart.
-  if (req.nextUrl.searchParams.get("identityOnly") === "1") {
-    const identity = await verifyFeedIdentity(false);
+  // Identity is its own phase. It costs a rate-limited Apple search per
+  // unknown track, so it is budgeted separately and asked for repeatedly.
+  if (params.get("identityOnly") === "1" || params.get("phase") === "identity") {
+    const identity = await verifyFeedIdentity(params.get("recheck") === "all");
     return NextResponse.json({
-      identityOnly: true,
+      phase: "identity",
       identity: { ...identity, mismatches: await knownMismatches() },
       checkedAt: new Date().toISOString(),
     });
   }
 
-  const tracks = await prisma.track.findMany({
-    where: includeAll ? {} : { status: "DISCOVERY" },
-    select: { id: true, title: true, artistName: true, previewUrl: true, status: true },
-  });
+  // Playability, one slice at a time. The caller walks the offset forward
+  // until nextOffset comes back null.
+  const where = includeAll ? {} : { status: "DISCOVERY" as const };
+  const offset = Math.max(0, Number(params.get("offset") ?? 0) || 0);
+
+  const [total, tracks] = await Promise.all([
+    prisma.track.count({ where }),
+    prisma.track.findMany({
+      where,
+      select: { id: true, title: true, artistName: true, previewUrl: true, status: true },
+      // A stable order matters more than a useful one: the caller is paging
+      // through by offset, and rows shifting between calls would let a track
+      // slip past unchecked.
+      orderBy: { id: "asc" },
+      skip: offset,
+      take: PLAYABILITY_CHUNK,
+    }),
+  ]);
 
   const broken: { id: string; title: string; artistName: string; previewUrl: string }[] = [];
 
@@ -64,25 +88,19 @@ export async function POST(req: NextRequest) {
     for (const r of results) if (r) broken.push(r);
   }
 
-  // Playing isn't the same as being the right recording. A track serving
-  // someone else's song passes every check above — artwork, title, sound —
-  // and the artist is the one who finds out. Two of the last two artists to
-  // submit had one, so identity is now part of the same button.
-  const identity = await verifyFeedIdentity(req.nextUrl.searchParams.get("recheck") === "all");
-  const mismatches = await knownMismatches();
+  const nextOffset = offset + tracks.length;
 
   return NextResponse.json({
+    phase: "playable",
+    total,
     checked: tracks.length,
     playable: tracks.length - broken.length,
     broken,
-    identity: {
-      ...identity,
-      // Everything ever found wrong and not yet repaired, not just this run's.
-      mismatches,
-    },
+    nextOffset: nextOffset < total && tracks.length > 0 ? nextOffset : null,
     checkedAt: new Date().toISOString(),
   });
 }
+
 
 /**
  * Re-points a dead track at a working preview.
