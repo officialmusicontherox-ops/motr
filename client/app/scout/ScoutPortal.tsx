@@ -19,16 +19,43 @@ type ScoutTrack = {
   lastSwipeAt: string | null;
   topCountries: { name: string; swipes: number }[];
   topRegions: { name: string; swipes: number }[];
+  benchmark: {
+    deltaPoints: number;
+    beats: { title: string; artistName: string; saveRate: number }[];
+  } | null;
+};
+
+type WeeklySong = {
+  id: string;
+  title: string;
+  artistName: string;
+  artworkUrl: string | null;
+  saves: number;
+  verdicts: number;
+};
+
+type WeeklyArtist = {
+  artistId: string;
+  name: string;
+  saves: number;
+  verdicts: number;
+  tracks: number;
 };
 
 type Payload = {
   scout: { name: string };
   tracks: ScoutTrack[];
+  weekly: { songs: WeeklySong[]; artists: WeeklyArtist[]; since: string };
   summary: {
     tracks: number;
     swipes: number;
     countries: { name: string; swipes: number }[];
     genres: string[];
+    benchmark: {
+      saveRate: number | null;
+      verdicts: number;
+      tracks: { title: string; artistName: string; saveRate: number; verdicts: number }[];
+    };
   };
 };
 
@@ -104,6 +131,59 @@ export default function ScoutPortal() {
         <Stat label="Signed in as" value={data.scout.name} small />
       </div>
 
+      {/* The yardstick, stated once at the top so every number below it has a
+          meaning. Established records are swiped by the same listeners, in the
+          same week, under the same blind rules — which is what makes the
+          comparison worth anything. */}
+      {data.summary.benchmark.saveRate !== null && (
+        <div className="border-gold/30 bg-gold/5 mb-6 rounded-xl border p-4">
+          <p className="motr-label text-gold">The yardstick</p>
+          <p className="mt-1 text-sm leading-relaxed">
+            Established, already-successful records in the same feed are saved{" "}
+            <span className="text-gold font-bold">{pct(data.summary.benchmark.saveRate)}</span> of
+            the time when nobody knows what they are —{" "}
+            {data.summary.benchmark.verdicts.toLocaleString()} blind verdicts. Anything below
+            beats that number under identical conditions.
+          </p>
+        </div>
+      )}
+
+      {/* The first thing a scout should see: who moved this week. A
+          filterable catalogue makes the reader do the work; a leaderboard
+          answers the question they came with. */}
+      <div className="mb-8 grid gap-4 md:grid-cols-2">
+        <Leaderboard title="Top songs this week" empty="No swipes yet this week.">
+          {data.weekly.songs.map((song, i) => (
+            <LeaderRow
+              key={song.id}
+              rank={i + 1}
+              primary={song.title}
+              secondary={song.artistName}
+              artworkUrl={song.artworkUrl}
+              saves={song.saves}
+              verdicts={song.verdicts}
+            />
+          ))}
+        </Leaderboard>
+
+        <Leaderboard title="Top artists this week" empty="No swipes yet this week.">
+          {data.weekly.artists.map((artist, i) => (
+            <LeaderRow
+              key={artist.artistId}
+              rank={i + 1}
+              primary={artist.name}
+              secondary={`${artist.tracks} track${artist.tracks === 1 ? "" : "s"} in rotation`}
+              saves={artist.saves}
+              verdicts={artist.verdicts}
+            />
+          ))}
+        </Leaderboard>
+      </div>
+
+      <h2 className="font-display border-edge mb-4 border-t pt-6 text-xl uppercase tracking-wide">
+        Full catalogue
+      </h2>
+
       <div className="mb-5 flex flex-wrap gap-2">
         <select
           value={genre}
@@ -151,6 +231,70 @@ export default function ScoutPortal() {
         </p>
       )}
     </div>
+  );
+}
+
+function Leaderboard({
+  title,
+  empty,
+  children,
+}: {
+  title: string;
+  empty: string;
+  children: React.ReactNode[];
+}) {
+  return (
+    <div className="border-edge bg-surface rounded-xl border p-4">
+      <p className="motr-label text-gold mb-3">{title}</p>
+      {children.length === 0 ? (
+        <p className="text-muted text-sm">{empty}</p>
+      ) : (
+        <ol className="space-y-2">{children}</ol>
+      )}
+    </div>
+  );
+}
+
+function LeaderRow({
+  rank,
+  primary,
+  secondary,
+  artworkUrl,
+  saves,
+  verdicts,
+}: {
+  rank: number;
+  primary: string;
+  secondary: string;
+  artworkUrl?: string | null;
+  saves: number;
+  verdicts: number;
+}) {
+  return (
+    <li className="flex items-center gap-3">
+      <span className="text-muted w-5 shrink-0 text-right text-sm tabular-nums">{rank}</span>
+      {artworkUrl ? (
+        <Image
+          src={artworkUrl}
+          alt=""
+          width={36}
+          height={36}
+          unoptimized
+          className="h-9 w-9 shrink-0 rounded object-cover"
+        />
+      ) : (
+        <span className="bg-surface-2 h-9 w-9 shrink-0 rounded" />
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium">{primary}</span>
+        <span className="text-muted block truncate text-xs">{secondary}</span>
+      </span>
+      <span className="shrink-0 text-right">
+        <span className="text-gold block text-sm font-bold tabular-nums">{saves}</span>
+        {/* The rate is shown but never used for ranking — see weeklyLeaders. */}
+        <span className="text-muted block text-[0.65rem]">of {verdicts}</span>
+      </span>
+    </li>
   );
 }
 
@@ -216,6 +360,34 @@ function TrackRow({ track: t }: { track: ScoutTrack }) {
           hint="Median time into the clip before they chose"
         />
       </div>
+
+      {/* The sentence worth paying for. Only ever shown when both sides of the
+          comparison have earned a rate of their own. */}
+      {t.benchmark && t.benchmark.deltaPoints > 0 && (
+        <div className="border-gold/30 bg-gold/5 mt-3 rounded-lg border px-3 py-2">
+          <p className="text-sm">
+            <span className="text-gold font-bold">
+              +{t.benchmark.deltaPoints} points
+            </span>{" "}
+            <span className="text-muted">above established records, blind.</span>
+          </p>
+          {t.benchmark.beats.length > 0 && (
+            <p className="text-muted mt-1 text-xs">
+              Outperformed{" "}
+              {t.benchmark.beats.map((b, i) => (
+                <span key={b.title}>
+                  {i > 0 && " and "}
+                  <span className="text-white">
+                    &ldquo;{b.title}&rdquo; by {b.artistName}
+                  </span>{" "}
+                  ({pct(b.saveRate)})
+                </span>
+              ))}{" "}
+              on the same listeners.
+            </p>
+          )}
+        </div>
+      )}
 
       {places.length > 0 && (
         <p className="text-muted mt-3 text-xs">

@@ -36,6 +36,24 @@ export type ScoutTrack = {
   lastSwipeAt: string | null;
   topCountries: { name: string; swipes: number }[];
   topRegions: { name: string; swipes: number }[];
+  /**
+   * How this compares with the established records in the same feed.
+   * Null until the track itself has enough verdicts to be worth comparing.
+   */
+  benchmark: {
+    /** Percentage points above (or below) the known-hit save rate. */
+    deltaPoints: number;
+    /** Named releases this track outperformed, blind, on the same listeners. */
+    beats: { title: string; artistName: string; saveRate: number }[];
+  } | null;
+};
+
+export type CatalogueBenchmark = {
+  /** Pooled blind save rate of the established catalogue. */
+  saveRate: number | null;
+  verdicts: number;
+  /** Individually rateable known records, best first. */
+  tracks: { title: string; artistName: string; saveRate: number; verdicts: number }[];
 };
 
 type Row = {
@@ -95,9 +113,10 @@ export async function scoutCatalogue(params?: {
   `);
 
   const ids = rows.map((r) => r.id);
-  const [countries, regions] = await Promise.all([
+  const [countries, regions, benchmark] = await Promise.all([
     geographyFor(ids, "countryName"),
     geographyFor(ids, "region"),
+    catalogueBenchmark(),
   ]);
 
   const tracks: ScoutTrack[] = rows.map((r) => {
@@ -126,8 +145,23 @@ export async function scoutCatalogue(params?: {
       lastSwipeAt: r.last_swipe ? r.last_swipe.toISOString() : null,
       topCountries: countries.get(r.id) ?? [],
       topRegions: regions.get(r.id) ?? [],
+      benchmark: null,
     };
   });
+
+  // Comparison is applied after the rates exist, and only to tracks that have
+  // earned a rate of their own — comparing an unrated track against anything
+  // would be inventing a result.
+  for (const track of tracks) {
+    if (track.saveRate === null || benchmark.saveRate === null) continue;
+    track.benchmark = {
+      deltaPoints: Math.round((track.saveRate - benchmark.saveRate) * 100),
+      beats: benchmark.tracks
+        .filter((known) => known.saveRate < track.saveRate!)
+        .slice(0, 2)
+        .map(({ title, artistName, saveRate }) => ({ title, artistName, saveRate })),
+    };
+  }
 
   const sort = params?.sort ?? "recent";
   if (sort === "saveRate") {
@@ -172,9 +206,158 @@ async function geographyFor(
   return out;
 }
 
+export type WeeklySong = {
+  id: string;
+  title: string;
+  artistName: string;
+  artworkUrl: string | null;
+  saves: number;
+  verdicts: number;
+};
+
+export type WeeklyArtist = {
+  artistId: string;
+  name: string;
+  saves: number;
+  verdicts: number;
+  tracks: number;
+};
+
+/**
+ * The last seven days, ranked.
+ *
+ * Ranked on saves rather than save rate on purpose. A rate off three verdicts
+ * puts a track nobody has heard at the top of the page, which is worse than
+ * useless to someone deciding where to spend an afternoon — and at this
+ * volume that would happen every week. Saves are a blunter measure but they
+ * cannot be gamed by a small sample, and the rate is shown alongside so the
+ * reader can judge for themselves.
+ */
+export async function weeklyLeaders(days = 7): Promise<{
+  songs: WeeklySong[];
+  artists: WeeklyArtist[];
+  since: string;
+}> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const [songRows, artistRows] = await Promise.all([
+    prisma.$queryRaw<
+      {
+        id: string;
+        title: string;
+        artistName: string;
+        artworkUrl: string | null;
+        saves: bigint;
+        verdicts: bigint;
+      }[]
+    >(Prisma.sql`
+      SELECT t."id", t."title", t."artistName", t."artworkUrl",
+        COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
+        COUNT(s."id")::bigint AS verdicts
+      FROM "Track" t
+      JOIN "FanSwipe" s ON s."trackId" = t."id"
+      WHERE t."artistId" IS NOT NULL
+        AND t."status" <> 'REJECTED'
+        AND s."createdAt" >= ${since}
+      GROUP BY t."id"
+      ORDER BY saves DESC, verdicts DESC
+      LIMIT 10
+    `),
+    prisma.$queryRaw<
+      { artistId: string; name: string; saves: bigint; verdicts: bigint; tracks: bigint }[]
+    >(Prisma.sql`
+      SELECT t."artistId" AS "artistId",
+        MIN(a."name") AS name,
+        COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
+        COUNT(s."id")::bigint AS verdicts,
+        COUNT(DISTINCT t."id")::bigint AS tracks
+      FROM "Track" t
+      JOIN "Artist" a ON a."id" = t."artistId"
+      JOIN "FanSwipe" s ON s."trackId" = t."id"
+      WHERE t."artistId" IS NOT NULL
+        AND t."status" <> 'REJECTED'
+        AND s."createdAt" >= ${since}
+      GROUP BY t."artistId"
+      ORDER BY saves DESC, verdicts DESC
+      LIMIT 10
+    `),
+  ]);
+
+  return {
+    since: since.toISOString(),
+    songs: songRows.map((r) => ({
+      id: r.id,
+      title: r.title,
+      artistName: r.artistName,
+      artworkUrl: r.artworkUrl,
+      saves: Number(r.saves),
+      verdicts: Number(r.verdicts),
+    })),
+    artists: artistRows.map((r) => ({
+      artistId: r.artistId,
+      name: r.name,
+      saves: Number(r.saves),
+      verdicts: Number(r.verdicts),
+      tracks: Number(r.tracks),
+    })),
+  };
+}
+
+/**
+ * How the established records in the feed perform, blind.
+ *
+ * The seeded catalogue is major-label music that exists so a new listener has
+ * something to swipe. It is not worth *listing* to a scout — but as a
+ * yardstick it is the most valuable thing here, because it is measured on the
+ * same listeners, in the same week, under the same rules, with no name
+ * attached to either side.
+ *
+ * "Beats a proven hit under blind conditions" is a sentence no catalogue of
+ * stream counts can produce, and it is the reason to get on a plane.
+ *
+ * Pooled as well as per-track: pooling reaches a trustworthy sample far
+ * sooner than any single record does, so the comparison is usable while the
+ * platform is still small.
+ */
+export async function catalogueBenchmark(): Promise<CatalogueBenchmark> {
+  const rows = await prisma.$queryRaw<
+    { title: string; artistName: string; right_swipes: bigint; total: bigint }[]
+  >(Prisma.sql`
+    SELECT t."title", t."artistName",
+      COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS right_swipes,
+      COUNT(s."id")::bigint AS total
+    FROM "Track" t
+    JOIN "FanSwipe" s ON s."trackId" = t."id"
+    WHERE t."artistId" IS NULL AND t."status" <> 'REJECTED'
+    GROUP BY t."id"
+  `);
+
+  let pooledRight = 0;
+  let pooledTotal = 0;
+  const rateable: CatalogueBenchmark["tracks"] = [];
+
+  for (const r of rows) {
+    const right = Number(r.right_swipes);
+    const total = Number(r.total);
+    pooledRight += right;
+    pooledTotal += total;
+    if (total >= CONFIDENCE_FLOOR) {
+      rateable.push({ title: r.title, artistName: r.artistName, saveRate: right / total, verdicts: total });
+    }
+  }
+
+  rateable.sort((a, b) => b.saveRate - a.saveRate);
+
+  return {
+    saveRate: pooledTotal >= CONFIDENCE_FLOOR ? pooledRight / pooledTotal : null,
+    verdicts: pooledTotal,
+    tracks: rateable,
+  };
+}
+
 /** Headline numbers for the top of the portal. */
 export async function scoutSummary() {
-  const [tracks, swipes, geoRows, genres] = await Promise.all([
+  const [tracks, swipes, geoRows, genres, benchmark] = await Promise.all([
     prisma.track.count({ where: { status: { not: "REJECTED" }, artistId: { not: null } } }),
     prisma.fanSwipe.count({ where: { track: { artistId: { not: null } } } }),
     prisma.$queryRaw<{ name: string; n: bigint }[]>(Prisma.sql`
@@ -190,11 +373,13 @@ export async function scoutSummary() {
       distinct: ["genre"],
       orderBy: { genre: "asc" },
     }),
+    catalogueBenchmark(),
   ]);
 
   return {
     tracks,
     swipes,
+    benchmark,
     countries: geoRows.map((r) => ({ name: r.name, swipes: Number(r.n) })),
     genres: genres.map((g) => g.genre).filter((g): g is string => Boolean(g)),
   };

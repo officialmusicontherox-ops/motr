@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireScout } from "@/lib/scoutAuth";
-import { scoutCatalogue, scoutSummary } from "@/lib/scoutData";
+import { scoutCatalogue, scoutSummary, weeklyLeaders } from "@/lib/scoutData";
 
 export async function GET(req: NextRequest) {
   const auth = await requireScout();
@@ -13,10 +13,11 @@ export async function GET(req: NextRequest) {
       ? sortParam
       : "recent";
 
-  const [tracks, summary] = await Promise.all([
+  const [tracks, summary, weekly] = await Promise.all([
     scoutCatalogue({ genre: params.get("genre"), sort }),
     scoutSummary(),
+    weeklyLeaders(),
   ]);
 
-  return NextResponse.json({ scout: { name: auth.name }, tracks, summary });
+  return NextResponse.json({ scout: { name: auth.name }, tracks, summary, weekly });
 }
