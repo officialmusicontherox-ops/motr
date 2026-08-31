@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .env
+
+# Env files pulled down from a host (vercel env pull) — real production
+# secrets, and the name does not start with .env so the rule above misses them.
+*.env
