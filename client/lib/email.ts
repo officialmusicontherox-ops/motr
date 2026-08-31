@@ -365,6 +365,84 @@ export function comeBackEmail(params: {
 }
 
 /**
+ * The artist progress email, sent when a track crosses a round number.
+ *
+ * Every figure is a running total, never a change since last time. A weekly
+ * "3 more than last week" invites the question of what happened the week it
+ * was 0; "27 right swipes" is simply a good number, and the artist can be
+ * pleased with it whenever it arrives.
+ *
+ * The ask is the point of the email as much as the news is. An artist who
+ * has just been told strangers are saving their song is the likeliest person
+ * in the world to send their own audience over — and their audience swiping
+ * is what the vote pool actually needs.
+ */
+export function trackMilestoneEmail(params: {
+  artistName: string;
+  tracks: { title: string; rightSwipes: number; milestone: number }[];
+  appUrl: string;
+  unsubscribeUrl: string;
+}) {
+  const { artistName, tracks, appUrl, unsubscribeUrl } = params;
+  const lead = tracks[0];
+  const first = lead.milestone === 1;
+
+  // A long list of small numbers reads as thinner than a short one. Six is
+  // enough to show a catalogue is moving without turning the email into a
+  // spreadsheet.
+  const shown = tracks.slice(0, 6);
+  const hidden = tracks.length - shown.length;
+
+  const list =
+    shown
+      .map(
+        (t) =>
+          `<div style="margin:0 0 8px;padding:12px 14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
+             <div style="color:#fff;font-weight:600;font-size:15px">${t.title}</div>
+             <div style="color:#dcb55f;font-size:13px;margin-top:3px;font-weight:600">
+               ${t.rightSwipes} right swipe${t.rightSwipes === 1 ? "" : "s"}
+             </div>
+           </div>`
+      )
+      .join("") +
+    (hidden > 0
+      ? `<p style="margin:4px 0 0;color:#8b8b8b;font-size:13px">and ${hidden} more of yours in rotation.</p>`
+      : "");
+
+  return {
+    subject: first
+      ? `Someone saved "${lead.title}" on MOTR`
+      : `"${lead.title}" has ${lead.rightSwipes} right swipes on MOTR`,
+    html:
+      shell(
+        first ? "Your music is landing" : "Your music keeps climbing",
+        `<p style="margin:0 0 12px">Hi ${artistName} —</p>
+         <p style="margin:0 0 14px">${
+           first
+             ? `Someone heard <strong style="color:#fff">${lead.title}</strong> with no name attached, no artwork they recognised and no idea who made it — and swiped right. That is the whole point of MOTR, and it just happened to you.`
+             : `${tracks.length === 1 ? "Your track has" : "Your tracks have"} picked up more support from listeners who had no idea who made ${tracks.length === 1 ? "it" : "them"}.`
+         }</p>
+         ${list}
+         <p style="margin:14px 0 0">Every one of those is a stranger who heard thirty seconds blind and chose to keep it.</p>
+         <p style="margin:16px 0 0;padding:14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
+           <strong style="color:#fff">We're still in early access.</strong>
+           The listener base is small and growing, which is exactly why this is a good moment to
+           be on it — there is far less to compete with than there will be in six months, and the
+           fans you bring now decide which tracks reach our curators first.
+         </p>
+         <p style="margin:16px 0 0"><strong style="color:#fff">So here's the ask.</strong> Send your own fans to MOTR. Every one of them who swipes right pushes ${
+           tracks.length === 1 ? "your track" : "your tracks"
+         } further up — and unlike a playlist pitch, it costs you nothing but a share.</p>
+         <p style="margin:10px 0 0;color:#8b8b8b;font-size:14px">${appUrl.replace(/^https?:\/\//, "")}</p>`,
+        { label: "Share MOTR with your fans", url: appUrl }
+      ) +
+      `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
+         Don't want these updates? <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> — your music stays in rotation either way.
+       </p>`,
+  };
+}
+
+/**
  * The sign-in link itself.
  *
  * Deliberately plain: a curator is looking for one thing, and everything else

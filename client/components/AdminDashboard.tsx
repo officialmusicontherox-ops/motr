@@ -11,6 +11,7 @@ import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
 import AdminFeedHealth from "./AdminFeedHealth";
 import AdminNudges from "./AdminNudges";
+import AdminArtistUpdates from "./AdminArtistUpdates";
 import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
@@ -308,6 +309,8 @@ export default function AdminDashboard({
 
  <AdminFeedHealth />
 
+
+ <AdminArtistUpdates />
 
  <AdminNudges />
 

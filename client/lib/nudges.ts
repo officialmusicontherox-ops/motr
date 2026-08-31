@@ -43,6 +43,24 @@ export function unsubscribeUrl(fanId: string, appUrl: string) {
   return `${appUrl}/unsubscribe?fan=${fanId}&t=${unsubscribeToken(fanId)}`;
 }
 
+/**
+ * The same thing for artists, who now get recurring mail of their own.
+ *
+ * A separate prefix so a fan's token can never opt out an artist that happens
+ * to share an id, and vice versa.
+ */
+export function artistUnsubscribeToken(artistId: string) {
+  return crypto
+    .createHmac("sha256", secret())
+    .update(`unsub:artist:${artistId}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+export function artistUnsubscribeUrl(artistId: string, appUrl: string) {
+  return `${appUrl}/unsubscribe?artist=${artistId}&t=${artistUnsubscribeToken(artistId)}`;
+}
+
 export type NudgeResult = {
   eligible: number;
   sent: number;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { unsubscribeToken } from "@/lib/nudges";
+import { artistUnsubscribeToken, unsubscribeToken } from "@/lib/nudges";
 
 export const metadata = { title: "Unsubscribe — MOTR" };
 
@@ -15,17 +15,26 @@ export const metadata = { title: "Unsubscribe — MOTR" };
 export default async function UnsubscribePage({
   searchParams,
 }: {
-  searchParams: Promise<{ fan?: string; t?: string }>;
+  searchParams: Promise<{ fan?: string; artist?: string; t?: string }>;
 }) {
-  const { fan: fanId, t } = await searchParams;
+  const { fan: fanId, artist: artistId, t } = await searchParams;
 
-  const signed = Boolean(fanId && t && t === unsubscribeToken(fanId));
-  const state: "done" | "invalid" = signed
-    ? await prisma.fan
-        .update({ where: { id: fanId! }, data: { emailOptOut: true } })
-        .then(() => "done" as const)
-        .catch(() => "invalid" as const)
-    : "invalid";
+  // One page for both audiences. Which row gets opted out is decided by the
+  // signature, not by the id alone — an unsigned or mismatched link does
+  // nothing at all.
+  let state: "done" | "invalid" = "invalid";
+
+  if (fanId && t && t === unsubscribeToken(fanId)) {
+    state = await prisma.fan
+      .update({ where: { id: fanId }, data: { emailOptOut: true } })
+      .then(() => "done" as const)
+      .catch(() => "invalid" as const);
+  } else if (artistId && t && t === artistUnsubscribeToken(artistId)) {
+    state = await prisma.artist
+      .update({ where: { id: artistId }, data: { emailOptOut: true } })
+      .then(() => "done" as const)
+      .catch(() => "invalid" as const);
+  }
 
   return (
     <main className="bg-bg flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
@@ -34,7 +43,7 @@ export default async function UnsubscribePage({
       </h1>
       <p className="text-muted max-w-sm text-sm leading-relaxed">
         {state === "done"
-          ? "That's done — we won't send you any more reminder emails. Your account and everything you've saved are untouched, and you can swipe whenever you like."
+          ? "That's done — we won't send you any more update emails. Nothing else changes: your music stays in rotation, it keeps earning swipes, and anything owed to you is unaffected."
           : "That unsubscribe link isn't valid. It may have already been used, or been cut short by your email app. Reply to any MOTR email and we'll take you off by hand."}
       </p>
       <Link

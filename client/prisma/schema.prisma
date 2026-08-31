@@ -372,6 +372,13 @@ model Artist {
 
   stripeCustomerId String?
 
+  // Artist email was transactional only — a fee request, a refusal — and
+  // transactional mail needs no opt-out. Milestone updates are recurring, so
+  // it does: both because the law says so and because a recurring email with
+  // no way out gets marked as spam, which costs the sending domain far more
+  // than the artist was worth.
+  emailOptOut Boolean @default(false)
+
   tracks        Track[]
   notifications ArtistNotification[]
   payments      Payment[]
