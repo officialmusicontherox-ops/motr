@@ -479,6 +479,19 @@ model FanSwipe {
   savedToSpotifyAt DateTime?
   spotifyTrackId   String?
 
+  // Where the listener was, taken from the edge network's own geolocation.
+  // No IP address is stored and no third-party lookup is made — the header
+  // arrives with the request or it doesn't.
+  //
+  // Recorded per swipe rather than per fan because the question worth
+  // answering is "where is this track catching", and a listener moves.
+  // Captured from the start because geography cannot be backfilled: a swipe
+  // whose origin went unrecorded is unrecoverable.
+  countryCode String?
+  countryName String?
+  region      String?
+  city        String?
+
   createdAt DateTime @default(now())
 
   @@unique([fanId, trackId])
@@ -633,6 +646,46 @@ model CuratorLoginToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime @default(now())
+
+  @@index([email, expiresAt])
+}
+
+enum ScoutStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+/// A label or A&R account with read-only access to the data portal.
+model Scout {
+  id      String  @id @default(cuid())
+  email   String  @unique
+  name    String
+  company String?
+
+  status     ScoutStatus @default(ACTIVE)
+  statusNote String?
+
+  lastSeenAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+/// Sign-in links for the A&R portal.
+///
+/// Separate from CuratorLoginToken on purpose: one table would mean a token
+/// issued for a curator could be redeemed for a scout session if either code
+/// path ever forgot to check which audience it was for.
+model ScoutLoginToken {
+  id        String    @id @default(cuid())
+  /// Lowercased, matched against Scout.email.
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([email, expiresAt])
 }

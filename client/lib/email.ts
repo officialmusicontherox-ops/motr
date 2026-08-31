@@ -462,6 +462,26 @@ export function curatorLoginLinkEmail(params: { url: string; minutes: number }) 
   };
 }
 
+/**
+ * Sign-in link for the A&R portal.
+ *
+ * Says who it is for and how long it lasts, because a login email that
+ * explains itself is one people click rather than report.
+ */
+export function scoutLoginLinkEmail(params: { name: string; url: string; minutes: number }) {
+  const { name, url, minutes } = params;
+  return {
+    subject: "Your MOTR A&R sign-in link",
+    html: shell(
+      "Sign in to MOTR",
+      `<p style="margin:0 0 12px">Hi ${name} —</p>
+       <p style="margin:0 0 12px">Here's your link into the MOTR A&amp;R portal. It works once and expires in ${minutes} minutes.</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">If you didn't ask for it, ignore this email — nothing happens until the link is opened.</p>`,
+      { label: "Open the portal", url }
+    ),
+  };
+}
+
 export async function sendEmail(to: string, template: { subject: string; html: string }) {
   return send(to, template.subject, template.html);
 }

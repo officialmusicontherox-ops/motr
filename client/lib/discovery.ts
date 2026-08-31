@@ -1,4 +1,5 @@
 import { Prisma, SwipeDirection } from "@prisma/client";
+import type { SwipeGeo } from "./geo";
 import { prisma } from "./prisma";
 import { sendEmail, trackBrokeThroughEmail } from "./email";
 
@@ -45,15 +46,27 @@ export async function recordFanSwipe(params: {
   direction: SwipeDirection;
   /** Milliseconds listened before deciding, if the client reported it. */
   listenMs?: number | null;
+  /** Where the listener was, per lib/geo.ts. Absent is normal. */
+  geo?: SwipeGeo | null;
 }) {
-  const { fanId, trackId, direction, listenMs } = params;
+  const { fanId, trackId, direction, listenMs, geo } = params;
 
   const weight = voteWeight(listenMs);
 
   const result = await prisma.$transaction(async (tx) => {
     try {
       await tx.fanSwipe.create({
-        data: { fanId, trackId, direction, listenMs: listenMs ?? null, weight },
+        data: {
+          fanId,
+          trackId,
+          direction,
+          listenMs: listenMs ?? null,
+          weight,
+          countryCode: geo?.countryCode ?? null,
+          countryName: geo?.countryName ?? null,
+          region: geo?.region ?? null,
+          city: geo?.city ?? null,
+        },
       });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {

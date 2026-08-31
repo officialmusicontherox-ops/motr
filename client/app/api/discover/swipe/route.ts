@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AlreadySwipedError, recordFanSwipe } from "@/lib/discovery";
+import { readGeo } from "@/lib/geo";
 
 export async function POST(req: NextRequest) {
   const { fanId, trackId, direction, listenMs } = await req.json();
@@ -22,6 +23,10 @@ export async function POST(req: NextRequest) {
         typeof listenMs === "number" && Number.isFinite(listenMs)
           ? Math.max(0, Math.min(30_000, Math.round(listenMs)))
           : null,
+      // Read from the request rather than trusted from the body: a client
+      // that could name its own country could also fake where a track is
+      // catching, which is exactly the number this is for.
+      geo: readGeo(req),
     });
     return NextResponse.json({ track, feeNowRequested });
   } catch (e) {
