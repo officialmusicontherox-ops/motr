@@ -31,3 +31,18 @@
 # No [[plugins]] block on purpose: Netlify detects Next.js and installs its
 # own runtime at the version it supports. Pinning the plugin here is how you
 # end up with a runtime that disagrees with the build image.
+
+# Send the netlify.app address to the real domain.
+#
+# Setting a primary domain in Netlify's UI does not do this — that only marks
+# which domain is canonical in their dashboard. Left alone, motrapp.netlify.app
+# serves a full second copy of the app against the same database, which
+# competes with app.musicontherox.com in search results and splits the ranking
+# the Search Console work was meant to build.
+#
+# force = true so the rule wins over the pages that would otherwise be served.
+[[redirects]]
+  from = "https://motrapp.netlify.app/*"
+  to = "https://app.musicontherox.com/:splat"
+  status = 301
+  force = true
