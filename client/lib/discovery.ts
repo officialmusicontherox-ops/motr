@@ -1,4 +1,5 @@
 import { Prisma, SwipeDirection } from "@prisma/client";
+import { FULL_LISTEN_MS } from "./economics";
 import type { SwipeGeo } from "./geo";
 import { prisma } from "./prisma";
 import { sendEmail, trackBrokeThroughEmail } from "./email";
@@ -24,7 +25,10 @@ export class AlreadySwipedError extends Error {
  * 28s rather than 30s: the clip is clamped at 30,000ms and a listener who
  * swipes as it fades shouldn't be punished for the last fraction of a second.
  */
-export const FULL_LISTEN_MS = 28_000;
+// Defined in economics.ts, which has no database import, so the swipe
+// screen can show the threshold without pulling Postgres into the browser.
+// Re-exported here so server code keeps one place to import it from.
+export { FULL_LISTEN_MS };
 
 export function voteWeight(listenMs?: number | null): number {
   return typeof listenMs === "number" && listenMs >= FULL_LISTEN_MS ? 2 : 1;

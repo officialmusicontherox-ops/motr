@@ -50,3 +50,13 @@ export const CURATORS_PER_TRACK = 5;
 export function daysFromNow(days: number): Date {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 }
+
+/**
+ * How long a listener must hear before their verdict counts double.
+ *
+ * Lives here rather than in discovery.ts because the swipe screen needs to
+ * show it, and discovery.ts imports the database — importing it from a client
+ * component drags the whole Postgres driver into the browser bundle and fails
+ * the build. discovery.ts re-exports this so the server keeps one source.
+ */
+export const FULL_LISTEN_MS = 28_000;

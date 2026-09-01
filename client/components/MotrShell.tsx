@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FULL_LISTEN_MS } from "@/lib/discovery";
+import { FULL_LISTEN_MS } from "@/lib/economics";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
