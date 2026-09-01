@@ -334,13 +334,15 @@ export default function SwipeCard({
           the listener has actually earned the double, which teaches the rule
           far better than the sentence does. */}
       <p
-        className={`motr-label mt-1.5 flex shrink-0 items-center justify-center gap-2 whitespace-nowrap text-[0.55rem] ${
-          countsDouble ? "text-gold" : ""
+        className={`motr-label mt-1.5 flex shrink-0 items-center justify-center gap-2 whitespace-nowrap transition-all ${
+          countsDouble
+            ? "border-gold/50 bg-gold/10 text-gold rounded-full border px-3 py-0.5 text-[0.62rem]"
+            : "text-[0.55rem]"
         }`}
       >
         <Note className="text-gold h-3 w-3" />
         {countsDouble ? (
-          <span>This vote counts double</span>
+          <span>2× — this vote counts double</span>
         ) : (
           <>
             {/* Kept short deliberately: the line is nowrap so it can never

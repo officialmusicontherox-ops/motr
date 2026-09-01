@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { FULL_LISTEN_MS } from "@/lib/discovery";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -125,25 +126,57 @@ export default function MotrShell({
           </button>
         </nav>
 
-        {clip && (
-          <div className="mt-3 w-full max-w-sm">
-            <p className="motr-label text-center">Listening to clip</p>
-            <p className="mt-1 text-center text-sm tabular-nums">
-              <span className="text-gold font-semibold">{fmt(clip.currentTime)}</span>
-              <span className="text-muted"> / {fmt(clip.duration || 30)}</span>
-            </p>
-            <div className="bg-surface-2 relative mt-2 h-1 w-full rounded-full">
-              <div
-                className="bg-gold h-1 rounded-full"
-                style={{ width: `${pct}%`, transition: "width 200ms linear" }}
-              />
-              <span
-                className="bg-gold absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full shadow"
-                style={{ left: `${pct}%`, transition: "left 200ms linear" }}
-              />
-            </div>
-          </div>
-        )}
+        {clip &&
+          (() => {
+            // The rule is worth two votes, so it deserves to be visible on the
+            // thing people are already watching. A sentence under the card
+            // gets read once and forgotten; a target on the progress bar
+            // teaches it while they listen, and rewards them when they reach
+            // it. This is the whole reason someone would sit through 30
+            // seconds instead of deciding at four.
+            const doubleAt = (FULL_LISTEN_MS / ((clip.duration || 30) * 1000)) * 100;
+            const earned = clip.currentTime * 1000 >= FULL_LISTEN_MS;
+
+            return (
+              <div className="mt-3 w-full max-w-sm">
+                <p
+                  className={`motr-label text-center transition-colors ${
+                    earned ? "text-gold" : ""
+                  }`}
+                >
+                  {earned ? "Counts double" : "Listening to clip"}
+                </p>
+                <p className="mt-1 text-center text-sm tabular-nums">
+                  <span className="text-gold font-semibold">{fmt(clip.currentTime)}</span>
+                  <span className="text-muted"> / {fmt(clip.duration || 30)}</span>
+                  {!earned && (
+                    <span className="text-muted/70"> · 2× at {fmt(FULL_LISTEN_MS / 1000)}</span>
+                  )}
+                </p>
+                <div className="bg-surface-2 relative mt-2 h-1 w-full rounded-full">
+                  <div
+                    className={`h-1 rounded-full ${earned ? "bg-gold" : "bg-gold/60"}`}
+                    style={{ width: `${pct}%`, transition: "width 200ms linear" }}
+                  />
+                  {/* Where the double begins. Visible from the first second,
+                      so it reads as a goal rather than a surprise. */}
+                  <span
+                    className={`absolute top-1/2 h-3 w-0.5 -translate-y-1/2 rounded-full ${
+                      earned ? "bg-gold" : "bg-white/40"
+                    }`}
+                    style={{ left: `${doubleAt}%` }}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`bg-gold absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full shadow transition-all ${
+                      earned ? "h-4 w-4 ring-2 ring-[color:var(--motr-gold)]/40" : "h-3.5 w-3.5"
+                    }`}
+                    style={{ left: `${pct}%`, transition: "left 200ms linear" }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
       </header>
 
       {/* Bottom padding clears the fixed tab bar so actions never sit under it. */}
