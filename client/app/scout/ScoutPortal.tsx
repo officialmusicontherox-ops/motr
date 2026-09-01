@@ -74,6 +74,7 @@ export default function ScoutPortal() {
   const [data, setData] = useState<Payload | null>(null);
   const [genre, setGenre] = useState<string>("");
   const [sort, setSort] = useState<"recent" | "saveRate" | "swipes">("swipes");
+  const [page, setPage] = useState(1);
   const [state, setState] = useState<"loading" | "ready" | "unauthorised" | "error">("loading");
 
   const load = useCallback(async () => {
@@ -99,6 +100,10 @@ export default function ScoutPortal() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [genre, sort]);
 
   if (state === "unauthorised") return <SignIn />;
 
@@ -126,7 +131,7 @@ export default function ScoutPortal() {
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Tracks" value={data.summary.tracks.toLocaleString()} />
-        <Stat label="Blind verdicts" value={data.summary.swipes.toLocaleString()} />
+        <Stat label="Times heard" value={data.summary.swipes.toLocaleString()} />
         <Stat
           label="Countries"
           value={
@@ -144,11 +149,11 @@ export default function ScoutPortal() {
         <div className="border-gold/30 bg-gold/5 mb-6 rounded-xl border p-4">
           <p className="motr-label text-gold">The yardstick</p>
           <p className="mt-1 text-sm leading-relaxed">
-            Established, already-successful records in the same feed are saved{" "}
+            Established, already-successful records in the same feed are liked{" "}
             <span className="text-gold font-bold">{pct(data.summary.benchmark.saveRate)}</span> of
-            the time when nobody knows what they are —{" "}
-            {data.summary.benchmark.verdicts.toLocaleString()} blind verdicts. Anything below
-            beats that number under identical conditions.
+            the time when nobody knows what they are — across{" "}
+            {data.summary.benchmark.verdicts.toLocaleString()} plays. Anything below beats that
+            number under identical conditions.
           </p>
         </div>
       )}
@@ -225,16 +230,73 @@ export default function ScoutPortal() {
       </div>
 
       <ul className="space-y-3">
-        {data.tracks.map((t) => (
+        {data.tracks.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((t) => (
           <TrackRow key={t.id} track={t} />
         ))}
       </ul>
 
+      <Pager
+        page={page}
+        total={data.tracks.length}
+        onChange={(next) => {
+          setPage(next);
+          // Otherwise page two opens halfway down, at the row you left.
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
+
       {data.tracks.length === 0 && (
         <p className="text-muted py-10 text-center text-sm">
-          No tracks have been heard in that genre yet.
+          No tracks have been played in that genre yet.
         </p>
       )}
+    </div>
+  );
+}
+
+/** Enough to scan without scrolling forever. */
+const PER_PAGE = 20;
+
+function Pager({
+  page,
+  total,
+  onChange,
+}: {
+  page: number;
+  total: number;
+  onChange: (page: number) => void;
+}) {
+  const pages = Math.ceil(total / PER_PAGE);
+  if (pages <= 1) return null;
+
+  const from = (page - 1) * PER_PAGE + 1;
+  const to = Math.min(page * PER_PAGE, total);
+
+  return (
+    <div className="border-edge mt-5 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+      <p className="text-muted text-sm">
+        {from}–{to} of {total}
+      </p>
+
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => onChange(page - 1)}
+          disabled={page === 1}
+          className="border-edge hover:border-gold hover:text-gold rounded-full border px-4 py-1.5 text-sm font-semibold transition disabled:cursor-default disabled:opacity-30 disabled:hover:border-[color:var(--color-edge)] disabled:hover:text-current"
+        >
+          Previous
+        </button>
+        <span className="text-muted px-1 text-sm tabular-nums">
+          {page} / {pages}
+        </span>
+        <button
+          onClick={() => onChange(page + 1)}
+          disabled={page >= pages}
+          className="border-edge hover:border-gold hover:text-gold rounded-full border px-4 py-1.5 text-sm font-semibold transition disabled:cursor-default disabled:opacity-30 disabled:hover:border-[color:var(--color-edge)] disabled:hover:text-current"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }
@@ -253,7 +315,7 @@ function Leaderboard({
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <p className="motr-label text-gold">{title}</p>
         <p className="text-muted/70 text-[0.65rem] uppercase tracking-wider">
-          Saves / heard
+          Liked / played
         </p>
       </div>
       {children.length === 0 ? (
@@ -304,7 +366,7 @@ function LeaderRow({
         {/* The denominator is shown but never used for ranking — see
             weeklyLeaders. Spelled out because "1 of 2" on its own is only
             obvious to whoever wrote it. */}
-        <span className="text-muted block text-[0.65rem]">of {verdicts} heard</span>
+        <span className="text-muted block text-[0.65rem]">of {verdicts} played</span>
       </span>
     </li>
   );
@@ -344,32 +406,32 @@ function TrackRow({ track: t }: { track: ScoutTrack }) {
 
         <div className="shrink-0 text-right">
           {/* The headline number. Null below the confidence floor, because a
-              save rate off four verdicts is one person's opinion wearing a
+              like rate off four plays is one person's opinion wearing a
               percentage sign — and a scout who acts on it and gets burned
               never trusts the next one. */}
           {t.saveRate === null ? (
-            <p className="text-muted text-xs">Too early to rate</p>
+            <p className="text-muted text-xs">Not enough plays yet</p>
           ) : (
             <>
               <p className="text-gold text-2xl font-bold tabular-nums">{pct(t.saveRate)}</p>
-              <p className="motr-label text-muted">saved blind</p>
+              <p className="motr-label text-muted">liked it</p>
             </>
           )}
         </div>
       </div>
 
       <div className="border-edge mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-sm sm:grid-cols-4">
-        <Cell label="Verdicts" value={t.totalSwipes.toLocaleString()} />
-        <Cell label="Saves" value={t.rightSwipes.toLocaleString()} />
+        <Cell label="Liked it" value={t.rightSwipes.toLocaleString()} />
+        <Cell label="Didn't" value={t.leftSwipes.toLocaleString()} />
         <Cell
           label="Heard it out"
           value={t.fullListenRate === null ? "—" : pct(t.fullListenRate)}
-          hint="Share who let all 30 seconds play before deciding"
+          hint="How many let all 30 seconds play before deciding"
         />
         <Cell
-          label="Decision at"
+          label="Decided at"
           value={t.medianDecisionMs === null ? "—" : secs(t.medianDecisionMs)}
-          hint="Median time into the clip before they chose"
+          hint="Typical time into the clip before they made up their mind"
         />
       </div>
 
@@ -381,11 +443,11 @@ function TrackRow({ track: t }: { track: ScoutTrack }) {
             <span className="text-gold font-bold">
               +{t.benchmark.deltaPoints} points
             </span>{" "}
-            <span className="text-muted">above established records, blind.</span>
+            <span className="text-muted">more liked than established records, blind.</span>
           </p>
           {t.benchmark.beats.length > 0 && (
             <p className="text-muted mt-1 text-xs">
-              Outperformed{" "}
+              More liked than{" "}
               {t.benchmark.beats.map((b, i) => (
                 <span key={b.title}>
                   {i > 0 && " and "}
@@ -395,7 +457,7 @@ function TrackRow({ track: t }: { track: ScoutTrack }) {
                   ({pct(b.saveRate)})
                 </span>
               ))}{" "}
-              on the same listeners.
+              — same listeners, nobody told who was who.
             </p>
           )}
         </div>
