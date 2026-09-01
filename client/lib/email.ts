@@ -419,7 +419,7 @@ export function trackMilestoneEmail(params: {
         `<p style="margin:0 0 12px">Hi ${artistName} —</p>
          <p style="margin:0 0 14px">${
            first
-             ? `Someone heard <strong style="color:#fff">${lead.title}</strong> with no name attached, no artwork they recognised and no idea who made it — and swiped right. That is the whole point of MOTR, and it just happened to you.`
+             ? `Someone heard <strong style="color:#fff">${lead.title}</strong> with no name attached, no artwork they recognized and no idea who made it — and swiped right. That is the whole point of MOTR, and it just happened to you.`
              : `${tracks.length === 1 ? "Your track has" : "Your tracks have"} picked up more support from listeners who had no idea who made ${tracks.length === 1 ? "it" : "them"}.`
          }</p>
          ${list}

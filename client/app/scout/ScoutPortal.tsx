@@ -107,7 +107,7 @@ export default function ScoutPortal() {
   }
 
   if (state === "error" || !data) {
-    return <p className="text-nope p-8 text-center text-sm">Couldn&apos;t load the catalogue.</p>;
+    return <p className="text-nope p-8 text-center text-sm">Couldn&apos;t load the catalog.</p>;
   }
 
   return (
@@ -119,7 +119,7 @@ export default function ScoutPortal() {
         </h1>
         <p className="text-muted mt-2 max-w-2xl text-sm leading-relaxed">
           Every number here comes from listeners who heard thirty seconds with no artist name,
-          no artwork they recognised and no idea who made it. It is what a record does before
+          no artwork they recognized and no idea who made it. It is what a record does before
           anyone&apos;s marketing touches it.
         </p>
       </header>
@@ -127,7 +127,12 @@ export default function ScoutPortal() {
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label="Tracks" value={data.summary.tracks.toLocaleString()} />
         <Stat label="Blind verdicts" value={data.summary.swipes.toLocaleString()} />
-        <Stat label="Countries" value={String(data.summary.countries.length)} />
+        <Stat
+          label="Countries"
+          value={
+            data.summary.countries.length > 0 ? String(data.summary.countries.length) : "—"
+          }
+        />
         <Stat label="Signed in as" value={data.scout.name} small />
       </div>
 
@@ -181,7 +186,7 @@ export default function ScoutPortal() {
       </div>
 
       <h2 className="font-display border-edge mb-4 border-t pt-6 text-xl uppercase tracking-wide">
-        Full catalogue
+        Full catalog
       </h2>
 
       <div className="mb-5 flex flex-wrap gap-2">
@@ -245,7 +250,12 @@ function Leaderboard({
 }) {
   return (
     <div className="border-edge bg-surface rounded-xl border p-4">
-      <p className="motr-label text-gold mb-3">{title}</p>
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <p className="motr-label text-gold">{title}</p>
+        <p className="text-muted/70 text-[0.65rem] uppercase tracking-wider">
+          Saves / heard
+        </p>
+      </div>
       {children.length === 0 ? (
         <p className="text-muted text-sm">{empty}</p>
       ) : (
@@ -291,8 +301,10 @@ function LeaderRow({
       </span>
       <span className="shrink-0 text-right">
         <span className="text-gold block text-sm font-bold tabular-nums">{saves}</span>
-        {/* The rate is shown but never used for ranking — see weeklyLeaders. */}
-        <span className="text-muted block text-[0.65rem]">of {verdicts}</span>
+        {/* The denominator is shown but never used for ranking — see
+            weeklyLeaders. Spelled out because "1 of 2" on its own is only
+            obvious to whoever wrote it. */}
+        <span className="text-muted block text-[0.65rem]">of {verdicts} heard</span>
       </span>
     </li>
   );

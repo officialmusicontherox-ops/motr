@@ -169,7 +169,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: "Music and content",
     body: (
       <p>
-        Clips are 30-second previews supplied by third-party catalogue services. Artists and rights
+        Clips are 30-second previews supplied by third-party catalog services. Artists and rights
         holders keep everything they own; we claim no rights in your music beyond showing the
         preview inside MOTR. If you hold rights to something here and want it removed, email us and
         we&apos;ll take it down.

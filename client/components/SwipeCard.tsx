@@ -146,7 +146,7 @@ export default function SwipeCard({
   const played = duration ? currentTime / duration : 0;
 
   /**
-   * The verdict, as colour.
+   * The verdict, as color.
    *
    * Driven by the same drag distance as the NOPE/LIKE stamps rather than any
    * new state, so the two can never disagree — and because tapping a button

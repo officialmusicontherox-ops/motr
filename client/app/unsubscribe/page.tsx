@@ -39,7 +39,7 @@ export default async function UnsubscribePage({
   return (
     <main className="bg-bg flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
       <h1 className="font-display text-3xl uppercase tracking-wide">
-        {state === "done" ? "Unsubscribed" : "Link not recognised"}
+        {state === "done" ? "Unsubscribed" : "Link not recognized"}
       </h1>
       <p className="text-muted max-w-sm text-sm leading-relaxed">
         {state === "done"
