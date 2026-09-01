@@ -357,7 +357,7 @@ export async function catalogueBenchmark(): Promise<CatalogueBenchmark> {
 
 /** Headline numbers for the top of the portal. */
 export async function scoutSummary() {
-  const [tracks, swipes, geoRows, genres, benchmark] = await Promise.all([
+  const [tracks, swipes, geoRows, regionRows, genres, benchmark] = await Promise.all([
     prisma.track.count({ where: { status: { not: "REJECTED" }, artistId: { not: null } } }),
     prisma.fanSwipe.count({ where: { track: { artistId: { not: null } } } }),
     prisma.$queryRaw<{ name: string; n: bigint }[]>(Prisma.sql`
@@ -366,6 +366,15 @@ export async function scoutSummary() {
       JOIN "Track" t ON t."id" = s."trackId"
       WHERE s."countryName" IS NOT NULL AND t."artistId" IS NOT NULL
       GROUP BY s."countryName" ORDER BY n DESC LIMIT 8
+    `),
+    // States and provinces separately: the audience is US-heavy, so "United
+    // States" on its own says almost nothing a scout can act on.
+    prisma.$queryRaw<{ name: string; n: bigint }[]>(Prisma.sql`
+      SELECT s."region" AS name, COUNT(*)::bigint AS n
+      FROM "FanSwipe" s
+      JOIN "Track" t ON t."id" = s."trackId"
+      WHERE s."region" IS NOT NULL AND t."artistId" IS NOT NULL
+      GROUP BY s."region" ORDER BY n DESC LIMIT 8
     `),
     prisma.track.findMany({
       where: { status: { not: "REJECTED" }, artistId: { not: null }, genre: { not: null } },
@@ -381,6 +390,7 @@ export async function scoutSummary() {
     swipes,
     benchmark,
     countries: geoRows.map((r) => ({ name: r.name, swipes: Number(r.n) })),
+    regions: regionRows.map((r) => ({ name: r.name, swipes: Number(r.n) })),
     genres: genres.map((g) => g.genre).filter((g): g is string => Boolean(g)),
   };
 }

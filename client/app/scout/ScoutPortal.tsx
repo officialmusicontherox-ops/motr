@@ -50,6 +50,7 @@ type Payload = {
     tracks: number;
     swipes: number;
     countries: { name: string; swipes: number }[];
+    regions: { name: string; swipes: number }[];
     genres: string[];
     benchmark: {
       saveRate: number | null;
@@ -190,6 +191,26 @@ export default function ScoutPortal() {
         </Leaderboard>
       </div>
 
+      {/* Given a space of its own even while empty. The count at the top
+          promised this existed; with nowhere for it to appear, that number
+          reads as a broken feature rather than a new one. */}
+      <div className="border-edge bg-surface mb-8 rounded-xl border p-4">
+        <p className="motr-label text-gold mb-3">Where it&apos;s landing</p>
+
+        {data.summary.countries.length === 0 && data.summary.regions.length === 0 ? (
+          <p className="text-muted text-sm leading-relaxed">
+            Nothing here yet. We began recording where listeners are on 31 August, so this fills
+            in as people play tracks from now on. Earlier plays have no location — that
+            can&apos;t be worked out after the fact.
+          </p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2">
+            <PlaceList title="Countries" places={data.summary.countries} />
+            <PlaceList title="States &amp; regions" places={data.summary.regions} />
+          </div>
+        )}
+      </div>
+
       <h2 className="font-display border-edge mb-4 border-t pt-6 text-xl uppercase tracking-wide">
         Full catalog
       </h2>
@@ -249,6 +270,44 @@ export default function ScoutPortal() {
         <p className="text-muted py-10 text-center text-sm">
           No tracks have been played in that genre yet.
         </p>
+      )}
+    </div>
+  );
+}
+
+function PlaceList({
+  title,
+  places,
+}: {
+  title: string;
+  places: { name: string; swipes: number }[];
+}) {
+  const most = places[0]?.swipes ?? 1;
+
+  return (
+    <div>
+      <p className="text-muted/70 mb-2 text-[0.65rem] uppercase tracking-wider">{title}</p>
+      {places.length === 0 ? (
+        <p className="text-muted text-sm">Not recorded yet.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {places.map((place) => (
+            <li key={place.name} className="flex items-center gap-3">
+              <span className="w-28 shrink-0 truncate text-sm">{place.name}</span>
+              {/* A bar, not just a number: relative size is the point of this
+                  panel and it reads at a glance. */}
+              <span className="bg-surface-2 h-1.5 flex-1 overflow-hidden rounded-full">
+                <span
+                  className="bg-gold block h-full rounded-full"
+                  style={{ width: `${Math.max(6, (place.swipes / most) * 100)}%` }}
+                />
+              </span>
+              <span className="text-muted w-8 shrink-0 text-right text-xs tabular-nums">
+                {place.swipes}
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
