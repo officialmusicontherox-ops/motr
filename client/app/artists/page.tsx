@@ -361,7 +361,7 @@ export default function ArtistsPage() {
           <Link href="/terms" className="text-gold underline underline-offset-4">
             Terms
           </Link>
-          , including that the fee buys consideration — not a guaranteed placement.
+          , including that you hold the rights to the music you submit.
         </p>
       </form>
     </main>

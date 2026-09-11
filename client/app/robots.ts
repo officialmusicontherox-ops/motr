@@ -22,8 +22,8 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Nothing here is useful in a search result: the dashboard needs a
-      // login, the retired pages are unlinked, and API routes aren't pages.
-      disallow: ["/admin", "/apply", "/curate", "/curator/", "/scout", "/submit/", "/api/", "/saved"],
+      // login, the A&R portal is invite-only, and API routes aren't pages.
+      disallow: ["/admin", "/scout", "/api/", "/saved"],
     },
     sitemap: "https://app.musicontherox.com/sitemap.xml",
   };

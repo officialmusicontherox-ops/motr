@@ -5,7 +5,7 @@ import { Disc } from "@/components/icons";
 
 export const metadata = {
   title: "How it works — MOTR",
-  description: "How a track gets from an unknown clip to the music you keep.",
+  description: "How MOTR works: blind 30-second clips, and the music you keep."
 };
 
 const STEPS = [
@@ -41,7 +41,7 @@ const FAQS = [
     a: "A decision made three seconds in is a reaction to the first thing you hear. One made after the full thirty seconds is a verdict on the song. Both count — but the second one counts twice, whether you swiped left or right. Sitting with a track you end up passing on is just as useful to the artist as one you save, so patience is rewarded rather than agreement.",
   },
   {
-    q: "Is this payola?",
+    q: "Is any of this paid for?",
     a: "No. There is nothing to buy. Every track is heard with no name attached, and the only thing that moves it is whether people keep it.",
   },
   {
@@ -50,7 +50,7 @@ const FAQS = [
   },
   {
     q: "Where does my saved music go?",
-    a: "Everything you swipe right on lands in Saved. Connecting a streaming account so those tracks flow into a real playlist is on the way.",
+    a: "Everything you swipe right on lands in Saved, with a link out to the artist. Pushing those straight into your own streaming library is on the way.",
   },
 ];
 

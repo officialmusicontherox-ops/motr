@@ -19,7 +19,7 @@ const anton = Anton({
 
 const SITE = "https://app.musicontherox.com";
 const DESCRIPTION =
-  "Swipe through 30-second clips with no artist names attached. Keep what you love, and find music nobody paid to put in front of you.";
+  "Discover music before anyone tells you who made it. Thirty-second clips, no names, no artwork — swipe what moves you and keep what you love.";
 
 export const metadata: Metadata = {
   // Required for the share image below: without it, social platforms get a

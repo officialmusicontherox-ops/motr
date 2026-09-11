@@ -13,7 +13,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "MOTR — Music On The Rox",
     short_name: "MOTR",
     description:
-      "Swipe through 30-second clips with no artist names attached. Keep what you love, and find music nobody paid to put in front of you.",
+      "Discover music before anyone tells you who made it. Thirty-second clips, no names, no artwork — swipe what moves you and keep what you love.",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -34,7 +34,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Discover", url: "/", description: "Swipe the feed" },
-      { name: "Saved", url: "/saved", description: "Tracks you backed" },
+      { name: "Saved", url: "/saved", description: "Music you kept" },
       { name: "Submit a song", url: "/artists", description: "Artists: get in the feed" },
     ],
   };

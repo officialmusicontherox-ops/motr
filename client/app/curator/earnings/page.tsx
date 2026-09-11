@@ -1,8 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import CuratorEarnings from "@/components/CuratorEarnings";
-import CuratorGate from "@/components/CuratorGate";
-
+/** Curator earnings are retired; see app/curate/page.tsx. */
 export default function CuratorEarningsPage() {
-  return <CuratorGate>{(curator) => <CuratorEarnings curator={curator} />}</CuratorGate>;
+  redirect("/");
 }
