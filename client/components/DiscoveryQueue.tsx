@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
 import SwipeCard from "./SwipeCard";
+import SponsoredCard from "./SponsoredCard";
 import GenrePicker from "./GenrePicker";
 import { Disc, Note } from "./icons";
 import Equalizer from "./Equalizer";
@@ -41,6 +42,18 @@ function takeSharedTrack(): string | null {
   return id;
 }
 
+/**
+ * How often an ad card comes up.
+ *
+ * Counted in swipes rather than in time, so someone who plays every clip
+ * through sees exactly as many ads as someone who skips fast — the listener
+ * giving artists the most attention isn't the one shown the most adverts.
+ */
+const SWIPES_PER_AD = 10;
+
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+const ADSENSE_SLOT = process.env.NEXT_PUBLIC_ADSENSE_SLOT;
+
 export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
   const [pending, setPending] = useState(false);
@@ -54,6 +67,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [genre, setGenre] = useState<string | null>(null);
   const [genreCounts, setGenreCounts] = useState<Record<string, number>>();
   const [exhausted, setExhausted] = useState<{ othersAvailable: number } | null>(null);
+  const [showAd, setShowAd] = useState(false);
+  const swipesSinceAd = useRef(0);
 
   useEffect(() => {
     setGenre(localStorage.getItem(GENRE_KEY));
@@ -119,13 +134,21 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       if (data.feeNowRequested) setBreakout(track.title);
     }
 
+    swipesSinceAd.current += 1;
+    const adDue =
+      Boolean(ADSENSE_CLIENT && ADSENSE_SLOT) && swipesSinceAd.current >= SWIPES_PER_AD;
+
     setTrack(undefined);
     setRefreshKey((k) => k + 1);
+    if (adDue) {
+      swipesSinceAd.current = 0;
+      setShowAd(true);
+    }
     setPending(false);
   }
 
   return (
-    <MotrShell fill clip={track ? clip : null}>
+    <MotrShell fill clip={track && !showAd ? clip : null}>
       <div className="w-full max-w-sm shrink-0 md:max-w-2xl">
         <GenrePicker value={genre} onChange={chooseGenre} counts={genreCounts} />
       </div>
@@ -190,7 +213,18 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
         </div>
       )}
 
-      {track && (
+      {/* The ad takes the card's place rather than sitting beside it, so the
+          screen still holds exactly one thing and nothing has to scroll. The
+          next track carries on loading underneath. */}
+      {showAd && ADSENSE_CLIENT && ADSENSE_SLOT && (
+        <SponsoredCard
+          client={ADSENSE_CLIENT}
+          slot={ADSENSE_SLOT}
+          onDismiss={() => setShowAd(false)}
+        />
+      )}
+
+      {!showAd && track && (
         <SwipeCard
           key={track.id}
           track={track}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Inter } from "next/font/google";
 import "./globals.css";
+import Script from "next/script";
 import ClientErrorReporter from "@/components/ClientErrorReporter";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
 
@@ -18,6 +19,11 @@ const anton = Anton({
 });
 
 const SITE = "https://app.musicontherox.com";
+
+// Public by design: a publisher id appears in the page source of every site
+// running AdSense. NEXT_PUBLIC_ so the browser bundle can read it, and absent
+// in development so no ad calls are made while testing.
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 const DESCRIPTION =
   "Discover music before anyone tells you who made it. Thirty-second clips with no names and no artwork. Swipe what moves you and keep what you love.";
 
@@ -96,6 +102,16 @@ export default function RootLayout({
           suppresses that one-level diff only — it does not hide real
           mismatches inside the app. */}
       <body suppressHydrationWarning className="bg-bg text-white flex min-h-full flex-col">
+        {/* AdSense library. Loaded once for the app; individual ad slots are
+            rendered by SponsoredCard pushing to the adsbygoogle queue. */}
+        {ADSENSE_CLIENT && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
         <ClientErrorReporter />
         <RegisterServiceWorker />
         {children}
