@@ -493,18 +493,14 @@ export function scoutLoginLinkEmail(params: { name: string; url: string; minutes
  * used is an email that raises a question they didn't have. This says what
  * the app is now and gives both audiences a reason to open it.
  */
-export function whatMotrIsEmail(params: {
-  name: string;
-  unsubscribeUrl: string;
-}) {
-  const { name, unsubscribeUrl } = params;
+export function whatMotrIsEmail(params: { unsubscribeUrl: string }) {
+  const { unsubscribeUrl } = params;
   return {
     subject: "What MOTR is, and what's new",
     html:
       shell(
         "Music before anyone tells you who made it",
-        `<p style="margin:0 0 12px">Hi ${name},</p>
-         <p style="margin:0 0 14px">A quick note on what MOTR is, because the app has grown a lot since you first signed in.</p>
+        `<p style="margin:0 0 14px">A quick note on what MOTR is, because the app has grown a lot since you signed in.</p>
          <p style="margin:0 0 14px">Every track plays as a thirty-second clip with <strong style="color:#fff">no artist name and no artwork you'd recognize</strong>. You decide on the music alone. Swipe right to keep it, left to move on. Nothing in the feed was paid to be there, and there is no way to buy a place in it.</p>
          <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">NEW: CHARTS</p>
          <p style="margin:0 0 14px">There's now a Charts tab showing the tracks listeners backed hardest this week and this month. Every position on it was earned by people keeping the song, which makes it a genuinely different chart from the ones you already see.</p>
@@ -532,12 +528,11 @@ export function whatMotrIsEmail(params: {
  * wants their favourite higher next week already knows what to do about it.
  */
 export function weeklyChartEmail(params: {
-  name: string;
   songs: { title: string; artistName: string }[];
   artists: { name: string }[];
   unsubscribeUrl: string;
 }) {
-  const { name, songs, artists, unsubscribeUrl } = params;
+  const { songs, artists, unsubscribeUrl } = params;
 
   const rows = (items: string[]) =>
     items
@@ -555,8 +550,7 @@ export function weeklyChartEmail(params: {
     html:
       shell(
         "This week's charts",
-        `<p style="margin:0 0 12px">Hi ${name},</p>
-         <p style="margin:0 0 16px">Here's where the last seven days landed. Every position was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
+        `<p style="margin:0 0 16px">Here's where the last seven days landed. Every position was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
          ${
            artists.length > 0
              ? `<p style="margin:0 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP ARTISTS</p>${rows(artists.map((a) => a.name))}`

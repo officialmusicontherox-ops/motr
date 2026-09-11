@@ -102,7 +102,6 @@ export async function sendWeeklyChart(appUrl: string): Promise<WeeklyChartResult
     const result = await sendEmail(
       person.email,
       weeklyChartEmail({
-        name: person.name,
         songs,
         artists,
         unsubscribeUrl: person.unsubscribe,

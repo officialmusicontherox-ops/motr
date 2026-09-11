@@ -6,7 +6,6 @@ const p = await previewWeeklyChart("https://app.musicontherox.com");
 console.log(`recipients: ${p.recipients}\n`);
 
 const e = weeklyChartEmail({
-  name: "Jerrett",
   songs: p.songs,
   artists: p.artists,
   unsubscribeUrl: "https://app.musicontherox.com/unsubscribe?fan=x&t=y",
