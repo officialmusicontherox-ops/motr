@@ -1,19 +1,24 @@
-/** Did the last few swipes record where they came from? */
+/** Which tracks the geo-tagged swipes landed on, and whether they count for the A&R panel. */
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 const rows = await prisma.fanSwipe.findMany({
+  where: { countryCode: { not: null } },
   orderBy: { createdAt: "desc" },
-  take: 5,
-  select: { createdAt: true, countryCode: true, countryName: true, region: true, city: true },
+  take: 10,
+  select: {
+    createdAt: true, countryName: true, region: true, city: true, direction: true,
+    track: { select: { title: true, artistName: true, artistId: true } },
+  },
 });
+
 for (const r of rows) {
-  const has = r.countryCode || r.region || r.city;
+  const submitted = r.track.artistId !== null;
   console.log(
-    `${r.createdAt.toISOString()}  ${has ? "GEO OK" : "no geo"}  ` +
-      `${r.countryName ?? r.countryCode ?? "-"} / ${r.region ?? "-"} / ${r.city ?? "-"}`
+    `${r.countryName} / ${r.region}  ${r.direction.padEnd(5)}  ` +
+      `${submitted ? "SUBMITTED  " : "seeded     "}${r.track.title} — ${r.track.artistName}`
   );
 }
-const withGeo = await prisma.fanSwipe.count({ where: { countryCode: { not: null } } });
-console.log(`\nswipes carrying geography: ${withGeo}`);
+const counted = rows.filter((r) => r.track.artistId !== null).length;
+console.log(`\n${counted} of ${rows.length} geo-tagged swipes are on submitted tracks (only those show in the A&R panel)`);

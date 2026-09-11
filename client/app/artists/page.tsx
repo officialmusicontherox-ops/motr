@@ -139,7 +139,7 @@ export default function ArtistsPage() {
               Now bring your people
             </p>
             <p className="text-muted mt-2 text-sm leading-relaxed">
-              Nothing reaches curators without listeners backing it first, and your own fans are
+              Nothing breaks through without listeners backing it first, and your own fans are
               the ones most likely to swipe right.{" "}
               {many ? "Each link opens on that track" : "This link opens on your track"} — not a
               random one — so everyone you send lands straight on it.
@@ -233,8 +233,8 @@ export default function ArtistsPage() {
         </Link>
         <h1 className="font-display mt-6 text-4xl uppercase tracking-wide">Submit your song</h1>
         <p className="text-muted mx-auto mt-2 max-w-md text-sm leading-relaxed">
-          Free to enter. Paste your Spotify link and fans start hearing it — no fee unless the
-          crowd pushes you through to curators.
+          Free, and free to stay. Paste your Spotify link and fans start hearing it — nothing to pay, and nothing that
+          crowd pushes you through.
         </p>
       </header>
 
@@ -287,7 +287,7 @@ export default function ArtistsPage() {
             />
 
             <span className="text-muted mb-2 mt-3 block text-xs">
-              Genre — decides which curators hear it if you break through.
+              Genre — decides which listeners it goes out to.
             </span>
             <div className="flex flex-wrap gap-2">
               {GENRES.map((g) => (
@@ -361,7 +361,7 @@ export default function ArtistsPage() {
           <Link href="/terms" className="text-gold underline underline-offset-4">
             Terms
           </Link>
-          , including that the fee buys consideration by curators — not a guaranteed placement.
+          , including that the fee buys consideration — not a guaranteed placement.
         </p>
       </form>
     </main>

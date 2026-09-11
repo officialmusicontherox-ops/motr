@@ -13,7 +13,7 @@ const EMAIL = "officialmusicontherox@gmail.com";
 const TOPICS = [
   "Something looks broken",
   "A question about your submission",
-  "Curator applications and payouts",
+  "Getting your music into the app",
   "Press, partnerships, or anything else",
 ];
 
@@ -34,7 +34,7 @@ export default function ContactPage() {
         </Link>
         <h1 className="font-display mt-6 text-4xl uppercase tracking-wide">Get in touch</h1>
         <p className="text-muted mx-auto mt-2 max-w-md text-sm leading-relaxed">
-          One inbox, read by a real person. Artists, curators, fans — all welcome.
+          One inbox, read by a real person. Artists and listeners both welcome.
         </p>
       </header>
 

@@ -22,8 +22,8 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
       // Nothing here is useful in a search result: the dashboard needs a
-      // login, the curator pages are personal, and API routes aren't pages.
-      disallow: ["/admin", "/curate", "/curator/", "/submit/", "/api/", "/saved"],
+      // login, the retired pages are unlinked, and API routes aren't pages.
+      disallow: ["/admin", "/apply", "/curate", "/curator/", "/scout", "/submit/", "/api/", "/saved"],
     },
     sitemap: "https://app.musicontherox.com/sitemap.xml",
   };

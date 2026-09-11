@@ -160,9 +160,9 @@ export function trackBrokeThroughEmail(params: {
     html: shell(
       "Fans pushed your track through",
       `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} won over ${Math.round(approvalRate * 100)}% of the ${approvals > 0 ? "fans who heard it" : "vote"} (${approvals} approvals) — enough to clear the fan vote.</p>
-       <p style="margin:0 0 12px">You can now submit it to five curators who work in your genre. That fee buys their time and attention, not a guaranteed placement — what they do with it is their call.</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">No pressure, and nothing changes if you skip it. Your track stays in the feed either way.</p>`,
-      { label: "Submit to curators", url: `${APP_URL}/submit/${trackId}` }
+       <p style="margin:0 0 12px">That's listeners who had no idea who you were choosing to keep your song. It stays in the feed and keeps climbing — there's nothing to pay and nothing you need to do.</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">The most useful thing you can do now is send your own fans over. Every one of them who hears it out counts double.</p>`,
+      { label: "Share MOTR with your fans", url: APP_URL }
     ),
   };
 }
@@ -272,7 +272,7 @@ export function submissionReceivedEmail(params: {
           ? `All <strong style="color:#fff">${tracks.length}</strong> are now playing in the MOTR feed`
           : `<strong style="color:#fff">${first.title}</strong> by ${first.artistName} is now playing in the MOTR feed`
       }, where listeners hear thirty seconds with no artist name attached and decide on the music alone.</p>
-       <p style="margin:0 0 12px">To reach curators, a track needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that — it's the one gate money doesn't open.</p>
+       <p style="margin:0 0 12px">To break through, a track needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that — MOTR is free, so there is nothing to buy.</p>
        <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${many ? "YOUR LINKS" : "YOUR LINK"}</p>
        <p style="margin:0 0 10px;font-size:14px">${many ? "Each link opens straight on that track" : "This link opens straight on your track"} rather than a random one, so everyone you send lands on it.</p>
        ${list}

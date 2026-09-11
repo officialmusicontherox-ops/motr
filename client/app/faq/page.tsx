@@ -5,7 +5,7 @@ import { Disc } from "@/components/icons";
 
 export const metadata = {
   title: "How it works — MOTR",
-  description: "How tracks get from a fan swipe to a real curator's playlist.",
+  description: "How a track gets from an unknown clip to the music you keep.",
 };
 
 const STEPS = [
@@ -21,25 +21,20 @@ const STEPS = [
   },
   {
     n: "03",
-    title: "The artist gets the option",
-    body: "Once a track breaks through, its artist is invited to submit it to curators for a flat fee. That fee buys consideration by real people, not a guaranteed placement.",
+    title: "The best rise",
+    body: "Tracks the crowd backs climb the feed and reach more listeners. Nothing here is boosted by a budget — position is earned by people choosing to keep the song.",
   },
   {
     n: "04",
-    title: "Five curators, matched by genre",
-    body: "Approved submissions go to five curators who actually work in that genre — not a mass blast. Each one decides independently.",
-  },
-  {
-    n: "05",
-    title: "Real placements only",
-    body: "A curator earns by putting the track on a playlist, posting it in a TikTok, Reel or Short, playing it on air or on a podcast, or writing about it. Everything except a written piece has to stay up at least four days — placements that vanish overnight don't count.",
+    title: "You keep what you like",
+    body: "Every track you swipe right on is saved to your list, with a link out to the artist so you can follow them wherever you already listen.",
   },
 ];
 
 const FAQS = [
   {
-    q: "Do I have to pay to be heard?",
-    a: "No. Getting into the fan feed is free, and staying there is free. A fee only ever comes up after fans have already pushed your track through — and it's optional at that point.",
+    q: "Does it cost anything?",
+    a: "No. It's free for listeners and free for artists. Submitting your music costs nothing, staying in the feed costs nothing, and there is no paid tier that moves you up it.",
   },
   {
     q: "Why does hearing the whole clip count double?",
@@ -47,27 +42,11 @@ const FAQS = [
   },
   {
     q: "Is this payola?",
-    a: "The thing money can't buy here is the part that matters: the fan vote. Artists can't pay to break through, can't pay to be featured, and can't pay for a positive review. What the fee covers is a curator's time and attention on a track the crowd already validated.",
+    a: "No. There is nothing to buy. Every track is heard with no name attached, and the only thing that moves it is whether people keep it.",
   },
   {
-    q: "What if no curator features my track?",
-    a: "That's a real outcome, and it's why we say the fee buys consideration rather than placement. Five genre-matched curators hearing your song is the product; what they do with it is their call.",
-  },
-  {
-    q: "How do curators get paid?",
-    a: "A flat fee per verified share — a playlist add, a short-form video, a radio play, or a podcast episode (each held four days), or a published piece. Curators aren't paid for passing, and they aren't paid more for saying nice things.",
-  },
-  {
-    q: "When can a curator cash out?",
-    a: "Earnings clear after a short holding period, then can be withdrawn once the balance reaches the minimum. The hold exists so payouts aren't sent on money that could still be refunded.",
-  },
-  {
-    q: "Is tax taken out of curator payouts?",
-    a: "No. We don't withhold or deduct tax from anything we pay you — payouts are gross, less only the flat transfer fee. What you owe on that income, and to whom, is between you and the tax authority where you live, and declaring it is your responsibility. PayPal may send you their own records or forms depending on your country and how much you receive; those are theirs, not ours. We can't give tax advice — if you're unsure, ask someone qualified where you are.",
-  },
-  {
-    q: "Can I curate from outside the US?",
-    a: "Yes. Curating is open worldwide. Payouts go out through PayPal in US dollars, so what you need is a PayPal account that can receive USD in your country — PayPal reaches most of the world, but the rules differ from place to place, and a few countries can receive USD without being able to withdraw it locally. Check your own account can take a USD payment before you apply. If your PayPal holds another currency, PayPal converts it at their rate when it lands.",
+    q: "What if my track doesn't break through?",
+    a: "That's a real outcome, and it costs you nothing. Entry is free, the crowd decides, and a track that doesn't connect simply stays in the feed for the next listener.",
   },
   {
     q: "Where does my saved music go?",
@@ -109,18 +88,14 @@ export default function FaqPage() {
           What to expect
         </h2>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Card
             title="If you're a fan"
             body="An endless feed of music nobody paid to put in front of you. Save what you like — your right-swipes are what decide which artists move forward."
           />
           <Card
             title="If you're an artist"
-            body="Free entry, and no pressure until the crowd has spoken. If you break through, a flat fee puts you in front of five curators in your genre. No promises beyond that."
-          />
-          <Card
-            title="If you're a curator"
-            body="A small, genre-matched queue of pre-validated tracks — not a slush pile. Share what's genuinely good on a playlist, in a video, or in writing, and get a flat fee per verified share."
+            body="Free entry, and a fair hearing. Your song goes out with no name on it, so what comes back is a verdict on the music rather than on your follower count."
           />
         </div>
       </section>

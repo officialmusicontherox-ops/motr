@@ -49,27 +49,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           on your behalf.
         </p>
 
-        <p className="mt-4 font-semibold text-white">If you apply to curate</p>
-        <ul>
-          <li>Your email, chosen username, and country.</li>
-          <li>
-            Your outlet name, type, link, audience size, social links, genres, and the pitch you
-            write. This is the substance we review, so please only submit what you&apos;re happy
-            for us to check.
-          </li>
-          <li>
-            Your payout address (e.g. a PayPal email) and a record of what you earned and cashed
-            out.
-          </li>
-        </ul>
 
         <p className="mt-4 font-semibold text-white">If you submit music as an artist</p>
         <ul>
           <li>Your name, email, and the track you submitted.</li>
-          <li>
-            Payment records — the amount, the date, and Stripe&apos;s reference IDs. We never see
-            or store your full card number.
-          </li>
         </ul>
 
         <p className="mt-4 font-semibold text-white">Automatically</p>
@@ -89,11 +72,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <li>To run the feed and make sure you never see the same track twice.</li>
         <li>To count swipes and decide which tracks break through.</li>
         <li>To keep your saves attached to you rather than to one browser.</li>
-        <li>To review curator applications and route tracks by genre.</li>
-        <li>To take artist payments and pay curators what they&apos;ve earned.</li>
         <li>
-          To email you about things that concern you — an application decision, a track breaking
-          through, a cashout. If you signed in as a listener, that also includes the occasional
+          To email you about things that concern you — a track of yours picking up saves, or
+          breaking through. If you signed in as a listener, that also includes the occasional
           reminder when you haven&apos;t swiped in a while, and news about tracks you saved. Those
           carry an unsubscribe link and stop the moment you use it. We never sell your address or
           email you on anyone else&apos;s behalf.
@@ -107,7 +88,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         We do not sell or rent your personal information, and we don&apos;t share it with
-        advertisers or data brokers. Artists and curators see a track&apos;s swipe totals, never
+        advertisers or data brokers. Artists see a track&apos;s swipe totals, never
         who swiped.
       </p>
     ),
@@ -123,17 +104,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             Google is told nothing about what you listen to.
           </li>
           <li>
-            <span className="text-white">Stripe</span> — artist payments. Stripe handles card
-            details directly under its own privacy policy.
-          </li>
-          <li>
-            <span className="text-white">PayPal</span> — curator cashouts.
-          </li>
-          <li>
             <span className="text-white">Resend</span> — transactional email.
           </li>
           <li>
-            <span className="text-white">Neon and Vercel</span> — database and hosting.
+            <span className="text-white">Neon and Netlify</span> — database and hosting.
           </li>
           <li>
             <span className="text-white">Apple and Deezer</span> — track previews and artwork.
@@ -170,7 +144,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <ul>
         <li>Swipes and saved tracks: as long as your account exists.</li>
         <li>
-          Curator applications: kept while under review and for a reasonable period after, so we
+          Artist submissions: kept while the track is in the feed and for a reasonable period after, so we
           have a record of decisions.
         </li>
         <li>
@@ -228,10 +202,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         MOTR is operated in the United States and your information is stored and processed there.
-        Curating is open worldwide — if you apply, the country you give us and your PayPal address
-        are used to pay you, and shared with PayPal for that purpose. If you&apos;re in the UK or
-        EU, you may have additional rights over your data under UK GDPR or GDPR — email us and
-        we&apos;ll honour them.
+        MOTR is free and open worldwide, and we take no payment from anyone. If you&apos;re in the
+        UK or EU, you may have additional rights over your data under UK GDPR or GDPR — email us
+        and we&apos;ll honour them.
       </p>
     ),
   },
@@ -240,7 +213,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         MOTR isn&apos;t for children under 13, and we don&apos;t knowingly collect anything from
-        them. Submitting music or curating requires you to be 18 or older, because it involves
+        them. Submitting music requires you to be 18 or older, because it involves
         payments. If you believe a child has given us information, email us and we&apos;ll delete
         it.
       </p>

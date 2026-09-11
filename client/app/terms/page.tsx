@@ -4,29 +4,34 @@ import Link from "next/link";
 
 export const metadata = {
   title: "Terms of Service — MOTR",
-  description: "The rules for fans, artists, and curators using MOTR.",
+  description: "The rules for the listeners and artists using MOTR."
 };
 
 const EMAIL = "officialmusicontherox@gmail.com";
 const UPDATED = "August 3, 2026";
 
 /**
- * Written against what the product actually does — the artist fee buys
- * consideration rather than placement, curators are paid per verified share,
- * and neither promise is hedged here in a way the app doesn't honour.
+ * Written against what the product actually does.
+ *
+ * MOTR is free on both sides: nothing is charged to a listener and nothing is
+ * charged to an artist. The curator programme, the submission fee and the
+ * payouts that went with them were retired, and the sections covering them
+ * were removed rather than left standing as terms for something that no
+ * longer exists.
  */
 const SECTIONS: { title: string; body: React.ReactNode }[] = [
   {
     title: "The short version",
     body: (
       <ul>
-        <li>Fans swipe for free. Nothing is charged, ever.</li>
+        <li>MOTR is free. Nothing is charged to anyone, ever.</li>
+        <li>Artists submit music for free, and it stays in the feed for free.</li>
         <li>
-          Artists pay a flat fee to put a fan-approved track in front of curators. That fee buys{" "}
-          <strong className="text-white">consideration, not placement</strong>.
+          Every track is heard with{" "}
+          <strong className="text-white">no artist name attached</strong>, so what comes back is a
+          verdict on the song.
         </li>
-        <li>Curators earn a flat fee for each share that stays up and checks out.</li>
-        <li>Nobody can buy their way past the fan vote.</li>
+        <li>Nobody can buy their way past the fan vote, because there is nothing to buy.</li>
       </ul>
     ),
   },
@@ -34,10 +39,8 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: "Who can use MOTR",
     body: (
       <p>
-        You need to be 13 or older to swipe. You need to be 18 or older to submit music or curate,
-        because both involve money. Curating is open worldwide, but payouts are sent in US dollars
-        through PayPal — so you need a PayPal account that can receive USD in your country. What
-        PayPal allows differs from country to country, and that part is between you and them.
+        You need to be 13 or older to swipe, and 18 or older to submit music — because submitting
+        means telling us you hold the rights to it. MOTR is open worldwide and free everywhere.
       </p>
     ),
   },
@@ -46,18 +49,17 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <>
         <p>
-          A track only becomes eligible after it clears the fan vote. Once it does, you may pay the
-          submission fee to send it to curators.
+          Submitting is free, and there is nothing to buy at any point afterwards.
         </p>
         <ul>
           <li>
-            <span className="text-white">What the fee buys:</span>{" "}
-            your track is routed to five genre-matched curators who each listen and decide
-            independently. That&apos;s it.
+            <span className="text-white">What you get:</span> your track goes into the feed and is
+            played to listeners with no name and no artwork they recognise, so the response is to
+            the music itself.
           </li>
           <li>
-            <span className="text-white">What it does not buy:</span> a playlist add, a post, a
-            review, coverage, streams, or any guaranteed outcome. Curators may all pass. That is a
+            <span className="text-white">What we don&apos;t promise:</span> a particular number of
+            plays, a good reception, or any outcome at all. Listeners may pass on it. That is a
             legitimate result, not a failure of the service.
           </li>
           <li>
@@ -65,76 +67,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             control.
           </li>
           <li>
-            We may decline a submission before it reaches curators. If we do, you get a full
-            refund.
-          </li>
-        </ul>
-      </>
-    ),
-  },
-  {
-    title: "Refunds",
-    body: (
-      <>
-        <p>
-          Stated plainly, because this is where services like ours usually get vague.
-        </p>
-        <ul>
-          <li>
-            <span className="text-white">Full refund</span> if we decline your submission, or if
-            it never reaches curators.
-          </li>
-          <li>
-            <span className="text-white">No refund</span> once curators have received and
-            considered your track, even if all of them pass. Consideration by real people is what
-            the fee pays for, and by then it has happened.
-          </li>
-        </ul>
-        <p className="mt-2">
-          Refund requests go to{" "}
-          <a href={`mailto:${EMAIL}`} className="text-gold underline underline-offset-4">
-            {EMAIL}
-          </a>.
-          We aim to respond within five business days.
-        </p>
-      </>
-    ),
-  },
-  {
-    title: "For curators",
-    body: (
-      <>
-        <ul>
-          <li>
-            Applications are reviewed by hand. We check that your outlet is real and that the
-            audience you claim is the audience you have. Misrepresenting either ends the
-            relationship.
-          </li>
-          <li>
-            You earn a flat fee per <span className="text-white">verified share</span> — a playlist
-            add, a TikTok/Reel/Short, or a written piece, with proof.
-          </li>
-          <li>
-            Playlist adds and video posts must stay up for at least four days. Pulling one early
-            means it doesn&apos;t count.
-          </li>
-          <li>
-            Passing on a track earns nothing, and passing is always a legitimate choice. You are
-            never expected to feature anything you don&apos;t rate.
-          </li>
-          <li>
-            Earnings clear seven days after verification. Cash out at $50 or more, less a flat $2
-            transfer fee. Payouts are in US dollars through PayPal, wherever you are.
-          </li>
-          <li>
-            <span className="text-white">You&apos;re independent, not employed by us.</span> You
-            choose what you feature, when you work, and for whom else you work. Nothing here makes
-            you an employee, partner or agent of MOTR.
-          </li>
-          <li>
-            <span className="text-white">Don&apos;t game it.</span> Fake placements, bought
-            followers, playlists nobody listens to, or shares posted only to collect the fee mean
-            forfeited earnings and removal.
+            We may decline or remove a submission. If we do, we&apos;ll tell you why.
           </li>
         </ul>
       </>
@@ -177,48 +110,6 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
-    title: "Payments",
-    body: (
-      <p>
-        Artist fees are processed by Stripe; card details never reach our servers. Curator payouts
-        go out through PayPal after a cashout request. Everything — prices, balances and payouts —
-        is in US dollars, wherever you are. If your PayPal account holds another currency, PayPal
-        converts the payment at their own rate when it arrives, and that rate is theirs, not ours.
-        We may change pricing, but never for a submission already paid for.
-      </p>
-    ),
-  },
-  {
-    title: "Taxes",
-    body: (
-      <>
-        <p>
-          <span className="text-white">We don&apos;t withhold or deduct tax from anything we
-          pay you.</span> Every curator payout is gross: what leaves us is what you earned, less
-          only the transfer fee we&apos;ve already told you about.
-        </p>
-        <p className="mt-3">
-          Whatever you owe on that income, and to whom, is between you and the tax authority
-          where you live — not between you and MOTR. Declaring it is your responsibility, and it
-          stays your responsibility whichever country you curate from. If you&apos;re unsure what
-          applies to you, ask someone qualified where you are; we can&apos;t advise you on it and
-          nothing here is tax advice.
-        </p>
-        <p className="mt-3">
-          PayPal may send you their own records or tax forms depending on your country and how
-          much you receive. Those come from PayPal, under their rules, and any question about
-          them is for PayPal — we don&apos;t issue them and can&apos;t change them.
-        </p>
-        <p className="mt-3">
-          If the law ever requires us to collect tax details from you, or to report what
-          we&apos;ve paid you, we&apos;ll ask for exactly what&apos;s needed and tell you why.
-          Payouts can be held until that information is provided, because we&apos;re not able to
-          pay in breach of it.
-        </p>
-      </>
-    ),
-  },
-  {
     title: "Ending things",
     body: (
       <p>
@@ -226,9 +117,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <Link href="/privacy" className="text-gold underline underline-offset-4">
           Privacy Policy
         </Link>.
-        We may suspend an account for the abuses described above, or where the law requires
-        it. If we close a curator account without cause, any verified earnings you&apos;ve already
-        cleared still get paid.
+        We may suspend an account for the abuses described above, or where the law requires it.
       </p>
     ),
   },

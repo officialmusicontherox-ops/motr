@@ -172,8 +172,8 @@ export default function FanGate({
         <span className="text-gold"> favorite song</span>
       </h1>
       <p className="text-muted relative mt-2.5 max-w-sm text-sm leading-relaxed">
-        Thirty seconds each. Swipe what moves you. No labels, no payola — the tracks fans push
-        hardest go straight to real curators.
+        Thirty seconds each, no artist names, no artwork you recognize. Swipe what moves you and
+        keep what you love.
       </p>
 
       {signedOut && (
@@ -229,11 +229,9 @@ export default function FanGate({
 
       {error && <p className="text-nope relative mt-4 text-sm">{error}</p>}
 
-      {/* Artists and curators are the two audiences the platform actually
-          runs on, and these were 11px muted uppercase — the same styling used
-          for captions, which made them read as fine print. Secondary to
-          signing in, but they shouldn't look like a footnote, and saying what
-          each one gets you is worth more than the label alone. */}
+      {/* Artists are the other audience the platform runs on. Secondary to
+          signing in, but not fine print — it was 11px muted uppercase once,
+          the same styling as captions, and read as a footnote. */}
       <div className="relative mt-7 w-full max-w-xs">
         <div className="flex items-center gap-3">
           <span className="border-edge h-px flex-1 border-t" />
@@ -241,23 +239,14 @@ export default function FanGate({
           <span className="border-edge h-px flex-1 border-t" />
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3">
           <Link
             href="/artists"
-            className="border-gold/40 text-gold hover:bg-gold hover:text-bg rounded-xl border px-3 py-2.5 text-center text-sm font-bold transition"
+            className="border-gold/40 text-gold hover:bg-gold hover:text-bg block rounded-xl border px-3 py-2.5 text-center text-sm font-bold transition"
           >
             Submit your song
             <span className="mt-0.5 block text-[0.65rem] font-medium opacity-75">
               Artists — free
-            </span>
-          </Link>
-          <Link
-            href="/apply"
-            className="border-gold/40 text-gold hover:bg-gold hover:text-bg rounded-xl border px-3 py-2.5 text-center text-sm font-bold transition"
-          >
-            Apply to curate
-            <span className="mt-0.5 block text-[0.65rem] font-medium opacity-75">
-              Get paid to share
             </span>
           </Link>
         </div>
