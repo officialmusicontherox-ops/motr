@@ -159,10 +159,12 @@ export function trackBrokeThroughEmail(params: {
     subject: `"${trackTitle}" broke through`,
     html: shell(
       "Fans pushed your track through",
-      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} won over ${Math.round(approvalRate * 100)}% of the ${approvals > 0 ? "fans who heard it" : "vote"} (${approvals} approvals) — enough to clear the fan vote.</p>
-       <p style="margin:0 0 12px">That's listeners who had no idea who you were choosing to keep your song. It stays in the feed and keeps climbing — there's nothing to pay and nothing you need to do.</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">The most useful thing you can do now is send your own fans over. Every one of them who hears it out counts double.</p>`,
-      { label: "Share MOTR with your fans", url: APP_URL }
+      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} won over ${Math.round(approvalRate * 100)}% of the listeners who heard it${approvals > 0 ? ` (${approvals} of them)` : ""}. None of them knew who made it.</p>
+       <p style="margin:0 0 14px">It stays in the feed and keeps climbing. There is nothing to pay and nothing you need to do.</p>
+       <p style="margin:0 0 10px"><strong style="color:#fff">Send your own fans to it.</strong> That is the single thing that moves a track here, and the link below opens straight on your song rather than a random one, so everyone you send lands on it.</p>
+       <p style="margin:0 0 14px;font-size:14px"><a href="${APP_URL}/?track=${trackId}" style="color:#dcb55f;word-break:break-all">${APP_URL.replace(/^https?:\/\//, "")}/?track=${trackId}</a></p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">Tell them to let the full thirty seconds play. A listener who hears it out counts double, so one patient fan is worth two who skip early.</p>`,
+      { label: "Open your track", url: `${APP_URL}/?track=${trackId}` }
     ),
   };
 }
@@ -186,14 +188,14 @@ export function newSubmissionEmail(params: {
   const list = tracks
     .map(
       (t) =>
-        `<li style="margin:0 0 6px"><strong style="color:#fff">${t.title}</strong> — ${t.artistName} <span style="color:#8b8b8b">(${t.genre ?? "no genre"})</span></li>`
+        `<li style="margin:0 0 6px"><strong style="color:#fff">${t.title}</strong> by ${t.artistName} <span style="color:#8b8b8b">(${t.genre ?? "no genre"})</span></li>`
     )
     .join("");
 
   return {
     subject: many
       ? `New submission: ${tracks.length} tracks from ${submitterEmail}`
-      : `New submission: ${first.title} — ${first.artistName}`,
+      : `New submission: ${first.title} by ${first.artistName}`,
     html: shell(
       many ? `${tracks.length} tracks just went live` : "A track just went live",
       `<ul style="margin:0 0 12px;padding-left:18px;color:#c9c9c9">${list}</ul>
@@ -224,7 +226,7 @@ export function refusedSubmissionEmail(params: {
       `<p style="margin:0 0 12px">Someone submitted a track and we refused it rather than risk attaching the wrong audio.</p>
        <p style="margin:0 0 12px;color:#a3a3a3">From: ${artistEmail}<br/>Link: <a href="${spotifyUrl}" style="color:#dcb55f">${spotifyUrl}</a></p>
        <p style="margin:0 0 12px;color:#a3a3a3">Reason: ${reason}</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">If the link is right, add it from the dashboard — Tracks, then Replace audio, and paste this Spotify link.</p>`,
+       <p style="margin:0;color:#8b8b8b;font-size:13px">If the link is right, add it from the dashboard: Tracks, then Replace audio, and paste this Spotify link.</p>`,
       { label: "Open the dashboard", url: `${APP_URL}/admin` }
     ),
   };
@@ -272,13 +274,14 @@ export function submissionReceivedEmail(params: {
           ? `All <strong style="color:#fff">${tracks.length}</strong> are now playing in the MOTR feed`
           : `<strong style="color:#fff">${first.title}</strong> by ${first.artistName} is now playing in the MOTR feed`
       }, where listeners hear thirty seconds with no artist name attached and decide on the music alone.</p>
-       <p style="margin:0 0 12px">To break through, a track needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that — MOTR is free, so there is nothing to buy.</p>
+       <p style="margin:0 0 12px">To break through, a track needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that. MOTR is free, so there is nothing to buy.</p>
        <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${many ? "YOUR LINKS" : "YOUR LINK"}</p>
        <p style="margin:0 0 10px;font-size:14px">${many ? "Each link opens straight on that track" : "This link opens straight on your track"} rather than a random one, so everyone you send lands on it.</p>
        ${list}
-       <p style="margin:14px 0 12px"><strong style="color:#fff">Ask them to let it play out.</strong> A listener who hears the full thirty seconds before deciding counts double, so one patient fan is worth two who skip early. It's the single most useful thing you can tell them.</p>
+       <p style="margin:14px 0 12px"><strong style="color:#fff">Send your own fans to ${many ? "these links" : "that link"}.</strong> It is the single thing that moves a track here, and your own audience are the listeners most likely to swipe right.</p>
+       <p style="margin:0 0 12px">Ask them to let the full thirty seconds play. A listener who hears it out counts double, so one patient fan is worth two who skip early.</p>
        <p style="margin:0;color:#8b8b8b;font-size:13px">We'll email you the moment ${many ? "one of them breaks" : "it breaks"} through. Nothing to do until then.</p>`,
-      { label: "See the feed", url: APP_URL }
+      { label: many ? "Open your first track" : "Open your track", url: `${APP_URL}/?track=${first.id}` }
     ),
   };
 }
@@ -345,7 +348,7 @@ export function comeBackEmail(params: {
     html:
       shell(
         saved.length > 0 ? "The ones you backed" : "There's new music waiting",
-        `<p style="margin:0 0 12px">Hi ${username} —${
+        `<p style="margin:0 0 12px">Hi ${username}.${
           newTracks > 0
             ? ` <strong style="color:#fff">${newTracks}</strong> new track${newTracks === 1 ? " has" : "s have"} landed in the feed since you were last here.`
             : " there's new music in the feed since you were last here."
@@ -353,7 +356,7 @@ export function comeBackEmail(params: {
          ${
            saved.length > 0
              ? `<p style="margin:0 0 10px">You backed ${saved.length === 1 ? "this" : "these"} early:</p>${list}
-                <p style="margin:12px 0 0">Tracks only reach curators if enough listeners push them there. Yours are still climbing.</p>`
+                <p style="margin:12px 0 0">Tracks only climb if enough listeners push them there. Yours are still going.</p>`
              : `<p style="margin:0">Thirty seconds each, no artist names, and the ones you like are saved for you.</p>`
          }`,
         { label: "Pick up where you left off", url: APP_URL }
@@ -416,10 +419,10 @@ export function trackMilestoneEmail(params: {
     html:
       shell(
         first ? "Your music is landing" : "Your music keeps climbing",
-        `<p style="margin:0 0 12px">Hi ${artistName} —</p>
+        `<p style="margin:0 0 12px">Hi ${artistName},</p>
          <p style="margin:0 0 14px">${
            first
-             ? `Someone heard <strong style="color:#fff">${lead.title}</strong> with no name attached, no artwork they recognized and no idea who made it — and swiped right. That is the whole point of MOTR, and it just happened to you.`
+             ? `Someone heard <strong style="color:#fff">${lead.title}</strong> with no name attached, no artwork they recognized and no idea who made it, and swiped right. That is the whole point of MOTR, and it just happened to you.`
              : `${tracks.length === 1 ? "Your track has" : "Your tracks have"} picked up more support from listeners who had no idea who made ${tracks.length === 1 ? "it" : "them"}.`
          }</p>
          ${list}
@@ -427,17 +430,17 @@ export function trackMilestoneEmail(params: {
          <p style="margin:16px 0 0;padding:14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
            <strong style="color:#fff">We're still in early access.</strong>
            The listener base is small and growing, which is exactly why this is a good moment to
-           be on it — there is far less to compete with than there will be in six months, and the
-           fans you bring now decide which tracks reach our curators first.
+           be on it. There is far less to compete with than there will be in six months, and the
+           fans you bring now decide which tracks rise to the top of the charts.
          </p>
          <p style="margin:16px 0 0"><strong style="color:#fff">So here's the ask.</strong> Send your own fans to MOTR. Every one of them who swipes right pushes ${
            tracks.length === 1 ? "your track" : "your tracks"
-         } further up — and unlike a playlist pitch, it costs you nothing but a share.</p>
+         } further up, and it costs you nothing but a share.</p>
          <p style="margin:10px 0 0;color:#8b8b8b;font-size:14px">${appUrl.replace(/^https?:\/\//, "")}</p>`,
         { label: "Share MOTR with your fans", url: appUrl }
       ) +
       `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
-         Don't want these updates? <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> — your music stays in rotation either way.
+         Don't want these updates? <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a>. Your music stays in rotation either way.
        </p>`,
   };
 }
@@ -474,11 +477,102 @@ export function scoutLoginLinkEmail(params: { name: string; url: string; minutes
     subject: "Your MOTR A&R sign-in link",
     html: shell(
       "Sign in to MOTR",
-      `<p style="margin:0 0 12px">Hi ${name} —</p>
+      `<p style="margin:0 0 12px">Hi ${name},</p>
        <p style="margin:0 0 12px">Here's your link into the MOTR A&amp;R portal. It works once and expires in ${minutes} minutes.</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">If you didn't ask for it, ignore this email — nothing happens until the link is opened.</p>`,
+       <p style="margin:0;color:#8b8b8b;font-size:13px">If you didn't ask for it, ignore this email. Nothing happens until the link is opened.</p>`,
       { label: "Open the portal", url }
     ),
+  };
+}
+
+/**
+ * A one-off note to everyone who has signed in, describing what MOTR is.
+ *
+ * Written forward-looking on purpose. Nobody outside the building needs an
+ * account of what changed, and an email explaining a feature someone never
+ * used is an email that raises a question they didn't have. This says what
+ * the app is now and gives both audiences a reason to open it.
+ */
+export function whatMotrIsEmail(params: {
+  name: string;
+  unsubscribeUrl: string;
+}) {
+  const { name, unsubscribeUrl } = params;
+  return {
+    subject: "What MOTR is, and what's new",
+    html:
+      shell(
+        "Music before anyone tells you who made it",
+        `<p style="margin:0 0 12px">Hi ${name},</p>
+         <p style="margin:0 0 14px">A quick note on what MOTR is, because the app has grown a lot since you first signed in.</p>
+         <p style="margin:0 0 14px">Every track plays as a thirty-second clip with <strong style="color:#fff">no artist name and no artwork you'd recognize</strong>. You decide on the music alone. Swipe right to keep it, left to move on. Nothing in the feed was paid to be there, and there is no way to buy a place in it.</p>
+         <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">NEW: CHARTS</p>
+         <p style="margin:0 0 14px">There's now a Charts tab showing the tracks listeners backed hardest this week and this month. Every position on it was earned by people keeping the song, which makes it a genuinely different chart from the ones you already see.</p>
+         <p style="margin:0 0 14px">At the end of every week we'll email you the week's Top Artists. If you want your favorite to make the cut, the way to do it is to play their track and swipe right.</p>
+         <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">IF YOU MAKE MUSIC</p>
+         <p style="margin:0 0 14px">Submitting is free and always will be. Paste a Spotify link and your song goes into the same blind rotation as everyone else's, judged on how it sounds rather than on how many followers you have.</p>
+         <p style="margin:0 0 14px">One thing worth knowing either way: a listener who hears the full thirty seconds before deciding counts double. Patience is the most useful thing anyone can bring to it.</p>
+         <p style="margin:0;color:#8b8b8b;font-size:13px">Thanks for being here early.</p>`,
+        { label: "Open MOTR", url: APP_URL }
+      ) +
+      `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
+         Not interested? <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> and we won't email you again.
+       </p>`,
+  };
+}
+
+/**
+ * The weekly chart, sent to listeners and artists alike.
+ *
+ * Ranks only, matching the Charts tab. The counts behind them are small at
+ * this stage and printing them undercuts the thing the chart is for, which is
+ * giving an artist something worth showing people.
+ *
+ * The ask is built into the format rather than bolted on the end: someone who
+ * wants their favourite higher next week already knows what to do about it.
+ */
+export function weeklyChartEmail(params: {
+  name: string;
+  songs: { title: string; artistName: string }[];
+  artists: { name: string }[];
+  unsubscribeUrl: string;
+}) {
+  const { name, songs, artists, unsubscribeUrl } = params;
+
+  const rows = (items: string[]) =>
+    items
+      .map(
+        (label, i) =>
+          `<div style="display:flex;gap:12px;padding:9px 12px;margin:0 0 6px;background:#0d0d0c;border:1px solid #262625;border-radius:8px">
+             <span style="color:${i < 3 ? "#dcb55f" : "#8b8b8b"};font-weight:700;width:18px">${i + 1}</span>
+             <span style="color:#fff">${label}</span>
+           </div>`
+      )
+      .join("");
+
+  return {
+    subject: artists.length > 0 ? `This week on MOTR: ${artists[0].name} at number one` : "This week on MOTR",
+    html:
+      shell(
+        "This week's charts",
+        `<p style="margin:0 0 12px">Hi ${name},</p>
+         <p style="margin:0 0 16px">Here's where the last seven days landed. Every position was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
+         ${
+           artists.length > 0
+             ? `<p style="margin:0 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP ARTISTS</p>${rows(artists.map((a) => a.name))}`
+             : ""
+         }
+         ${
+           songs.length > 0
+             ? `<p style="margin:16px 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP SONGS</p>${rows(songs.map((t) => `${t.title} <span style="color:#8b8b8b">${t.artistName}</span>`))}`
+             : ""
+         }
+         <p style="margin:18px 0 0"><strong style="color:#fff">Want your favorite higher next week?</strong> Play their track and swipe right. That is the only thing that moves this list, and a listener who hears the full thirty seconds counts double.</p>`,
+        { label: "Open the charts", url: `${APP_URL}/charts` }
+      ) +
+      `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
+         <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> from these weekly emails.
+       </p>`,
   };
 }
 

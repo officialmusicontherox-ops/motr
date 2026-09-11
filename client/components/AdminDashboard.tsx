@@ -12,6 +12,7 @@ import AdminErrors from "./AdminErrors";
 import AdminFeedHealth from "./AdminFeedHealth";
 import AdminNudges from "./AdminNudges";
 import AdminArtistUpdates from "./AdminArtistUpdates";
+import AdminWeeklyChart from "./AdminWeeklyChart";
 import AdminScouts from "./AdminScouts";
 import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
@@ -312,6 +313,8 @@ export default function AdminDashboard({
 
 
  <AdminScouts />
+
+ <AdminWeeklyChart />
 
  <AdminArtistUpdates />
 
