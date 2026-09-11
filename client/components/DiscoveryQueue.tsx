@@ -147,8 +147,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           <div className="border-gold/40 bg-surface flex items-center gap-3 rounded-2xl border px-5 py-3 shadow-2xl">
             <Disc className="text-gold h-6 w-6 shrink-0" />
             <p className="text-sm">
-              <span className="text-gold font-semibold">{breakout}</span> broke through —
-              enough of you backed it.
+              <span className="text-gold font-semibold">{breakout}</span> broke through.
+              Enough of you backed it.
             </p>
           </div>
         </div>
@@ -169,7 +169,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           <p className="text-muted max-w-xs text-sm">
             {exhausted && exhausted.othersAvailable > 0
               ? `You've heard every ${genre?.split(" / ")[0]} track we have. There are ${exhausted.othersAvailable} more waiting in other genres.`
-              : "You've heard everything in the queue. New tracks land here constantly — come back soon."}
+              : "You've heard everything in the queue. New tracks land here constantly, so check back soon."}
           </p>
           {exhausted && exhausted.othersAvailable > 0 && (
             <button

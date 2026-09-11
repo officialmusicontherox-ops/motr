@@ -342,7 +342,7 @@ export default function SwipeCard({
       >
         <Note className="text-gold h-3 w-3" />
         {countsDouble ? (
-          <span>2× — this vote counts double</span>
+          <span>This vote counts double</span>
         ) : (
           <>
             {/* Kept short deliberately: the line is nowrap so it can never

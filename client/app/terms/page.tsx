@@ -39,7 +39,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: "Who can use MOTR",
     body: (
       <p>
-        You need to be 13 or older to swipe, and 18 or older to submit music — because submitting
+        You need to be 13 or older to swipe, and 18 or older to submit music, because submitting
         means telling us you hold the rights to it. MOTR is open worldwide and free everywhere.
       </p>
     ),
@@ -80,18 +80,18 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <p>
           Swipe honestly. Automated swiping, multiple accounts, or any attempt to push a
           particular track through the vote undermines the one part of MOTR that money
-          can&apos;t touch — we&apos;ll remove accounts that do it and discount their votes.
+          can&apos;t touch. We remove accounts that do it and discount their votes.
         </p>
         <p className="mt-3">
           Votes are weighted by attention. If you listen to a clip all the way through before
-          deciding, your verdict counts double — and that applies whether you swipe left or
+          deciding, your verdict counts double, and that applies whether you swipe left or
           right, so it rewards listening rather than approving. Everyone else&apos;s vote still
           counts in full.
         </p>
         <p className="mt-3">
           <span className="text-white">If you sign in, we may email you.</span> That means things
           like a reminder when you haven&apos;t swiped in a while, or news about tracks you
-          saved — not adverts for anyone else. Every one carries an unsubscribe link and a single
+          saved, not adverts for anyone else. Every one carries an unsubscribe link and a single
           click ends them permanently, without touching your account or your saves. Swipe without
           an account and we have no address for you, so there&apos;s nothing to opt out of.
         </p>
@@ -113,7 +113,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: "Ending things",
     body: (
       <p>
-        You can stop using MOTR whenever you like and ask us to delete your account — see the{" "}
+        You can stop using MOTR whenever you like and ask us to delete your account. See the{" "}
         <Link href="/privacy" className="text-gold underline underline-offset-4">
           Privacy Policy
         </Link>.
@@ -126,7 +126,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         MOTR is provided as-is. We don&apos;t promise it will be uninterrupted or error-free, and
-        we&apos;re not liable for indirect losses — including career outcomes that did or
+        we&apos;re not liable for indirect losses, including career outcomes that did or
         didn&apos;t follow from using it. Nothing here limits liability we can&apos;t limit by law,
         including for fraud. These terms are governed by the laws of the United States and the
         state in which MOTR operates. If we change them materially, we&apos;ll tell you before the

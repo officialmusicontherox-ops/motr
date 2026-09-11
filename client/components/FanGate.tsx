@@ -13,7 +13,7 @@ const AUTH_ERRORS: Record<string, string> = {
   token_exchange_failed: "Spotify wouldn't complete the sign-in. Try again.",
   profile_fetch_failed: "Couldn't read your Spotify profile. Try again.",
   profile_fetch_failed_403:
-    "Spotify wouldn't let us read your profile. The MOTR Spotify app is still in development mode, so only approved accounts can sign in — we're fixing it. Swipe without an account in the meantime.",
+    "Spotify wouldn't let us read your profile. The MOTR Spotify app is still in development mode, so only approved accounts can sign in. We're fixing it. Swipe without an account in the meantime.",
   profile_fetch_failed_401:
     "Spotify rejected the sign-in token. Try again, and if it keeps happening let us know.",
   profile_fetch_failed_429: "Spotify is rate-limiting us right now. Try again in a minute.",
@@ -246,7 +246,7 @@ export default function FanGate({
           >
             Submit your song
             <span className="mt-0.5 block text-[0.65rem] font-medium opacity-75">
-              Artists — free
+              Free for artists
             </span>
           </Link>
         </div>

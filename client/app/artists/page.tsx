@@ -74,7 +74,7 @@ export default function ArtistsPage() {
           });
         }
       } catch {
-        rejected.push({ url: song.url.trim(), reason: "Network problem — try that one again." });
+        rejected.push({ url: song.url.trim(), reason: "Network problem. Try that one again." });
       }
     }
 
@@ -141,8 +141,8 @@ export default function ArtistsPage() {
             <p className="text-muted mt-2 text-sm leading-relaxed">
               Nothing breaks through without listeners backing it first, and your own fans are
               the ones most likely to swipe right.{" "}
-              {many ? "Each link opens on that track" : "This link opens on your track"} — not a
-              random one — so everyone you send lands straight on it.
+              {many ? "Each link opens on that track" : "This link opens on your track"} rather
+              than a random one, so everyone you send lands straight on it.
             </p>
 
             {done.accepted.map((t) => {
@@ -150,7 +150,7 @@ export default function ArtistsPage() {
               // Asking for the full listen isn't a nicety: a verdict reached
               // after the whole clip counts double, so one patient fan is
               // worth two who skip.
-              const shareText = `My track "${t.title}" is on MOTR — give it the full 30 seconds, then swipe right if you like it (full listens count double): ${shareUrl}`;
+              const shareText = `My track "${t.title}" is on MOTR. Give it the full 30 seconds, then swipe right if you like it. Full listens count double: ${shareUrl}`;
               return (
                 <div key={t.id} className="border-edge bg-bg mt-3 rounded-xl border p-3">
                   <p className="text-sm font-semibold text-white">{t.title}</p>
@@ -233,8 +233,8 @@ export default function ArtistsPage() {
         </Link>
         <h1 className="font-display mt-6 text-4xl uppercase tracking-wide">Submit your song</h1>
         <p className="text-muted mx-auto mt-2 max-w-md text-sm leading-relaxed">
-          Free, and free to stay. Paste your Spotify link and fans start hearing it — nothing to pay, and nothing that
-          crowd pushes you through.
+          Free to submit, and free to stay in the feed. Paste your Spotify link and listeners
+          start hearing it.
         </p>
       </header>
 
@@ -243,7 +243,7 @@ export default function ArtistsPage() {
         <label className="block">
           <span className="motr-label block">Your email</span>
           <span className="text-muted mb-2 mt-1 block text-xs">
-            Asked once — every song you add below goes under this address.
+            Asked once. Every song you add below goes under this address.
           </span>
           <input
             type="email"
@@ -257,9 +257,9 @@ export default function ArtistsPage() {
 
         <p className="text-muted -mb-1 text-xs leading-relaxed">
           Every song has to be <strong className="text-white">already released</strong>. We match
-          it to a 30-second clip from Apple Music, and a song that hasn&apos;t reached the stores
-          yet has nothing for us to play — so we&apos;ll turn it away rather than risk playing the
-          wrong recording under your name. In Spotify: Share → Copy Song Link.
+          it to a 30-second clip from Apple Music. A song that hasn&apos;t reached the stores yet
+          has nothing for us to play, so we turn it away rather than risk putting the wrong
+          recording under your name. In Spotify: Share, then Copy Song Link.
         </p>
 
         {songs.map((song, i) => (
@@ -287,7 +287,7 @@ export default function ArtistsPage() {
             />
 
             <span className="text-muted mb-2 mt-3 block text-xs">
-              Genre — decides which listeners it goes out to.
+              Genre. Decides which listeners it goes out to.
             </span>
             <div className="flex flex-wrap gap-2">
               {GENRES.map((g) => (

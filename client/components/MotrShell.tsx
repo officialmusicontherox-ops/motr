@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
-import { Bookmark, Disc, Menu } from "./icons";
+import { Bookmark, Disc, Menu, Waveform } from "./icons";
 import PullToRefresh from "./PullToRefresh";
 
 // Only what a fan can actually use. Curating needs an approved account, so
@@ -15,6 +15,7 @@ import PullToRefresh from "./PullToRefresh";
 const TABS = [
   { href: "/", label: "Discover", Icon: Disc },
   { href: "/saved", label: "Saved", Icon: Bookmark },
+  { href: "/charts", label: "Charts", Icon: Waveform },
 ];
 
 /**

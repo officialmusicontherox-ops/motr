@@ -12,17 +12,17 @@ const STEPS = [
   {
     n: "01",
     title: "Fans swipe",
-    body: "Every track starts in the open feed. Thirty-second clips, no artist bios, no follower counts — just whether it sounds good. Swipe right to save it, left to move on.",
+    body: "Every track starts in the open feed. Thirty-second clips, no artist bios, no follower counts. Just whether it sounds good. Swipe right to save it, left to move on.",
   },
   {
     n: "02",
     title: "The crowd decides",
-    body: "Tracks that collect enough right-swipes break through. A listener who hears the full 30 seconds before deciding counts double — either way they swipe. Nobody can buy their way past this step; it's the one gate money doesn't open.",
+    body: "Tracks that collect enough right-swipes break through. A listener who hears the full 30 seconds before deciding counts double, whichever way they swipe. Nobody can buy their way past this step; it's the one gate money doesn't open.",
   },
   {
     n: "03",
     title: "The best rise",
-    body: "Tracks the crowd backs climb the feed and reach more listeners. Nothing here is boosted by a budget — position is earned by people choosing to keep the song.",
+    body: "Tracks the crowd backs climb the feed and reach more listeners. Nothing here is boosted by a budget. Position is earned by people choosing to keep the song.",
   },
   {
     n: "04",
@@ -38,7 +38,7 @@ const FAQS = [
   },
   {
     q: "Why does hearing the whole clip count double?",
-    a: "A decision made three seconds in is a reaction to the first thing you hear. One made after the full thirty seconds is a verdict on the song. Both count — but the second one counts twice, whether you swiped left or right. Sitting with a track you end up passing on is just as useful to the artist as one you save, so patience is rewarded rather than agreement.",
+    a: "A decision made three seconds in is a reaction to the first thing you hear. One made after the full thirty seconds is a verdict on the song. Both count, but the second one counts twice, whether you swiped left or right. Sitting with a track you end up passing on is just as useful to the artist as one you save, so patience is rewarded rather than agreement.",
   },
   {
     q: "Is any of this paid for?",
@@ -91,7 +91,7 @@ export default function FaqPage() {
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Card
             title="If you're a fan"
-            body="An endless feed of music nobody paid to put in front of you. Save what you like — your right-swipes are what decide which artists move forward."
+            body="An endless feed of music nobody paid to put in front of you. Save what you like. Your right-swipes decide which artists move forward."
           />
           <Card
             title="If you're an artist"

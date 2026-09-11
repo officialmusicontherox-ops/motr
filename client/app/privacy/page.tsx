@@ -73,7 +73,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <li>To count swipes and decide which tracks break through.</li>
         <li>To keep your saves attached to you rather than to one browser.</li>
         <li>
-          To email you about things that concern you — a track of yours picking up saves, or
+          To email you about things that concern you: a track of yours picking up saves, or
           breaking through. If you signed in as a listener, that also includes the occasional
           reminder when you haven&apos;t swiped in a while, and news about tracks you saved. Those
           carry an unsubscribe link and stop the moment you use it. We never sell your address or
@@ -100,17 +100,17 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <p>Only the services needed to run MOTR, and only what each one needs:</p>
         <ul>
           <li>
-            <span className="text-white">Google</span> — sign-in. We receive your name and email;
+            <span className="text-white">Google</span>: sign-in. We receive your name and email;
             Google is told nothing about what you listen to.
           </li>
           <li>
-            <span className="text-white">Resend</span> — transactional email.
+            <span className="text-white">Resend</span>: transactional email.
           </li>
           <li>
-            <span className="text-white">Neon and Netlify</span> — database and hosting.
+            <span className="text-white">Neon and Netlify</span>: database and hosting.
           </li>
           <li>
-            <span className="text-white">Apple and Deezer</span> — track previews and artwork.
+            <span className="text-white">Apple and Deezer</span>: track previews and artwork.
             These are lookups we make about music, not a handover of anything about you.
           </li>
         </ul>
@@ -146,10 +146,6 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <li>
           Artist submissions: kept while the track is in the feed and for a reasonable period after, so we
           have a record of decisions.
-        </li>
-        <li>
-          Payment and payout records: kept as long as tax and accounting rules require, typically
-          seven years, even after an account closes.
         </li>
         <li>Server logs: a short rolling window.</li>
       </ul>
@@ -193,7 +189,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         comparable privacy law, you have the right to know what we collect, to request deletion,
         to correct inaccurate information, and to opt out of sale or targeted advertising. We
         don&apos;t sell personal information or run targeted advertising, so there&apos;s nothing
-        to opt out of — but the other rights apply, and the email above is how to use them.
+        to opt out of, but the other rights apply, and the email above is how to use them.
       </p>
     ),
   },
@@ -203,7 +199,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <p>
         MOTR is operated in the United States and your information is stored and processed there.
         MOTR is free and open worldwide, and we take no payment from anyone. If you&apos;re in the
-        UK or EU, you may have additional rights over your data under UK GDPR or GDPR — email us
+        UK or EU, you may have additional rights over your data under UK GDPR or GDPR. Email us
         and we&apos;ll honour them.
       </p>
     ),

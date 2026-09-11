@@ -7,11 +7,11 @@ import { ArrowOut, Note } from "./icons";
 import InstallApp from "./InstallApp";
 
 const LINKS = [
-  { href: "/artists", label: "Submit your song", note: "Free — paste a Spotify link" },
+  { href: "/artists", label: "Submit your song", note: "Free. Paste a Spotify link" },
   { href: "/faq", label: "How it works", note: "Thirty seconds, no names, your call" },
   { href: "/contact", label: "Contact", note: "Questions, press, support" },
   { href: "/privacy", label: "Privacy", note: "What we collect and why" },
-  { href: "/terms", label: "Terms", note: "The rules, and how refunds work" },
+  { href: "/terms", label: "Terms", note: "What you agree to by using MOTR" },
 ];
 
 export default function MotrMenu({
