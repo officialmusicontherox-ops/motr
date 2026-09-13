@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
   // deferEmail: the caller is submitting a batch and will ask for one
   // summary email once it's finished. Five songs in a sitting shouldn't mean
   // five near-identical emails to the artist and five more to the operator.
-  const { source, submittedById, artistEmail, requiredFanVotes, genre, deferEmail } = body;
+  const { source, submittedById, artistEmail, requiredFanVotes, genre, aiGenerated, deferEmail } =
+    body;
 
   if (source !== "SPOTIFY" && source !== "APPLE_MUSIC") {
     return NextResponse.json(
@@ -178,6 +179,9 @@ export async function POST(req: NextRequest) {
       submittedById: submittedById ?? null,
       artistId,
       genre: genre ?? null,
+      // Only a real boolean is stored. Anything else stays null, which the
+      // feed reads as "never asked" rather than as a declaration of no.
+      aiGenerated: typeof aiGenerated === "boolean" ? aiGenerated : null,
       ...(typeof requiredFanVotes === "number" ? { requiredFanVotes } : {}),
     },
   });

@@ -349,8 +349,22 @@ model Track {
   publicLikeCount   Int             @default(0)
   performanceTier   PerformanceTier @default(NONE)
 
-  // Set by the artist at submission; decides which curators it routes to.
+  // Set by the artist at submission; decides which listeners it goes out to.
   genre String?
+
+  // Whether the artist declared generative AI was used to make this.
+  //
+  // Self-declared, because it cannot be anything else: Spotify's own AI
+  // Credits are disclosed by the artist through their distributor, and
+  // neither Spotify's Web API nor Apple's search API exposes a flag we could
+  // read. Asking directly is the same mechanism the industry uses, minus the
+  // distributor in the middle.
+  //
+  // Nullable on purpose. False means "the artist said no"; null means nobody
+  // was ever asked, which is every track submitted before this existed and
+  // the whole seeded catalogue. The feed treats null as not-AI, so nothing
+  // already in rotation quietly disappears.
+  aiGenerated Boolean?
 
   swipes        Swipe[]
   fanSwipes     FanSwipe[]

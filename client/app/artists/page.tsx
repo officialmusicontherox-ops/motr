@@ -10,7 +10,7 @@ import { GENRES } from "@/lib/genres";
 /** Songs per submission. Past this they start a fresh batch. */
 const MAX_SONGS = 5;
 
-type SongRow = { url: string; genre: string };
+type SongRow = { url: string; genre: string; ai: boolean | null };
 type Accepted = { id: string; title: string; artistName: string };
 type Rejected = { url: string; reason: string };
 
@@ -19,14 +19,14 @@ export default function ArtistsPage() {
   // The email is asked once and every song in the batch goes under it. Making
   // an artist retype it per track was the whole reason anyone submitted one
   // song at a time.
-  const [songs, setSongs] = useState<SongRow[]>([{ url: "", genre: "" }]);
+  const [songs, setSongs] = useState<SongRow[]>([{ url: "", genre: "", ai: null }]);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [progress, setProgress] = useState<{ at: number; of: number } | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [done, setDone] = useState<{ accepted: Accepted[]; rejected: Rejected[] } | null>(null);
 
-  const filled = songs.filter((s) => s.url.trim() && s.genre);
+  const filled = songs.filter((s) => s.url.trim() && s.genre && s.ai !== null);
   const canSubmit = filled.length > 0 && artistEmail.trim() && !pending;
 
   function setSong(i: number, patch: Partial<SongRow>) {
@@ -57,6 +57,7 @@ export default function ArtistsPage() {
             spotifyUrl: song.url.trim(),
             artistEmail,
             genre: song.genre,
+            aiGenerated: song.ai,
             // Held back so the whole batch is confirmed in one email.
             deferEmail: true,
           }),
@@ -198,7 +199,7 @@ export default function ArtistsPage() {
             <button
               onClick={() => {
                 setDone(null);
-                setSongs([{ url: "", genre: "" }]);
+                setSongs([{ url: "", genre: "", ai: null }]);
                 setCopied(null);
                 setError(null);
               }}
@@ -306,13 +307,43 @@ export default function ArtistsPage() {
                 </button>
               ))}
             </div>
+
+            {/* Asked outright, because nothing else can answer it. Spotify's
+                own AI credits are declared by the artist through their
+                distributor, and neither Spotify's nor Apple's API exposes a
+                flag anyone could read. No default is pre-selected: an
+                unanswered question must not pass as a quiet "no". */}
+            <span className="text-muted mb-2 mt-4 block text-xs">
+              Was generative AI used to create this track? Some listeners filter it out, and
+              answering honestly is the only thing that keeps that filter worth having.
+            </span>
+            <div className="flex gap-2">
+              {([
+                [false, "No, no AI"],
+                [true, "Yes, AI was used"],
+              ] as const).map(([value, label]) => (
+                <button
+                  type="button"
+                  key={label}
+                  aria-pressed={song.ai === value}
+                  onClick={() => setSong(i, { ai: song.ai === value ? null : value })}
+                  className={`rounded-full border px-4 py-1.5 text-sm transition ${
+                    song.ai === value
+                      ? "border-gold bg-gold text-bg font-semibold"
+                      : "border-edge text-muted hover:border-gold/50 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         ))}
 
         {songs.length < MAX_SONGS ? (
           <button
             type="button"
-            onClick={() => setSongs([...songs, { url: "", genre: "" }])}
+            onClick={() => setSongs([...songs, { url: "", genre: "", ai: null }])}
             className="border-edge hover:border-gold hover:text-gold rounded-full border border-dashed px-6 py-3 text-sm font-semibold transition"
           >
             + Add another song ({songs.length} of {MAX_SONGS})

@@ -9,6 +9,7 @@ import { Disc, Note } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan, Track } from "@/lib/types";
 
+const AI_KEY = "motr_allow_ai";
 const GENRE_KEY = "motr:genre";
 
 type FeedResponse = {
@@ -21,10 +22,12 @@ type FeedResponse = {
 async function fetchNextTrack(
   fanId: string,
   genre: string | null,
+  allowAi: boolean,
   startWith?: string | null
 ): Promise<FeedResponse> {
   const q = new URLSearchParams({ fanId });
   if (genre) q.set("genre", genre);
+  if (!allowAi) q.set("ai", "0");
   if (startWith) q.set("track", startWith);
   const res = await fetch(`/api/discover/next?${q}`);
   return res.json();
@@ -65,6 +68,9 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   // Chosen mood, remembered between visits — someone who filtered to Jazz
   // last night probably still wants Jazz, but can switch in one tap.
   const [genre, setGenre] = useState<string | null>(null);
+  // On unless the listener has turned it off. Defaulting to exclusion would
+  // bury the artists who answered the question honestly.
+  const [allowAi, setAllowAi] = useState(true);
   const [genreCounts, setGenreCounts] = useState<Record<string, number>>();
   const [exhausted, setExhausted] = useState<{ othersAvailable: number } | null>(null);
   const [showAd, setShowAd] = useState(false);
@@ -72,7 +78,17 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
   useEffect(() => {
     setGenre(localStorage.getItem(GENRE_KEY));
+    setAllowAi(localStorage.getItem(AI_KEY) !== "0");
   }, []);
+
+  function chooseAi(next: boolean) {
+    setAllowAi(next);
+    localStorage.setItem(AI_KEY, next ? "1" : "0");
+    // The card on screen was chosen under the old setting, so it goes.
+    setTrack(undefined);
+    setExhausted(null);
+    setRefreshKey((k) => k + 1);
+  }
 
   function chooseGenre(next: string | null) {
     setGenre(next);
@@ -91,7 +107,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     const startWith = sharedRef.current;
     sharedRef.current = null;
 
-    fetchNextTrack(fan.id, genre, startWith).then((res) => {
+    fetchNextTrack(fan.id, genre, allowAi, startWith).then((res) => {
       if (ignore) return;
       setTrack(res.track);
       setExhausted(
@@ -101,7 +117,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     return () => {
       ignore = true;
     };
-  }, [fan.id, refreshKey, genre]);
+  }, [fan.id, refreshKey, genre, allowAi]);
 
   // Refreshed alongside the feed so the per-genre counts stay honest as the
   // fan swipes through them.
@@ -153,14 +169,44 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
         <GenrePicker value={genre} onChange={chooseGenre} counts={genreCounts} />
       </div>
 
+      {/* Sits on the row that already carries the listener's own settings,
+          rather than adding a row of its own — the swipe screen has to fit a
+          phone without scrolling. Off means "hide tracks the artist declared
+          as AI"; it can only ever be as good as their answer, which is the
+          same limitation Spotify's own AI credits have. */}
+
       <div className="mb-3 flex w-full max-w-sm shrink-0 items-center justify-between md:max-w-2xl">
         <span className="motr-label">
           <span className="text-white">{fan.username}</span>
         </span>
-        <span className="motr-label flex items-center gap-1.5">
-          <Note className="text-gold h-3 w-3" />
-          <span className="text-gold">{savedCount}</span> saved
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => chooseAi(!allowAi)}
+            aria-pressed={allowAi}
+            title={
+              allowAi
+                ? "AI music is included. Tap to hide tracks the artist declared as AI."
+                : "AI music is hidden. Tap to include it again."
+            }
+            className={`motr-label flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition ${
+              allowAi
+                ? "border-edge text-muted hover:text-white"
+                : "border-gold/50 bg-gold/10 text-gold"
+            }`}
+          >
+            <span
+              aria-hidden
+              className={`h-1.5 w-1.5 rounded-full ${allowAi ? "bg-muted" : "bg-gold"}`}
+            />
+            AI {allowAi ? "on" : "off"}
+          </button>
+
+          <span className="motr-label flex items-center gap-1.5">
+            <Note className="text-gold h-3 w-3" />
+            <span className="text-gold">{savedCount}</span> saved
+          </span>
+        </div>
       </div>
 
       {/* A track clearing the fan vote is the whole point of the app —
