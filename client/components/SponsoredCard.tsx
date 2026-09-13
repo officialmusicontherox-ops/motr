@@ -15,21 +15,21 @@ declare global {
 /**
  * An ad in the swipe rotation, shaped like a card.
  *
- * Swiping either way dismisses it and nothing is recorded — there is no vote
- * to cast on an advert. Visiting the advertiser means tapping the ad itself,
- * which is a real click inside Google's frame.
+ * The gesture problem, stated plainly: an AdSense ad renders in a
+ * cross-origin iframe, so a touch that lands on the ad belongs to Google and
+ * never reaches this component. There is no way to swipe a card away by
+ * dragging the advert itself, on any site, by any means.
  *
- * That distinction is not a design preference. An AdSense ad renders in a
- * cross-origin iframe: the destination URL is never exposed to this page, so
- * "swipe right to open the ad" cannot be implemented even in principle, and
- * synthesising a click from a gesture is invalid traffic — the fastest way to
- * have a publisher account terminated. So the gesture dismisses, and only a
- * deliberate tap on the ad counts.
+ * The first version filled the card with the ad and left only a hairline of
+ * frame to drag, which meant a listener mid-swipe hit a card that simply
+ * refused to move. So the ad is now a fixed block with real margin around it:
+ * everything outside that block drags normally, and the controls underneath
+ * are the same shape and in the same place as the Nope/Like buttons on a
+ * track card, so the habit already formed still works.
  *
- * Because the ad is an iframe, pointer events over it belong to Google, not
- * to us. The drag handles live on the frame around it, and a Skip button is
- * always present so there is a way past that doesn't depend on finding the
- * border.
+ * Tapping the ad is a genuine click inside Google's frame, which is the only
+ * kind that may be counted. Synthesising one from a gesture would be invalid
+ * traffic and is the fastest way to lose a publisher account.
  */
 export default function SponsoredCard({
   client,
@@ -53,13 +53,13 @@ export default function SponsoredCard({
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch {
-      // A blocked or failed ad must never break the feed. The card still
-      // shows its frame and its Skip button, and the listener moves on.
+      // A blocked or failed ad must never break the feed. The card keeps its
+      // frame and its controls, and the listener moves on.
     }
   }, []);
 
-  function commit() {
-    setDx(dx > 0 ? EXIT_DISTANCE : -EXIT_DISTANCE);
+  function leave(direction: -1 | 1) {
+    setDx(direction * EXIT_DISTANCE);
     setTimeout(onDismiss, 180);
   }
 
@@ -77,11 +77,12 @@ export default function SponsoredCard({
   function onPointerUp() {
     if (!dragging) return;
     setDragging(false);
-    if (Math.abs(dx) > SWIPE_THRESHOLD) commit();
+    if (Math.abs(dx) > SWIPE_THRESHOLD) leave(dx > 0 ? 1 : -1);
     else setDx(0);
   }
 
   const rotation = dx / 22;
+  const drift = Math.min(Math.abs(dx) / SWIPE_THRESHOLD, 1);
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col select-none md:max-w-2xl md:justify-center">
@@ -98,9 +99,6 @@ export default function SponsoredCard({
           }}
           className="border-edge bg-surface relative flex min-h-0 flex-1 cursor-grab flex-col overflow-hidden rounded-[28px] border shadow-2xl active:cursor-grabbing"
         >
-          {/* Labelled, and not subtly. An ad a listener mistakes for a track
-              is the thing that gets a publisher account reviewed, and it is
-              also just dishonest. */}
           <div className="border-edge flex shrink-0 items-center justify-between border-b px-4 py-2.5">
             <span className="motr-label text-muted">Sponsored</span>
             <button
@@ -113,12 +111,18 @@ export default function SponsoredCard({
             </button>
           </div>
 
-          {/* The ad itself. Padding on all sides is deliberate: it gives the
-              drag gesture somewhere to land that isn't Google's iframe. */}
-          <div className="flex min-h-0 flex-1 items-center justify-center p-3">
+          {/* The ad is a fixed block, not a filler. The padding around it is
+              the part a finger can actually drag, so it has to be wide enough
+              to hit without aiming. */}
+          <div className="flex min-h-0 flex-1 items-center justify-center px-8 py-5">
             <ins
               className="adsbygoogle"
-              style={{ display: "block", width: "100%", height: "100%", minHeight: 250 }}
+              style={{
+                display: "block",
+                width: 300,
+                height: 250,
+                maxWidth: "100%",
+              }}
               data-ad-client={client}
               data-ad-slot={slot}
               data-ad-format="rectangle"
@@ -126,20 +130,47 @@ export default function SponsoredCard({
             />
           </div>
 
-          <p className="text-muted/70 shrink-0 px-4 pb-3 text-center text-[0.65rem] leading-relaxed">
-            Ads keep MOTR free. Swipe either way to carry on, or tap the ad if it interests you.
+          <p
+            className="text-muted/70 shrink-0 px-4 pb-3 text-center text-[0.65rem] leading-relaxed transition-opacity"
+            style={{ opacity: 1 - drift }}
+          >
+            Drag anywhere around the ad, or use the buttons below. Tap the ad only if it
+            interests you.
           </p>
         </div>
       </div>
 
-      {/* Matches the height the Nope/Like row occupies on a track card, so the
-          feed doesn't jump when an ad comes up. */}
-      <div className="mt-3 flex shrink-0 justify-center">
+      {/* Same shape, same place, same size as the Nope/Like row on a track
+          card. Someone who has swiped ten tracks already knows where these
+          are, which matters more here than anywhere else because the card
+          itself can't be dragged across its middle. */}
+      <div className="relative z-10 mt-3 flex shrink-0 items-center justify-center gap-3">
         <button
-          onClick={onDismiss}
-          className="border-edge hover:border-gold hover:text-gold rounded-full border px-8 py-3 text-sm font-semibold transition"
+          type="button"
+          onClick={() => leave(-1)}
+          className="border-edge bg-surface-2 text-muted hover:border-gold hover:text-gold flex flex-1 items-center justify-center gap-2 rounded-2xl border py-3 transition"
         >
-          Keep swiping
+          <Cross className="h-5 w-5" />
+          <span className="text-left leading-tight">
+            <span className="motr-verdict block text-lg">Skip</span>
+            <span className="text-muted block text-[0.6rem] uppercase tracking-widest">
+              Back to music
+            </span>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => leave(1)}
+          className="border-edge bg-surface-2 text-muted hover:border-gold hover:text-gold flex flex-1 items-center justify-center gap-2 rounded-2xl border py-3 transition"
+        >
+          <span className="text-right leading-tight">
+            <span className="motr-verdict block text-lg">Next</span>
+            <span className="text-muted block text-[0.6rem] uppercase tracking-widest">
+              Keep swiping
+            </span>
+          </span>
+          <Cross className="h-5 w-5 rotate-45" />
         </button>
       </div>
     </div>
