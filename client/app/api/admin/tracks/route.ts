@@ -150,7 +150,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { trackId, action, note, genre, previewUrl } = await req.json().catch(() => ({}));
+  const { trackId, action, note, genre, previewUrl, aiGenerated } = await req
+    .json()
+    .catch(() => ({}));
 
   // Correcting a genre matters as much as removing a track: routing is by
   // genre, so a country song filed under R&B reaches five curators who
@@ -161,6 +163,27 @@ export async function POST(req: NextRequest) {
     }
     const updated = await prisma.track.update({ where: { id: trackId }, data: { genre } });
     return NextResponse.json({ track: { id: updated.id, genre: updated.genre } });
+  }
+
+  /**
+   * Label a track as AI, or clear the label.
+   *
+   * The question only reaches artists submitting from now on, which leaves
+   * every track already in the feed unasked — and the operator knows most of
+   * them personally. Three states, not two: true, false, and null for "still
+   * don't know", because a filter that quietly recategorises unknowns as
+   * clean is a filter that lies.
+   */
+  if (action === "SET_AI") {
+    if (!trackId) {
+      return NextResponse.json({ error: "trackId is required" }, { status: 400 });
+    }
+    const value = aiGenerated === true ? true : aiGenerated === false ? false : null;
+    const updated = await prisma.track.update({
+      where: { id: trackId },
+      data: { aiGenerated: value },
+    });
+    return NextResponse.json({ track: { id: updated.id, aiGenerated: updated.aiGenerated } });
   }
 
   /**

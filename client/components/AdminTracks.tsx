@@ -12,6 +12,7 @@ type Track = {
   artworkUrl: string | null;
   previewUrl: string;
   genre: string | null;
+  aiGenerated: boolean | null;
   status: string;
   feeStatus: string;
   fanRightSwipes: number;
@@ -95,6 +96,26 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
     a.play().catch(() => setPlaying(null));
     a.onended = () => setPlaying(null);
     setPlaying(t.id);
+  }
+
+  /**
+   * Label a track as AI, or clear the label.
+   *
+   * Three states rather than two: the submit-form question only reaches
+   * artists from now on, so everything already in the feed is genuinely
+   * unknown until someone says otherwise. Recording an unknown as "not AI"
+   * would make the listener's filter a promise the data can't keep.
+   */
+  async function setAi(t: Track, aiGenerated: boolean | null) {
+    setBusy(t.id);
+    await fetch("/api/admin/tracks", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ trackId: t.id, action: "SET_AI", aiGenerated }),
+    });
+    setBusy(null);
+    onChanged?.();
+    load();
   }
 
   async function setGenre(t: Track, genre: string) {
@@ -296,6 +317,31 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                     </select>
                     {t.genre === null && <span className="text-nope">routes nowhere</span>}
                   </label>
+
+                  {/* Cycles unknown to AI to not-AI and back. One control
+                      rather than three buttons on every row, since most
+                      tracks never need touching and the list is long. */}
+                  <button
+                    type="button"
+                    disabled={busy === t.id}
+                    onClick={() =>
+                      setAi(t, t.aiGenerated === null ? true : t.aiGenerated ? false : null)
+                    }
+                    title="Click to cycle: not asked → AI → not AI"
+                    className={`mt-1.5 rounded-md border px-2 py-1 text-xs transition disabled:opacity-40 ${
+                      t.aiGenerated === true
+                        ? "border-gold/50 bg-gold/10 text-gold"
+                        : t.aiGenerated === false
+                          ? "border-edge text-muted"
+                          : "border-edge text-muted/60"
+                    }`}
+                  >
+                    {t.aiGenerated === true
+                      ? "AI: yes"
+                      : t.aiGenerated === false
+                        ? "AI: no"
+                        : "AI: not asked"}
+                  </button>
                   <p className="mt-0.5 text-xs text-muted">
                     Added {new Date(t.addedAt).toLocaleDateString()} ·{" "}
                     {t.submittedBy ? (
