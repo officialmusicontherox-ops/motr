@@ -113,8 +113,16 @@ export default function SponsoredCard({
 
           {/* The ad is a fixed block, not a filler. The padding around it is
               the part a finger can actually drag, so it has to be wide enough
-              to hit without aiming. */}
-          <div className="flex min-h-0 flex-1 items-center justify-center px-8 py-5">
+              to hit without aiming — and now says so. */}
+          <div className="relative flex min-h-0 flex-1 items-center justify-center px-8 py-5">
+            {/* Only on ad cards. A track card needs no instructions because
+                the whole thing drags; this one has a dead centre, so the
+                live edges have to be visible. They brighten as the card
+                moves, which confirms the drag is working the moment it
+                starts. */}
+            <SwipeRail side="left" active={drift} />
+            <SwipeRail side="right" active={drift} />
+
             <ins
               className="adsbygoogle"
               style={{
@@ -134,8 +142,7 @@ export default function SponsoredCard({
             className="text-muted/70 shrink-0 px-4 pb-3 text-center text-[0.65rem] leading-relaxed transition-opacity"
             style={{ opacity: 1 - drift }}
           >
-            Drag anywhere around the ad, or use the buttons below. Tap the ad only if it
-            interests you.
+            Swipe from either edge, or use the buttons below. Tap the ad only if it interests you.
           </p>
         </div>
       </div>
@@ -174,5 +181,32 @@ export default function SponsoredCard({
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * The live edge of an ad card.
+ *
+ * Never intercepts a pointer: it marks where the drag works, it doesn't
+ * handle it. Anything clickable here would compete with the ad for the tap.
+ */
+function SwipeRail({ side, active }: { side: "left" | "right"; active: number }) {
+  const left = side === "left";
+  return (
+    <span
+      aria-hidden
+      className={`text-muted pointer-events-none absolute top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1 ${
+        left ? "left-1" : "right-1"
+      }`}
+      style={{ opacity: 0.45 + active * 0.55 }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+           strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+        <path d={left ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+      </svg>
+      <span className="text-[0.5rem] font-bold uppercase tracking-[0.15em] [writing-mode:vertical-rl]">
+        Swipe
+      </span>
+    </span>
   );
 }
