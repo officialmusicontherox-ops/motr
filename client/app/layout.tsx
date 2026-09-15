@@ -104,12 +104,12 @@ export default function RootLayout({
       <head>
         {/*
           Applied before the first paint. Reading the saved theme in React
-          would mean rendering dark first and correcting a frame later, which
-          is a white flash on every load for anyone using light mode.
+          would mean rendering the default first and correcting a frame later,
+          which is a visible flash on every load for anyone who switched.
         */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem("motr_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}`,
+            __html: `try{if(localStorage.getItem("motr_theme")==="dark")document.documentElement.setAttribute("data-theme","dark")}catch(e){}`,
           }}
         />
       </head>

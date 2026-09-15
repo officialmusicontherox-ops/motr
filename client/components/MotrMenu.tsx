@@ -29,15 +29,15 @@ export default function MotrMenu({
   // layout.tsx has already applied the saved theme by now, so the DOM is the
   // one source that can't disagree with what's on screen.
   useEffect(() => {
-    setLight(document.documentElement.getAttribute("data-theme") === "light");
+    setLight(document.documentElement.getAttribute("data-theme") !== "dark");
   }, []);
 
   function toggleTheme() {
     const next = !light;
     setLight(next);
     const root = document.documentElement;
-    if (next) root.setAttribute("data-theme", "light");
-    else root.removeAttribute("data-theme");
+    if (next) root.removeAttribute("data-theme");
+    else root.setAttribute("data-theme", "dark");
     try {
       localStorage.setItem("motr_theme", next ? "light" : "dark");
     } catch {

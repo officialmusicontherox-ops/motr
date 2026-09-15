@@ -5,32 +5,6 @@
  * the comp rather than an approximation of it.
  */
 :root {
-  --motr-bg: #09090a;
-  --motr-surface: #131312;
-  --motr-surface-2: #1c1c1c;
-  --motr-border: #262625;
-
-  --motr-gold: #dcb55f;
-  --motr-gold-dim: #a1834d;
-
-  --motr-green: #47ca41;
-  --motr-red: #d33249;
-
-  --motr-text: #ffffff;
-  --motr-muted: #8b8b8b;
-}
-
-/*
- * Light mode.
- *
- * Only the variables change — every component reads them through Tailwind's
- * theme, so nothing else needs to know which mode it's in.
- *
- * The gold drops to its dim variant here. The bright one is a highlight
- * against near-black and turns illegible on white, which is why a second
- * gold already existed.
- */
-[data-theme="light"] {
   --motr-bg: #faf9f7;
   --motr-surface: #ffffff;
   --motr-surface-2: #efedE8;
@@ -44,6 +18,31 @@
 
   --motr-text: #16161a;
   --motr-muted: #67655f;
+}
+
+/*
+ * Dark mode.
+ *
+ * Light is the default, so dark is the opt-in. Only the variables change — every component reads them through Tailwind's
+ * theme, so nothing else needs to know which mode it's in.
+ *
+ * The bright gold lives here rather than in :root: it is a highlight against
+ * near-black and turns illegible on white, so light mode uses a deeper one.
+ */
+[data-theme="dark"] {
+  --motr-bg: #09090a;
+  --motr-surface: #131312;
+  --motr-surface-2: #1c1c1c;
+  --motr-border: #262625;
+
+  --motr-gold: #dcb55f;
+  --motr-gold-dim: #a1834d;
+
+  --motr-green: #47ca41;
+  --motr-red: #d33249;
+
+  --motr-text: #ffffff;
+  --motr-muted: #8b8b8b;
 }
 
 @theme inline {
@@ -66,11 +65,11 @@
 
 /* Follows whichever theme is set, so form controls and scrollbars match. */
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
-html[data-theme="light"] {
-  color-scheme: light;
+html[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 body {
