@@ -71,6 +71,22 @@ async function send(to: string, subject: string, html: string): Promise<SendResu
 }
 
 /** Dark shell matching the app, with inline styles since mail clients ignore <style>. */
+/**
+ * The weekly contest, stated once.
+ *
+ * Every artist email that asks someone to share needs a reason why sharing
+ * matters this week rather than in general, and this is it. Defined here so
+ * the prize can't end up described three different ways.
+ */
+const WEEKLY_PRIZE = `
+  <p style="margin:16px 0 0;padding:14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
+    <strong style="color:#dcb55f">New: a weekly winner.</strong>
+    Every week, the artist whose music gets saved the most on MOTR wins a full
+    write-up on Music On The Rox: a real piece of editorial on a real site,
+    not a playlist slot. Your own fans swiping is what decides it, so the most
+    useful thing you can do is send them over.
+  </p>`;
+
 function shell(heading: string, body: string, cta?: { label: string; url: string }) {
   return `
 <div style="background:#09090a;padding:32px 16px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
@@ -280,7 +296,8 @@ export function submissionReceivedEmail(params: {
        ${list}
        <p style="margin:14px 0 12px"><strong style="color:#fff">Send your own fans to ${many ? "these links" : "that link"}.</strong> It is the single thing that moves a track here, and your own audience are the listeners most likely to swipe right.</p>
        <p style="margin:0 0 12px">Ask them to let the full thirty seconds play. A listener who hears it out counts double, so one patient fan is worth two who skip early.</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">We'll email you the moment ${many ? "one of them breaks" : "it breaks"} through. Nothing to do until then.</p>`,
+       ${WEEKLY_PRIZE}
+       <p style="margin:16px 0 0;color:#8b8b8b;font-size:13px">We'll email you the moment ${many ? "one of them breaks" : "it breaks"} through. Nothing to do until then.</p>`,
       { label: many ? "Open your first track" : "Open your track", url: `${APP_URL}/?track=${first.id}` }
     ),
   };
@@ -436,7 +453,8 @@ export function trackMilestoneEmail(params: {
          <p style="margin:16px 0 0"><strong style="color:#fff">So here's the ask.</strong> Send your own fans to MOTR. Every one of them who swipes right pushes ${
            tracks.length === 1 ? "your track" : "your tracks"
          } further up, and it costs you nothing but a share.</p>
-         <p style="margin:10px 0 0;color:#8b8b8b;font-size:14px">${appUrl.replace(/^https?:\/\//, "")}</p>`,
+         <p style="margin:10px 0 0;color:#8b8b8b;font-size:14px">${appUrl.replace(/^https?:\/\//, "")}</p>
+         ${WEEKLY_PRIZE}`,
         { label: "Share MOTR with your fans", url: appUrl }
       ) +
       `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
@@ -585,7 +603,7 @@ export function submitMoreMusicEmail(params: {
   unsubscribeUrl: string;
 }) {
   const { name, tracks, saves, appUrl, unsubscribeUrl } = params;
-  const plural = tracks === 1 ? "track is" : "tracks are";
+  const plural = tracks === 1 ? "is" : "are";
 
   return {
     subject:
@@ -602,7 +620,8 @@ export function submitMoreMusicEmail(params: {
              : `Your ${tracks === 1 ? "track is" : `${tracks} tracks are`} in rotation on MOTR, playing to listeners who hear thirty seconds with no idea who made ${tracks === 1 ? "it" : "them"}.`
          }</p>
          <p style="margin:0 0 14px"><strong style="color:#fff">If you've released anything since, send it over.</strong> It's free, it always will be, and a second track doubles the chances one of them catches. Paste a Spotify link and it's in the feed the same day.</p>
-         <p style="margin:0;color:#8b8b8b;font-size:13px">Nothing to pay, no queue to jump, and no limit on how often you come back.</p>`,
+         ${WEEKLY_PRIZE}
+         <p style="margin:16px 0 0;color:#8b8b8b;font-size:13px">Nothing to pay, no queue to jump, and no limit on how often you come back.</p>`,
         { label: "Submit another song", url: `${appUrl}/artists` }
       ) +
       `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
