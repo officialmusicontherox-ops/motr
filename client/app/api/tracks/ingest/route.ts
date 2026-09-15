@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resetArtistNudges } from "@/lib/artistNudges";
 import { prisma } from "@/lib/prisma";
 import {
   newSubmissionEmail,
@@ -185,6 +186,10 @@ export async function POST(req: NextRequest) {
       ...(typeof requiredFanVotes === "number" ? { requiredFanVotes } : {}),
     },
   });
+
+  // They came back, so the come-back emails start over. Without this an
+  // artist who returns after two nudges only ever has one left.
+  if (artistId) await resetArtistNudges(artistId);
 
   // The track is live, so any earlier refusal of it is history, not a job.
   // Without this a successful retry left the failure sitting in the admin

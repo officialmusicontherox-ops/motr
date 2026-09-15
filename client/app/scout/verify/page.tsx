@@ -25,7 +25,7 @@ export default async function ScoutVerifyPage({
         <>
           <h1 className="font-display text-3xl uppercase tracking-wide">You&apos;re nearly in</h1>
           <p className="text-muted max-w-sm text-sm leading-relaxed">
-            Signing in as <span className="text-white">{valid.email}</span>.
+            Signing in as <span className="text-ink">{valid.email}</span>.
           </p>
           <ConfirmScoutSignIn token={token!} />
         </>

@@ -570,6 +570,47 @@ export function weeklyChartEmail(params: {
   };
 }
 
+/**
+ * The come-back email for artists: send us more music.
+ *
+ * Leads with what their existing tracks did, not with the ask. "Your music
+ * picked up 40 saves, got anything else?" is a different email from "got
+ * anything else?", and only one of them is worth opening.
+ */
+export function submitMoreMusicEmail(params: {
+  name: string;
+  tracks: number;
+  saves: number;
+  appUrl: string;
+  unsubscribeUrl: string;
+}) {
+  const { name, tracks, saves, appUrl, unsubscribeUrl } = params;
+  const plural = tracks === 1 ? "track is" : "tracks are";
+
+  return {
+    subject:
+      saves > 0
+        ? `Your music has ${saves} save${saves === 1 ? "" : "s"} on MOTR`
+        : "Got anything new for MOTR?",
+    html:
+      shell(
+        saves > 0 ? "Your music is still working" : "Room for more",
+        `<p style="margin:0 0 12px">Hi ${name},</p>
+         <p style="margin:0 0 14px">${
+           saves > 0
+             ? `Your ${tracks === 1 ? "track" : `${tracks} tracks`} on MOTR ${plural} still in rotation, and ${saves === 1 ? "one listener has" : `${saves} listeners have`} saved ${tracks === 1 ? "it" : "them"} after hearing thirty seconds with no name attached.`
+             : `Your ${tracks === 1 ? "track is" : `${tracks} tracks are`} in rotation on MOTR, playing to listeners who hear thirty seconds with no idea who made ${tracks === 1 ? "it" : "them"}.`
+         }</p>
+         <p style="margin:0 0 14px"><strong style="color:#fff">If you've released anything since, send it over.</strong> It's free, it always will be, and a second track doubles the chances one of them catches. Paste a Spotify link and it's in the feed the same day.</p>
+         <p style="margin:0;color:#8b8b8b;font-size:13px">Nothing to pay, no queue to jump, and no limit on how often you come back.</p>`,
+        { label: "Submit another song", url: `${appUrl}/artists` }
+      ) +
+      `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
+         <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> and we won't email you again.
+       </p>`,
+  };
+}
+
 export async function sendEmail(to: string, template: { subject: string; html: string }) {
   return send(to, template.subject, template.html);
 }

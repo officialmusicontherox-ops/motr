@@ -230,7 +230,7 @@ export default function AdminCurators({ onChanged }: { onChanged: () => void }) 
               className={`rounded-full px-3.5 py-1.5 text-xs font-semibold capitalize ${
                 filter === f
                   ? "bg-gold text-bg"
-                  : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+                  : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
               }`}
             >
               {f === "all" ? "All" : f.toLowerCase()}
@@ -606,7 +606,7 @@ function ConfirmDialog({
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="rounded-full border border-edge px-5 py-2.5 text-sm font-semibold transition hover:text-white"
+            className="rounded-full border border-edge px-5 py-2.5 text-sm font-semibold transition hover:text-ink"
           >
             Cancel
           </button>
@@ -617,7 +617,7 @@ function ConfirmDialog({
               onConfirm(note);
             }}
             className={`rounded-full px-5 py-2.5 text-sm font-bold transition disabled:opacity-30 ${
-              action.tone === "danger" ? "bg-nope text-white" : "bg-gold text-bg"
+              action.tone === "danger" ? "bg-nope text-ink" : "bg-gold text-bg"
             }`}
           >
             {busy ? "Working..." : action.label}

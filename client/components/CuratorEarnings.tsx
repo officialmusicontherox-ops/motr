@@ -125,7 +125,7 @@ export default function CuratorEarnings({ curator }: { curator: User }) {
           <h1 className="font-display text-3xl uppercase tracking-wide">Earnings</h1>
           <a
             href="/curate"
-            className="border-edge text-muted hover:text-white shrink-0 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-widest transition"
+            className="border-edge text-muted hover:text-ink shrink-0 rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-widest transition"
           >
             Queue
           </a>

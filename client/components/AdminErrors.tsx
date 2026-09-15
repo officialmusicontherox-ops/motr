@@ -89,7 +89,7 @@ export default function AdminErrors() {
               className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${
                 view === v.key
                   ? "bg-gold text-bg"
-                  : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+                  : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
               }`}
             >
               {v.label}
@@ -106,7 +106,7 @@ export default function AdminErrors() {
               {" · "}
               <button
                 onClick={() => act(null, "CLEAR_RESOLVED")}
-                className="underline underline-offset-2 hover:text-white"
+                className="underline underline-offset-2 hover:text-ink"
               >
                 clear resolved
               </button>

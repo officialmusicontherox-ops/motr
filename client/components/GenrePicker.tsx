@@ -137,7 +137,7 @@ function Chip({
       className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
         active
           ? "border-gold bg-gold text-bg"
-          : "border-edge text-muted hover:border-gold/50 hover:text-white"
+          : "border-edge text-muted hover:border-gold/50 hover:text-ink"
       }`}
     >
       {children}

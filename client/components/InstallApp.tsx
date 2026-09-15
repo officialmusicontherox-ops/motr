@@ -182,7 +182,7 @@ export default function InstallApp({ variant = "banner" }: { variant?: "banner" 
         <button
           onClick={dismiss}
           aria-label="Dismiss"
-          className="text-muted hover:text-white shrink-0 p-1 transition"
+          className="text-muted hover:text-ink shrink-0 p-1 transition"
         >
           <Cross className="h-4 w-4" />
         </button>

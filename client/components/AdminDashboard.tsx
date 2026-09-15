@@ -3,15 +3,14 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
-import AdminReviewQueues from "./AdminReviewQueues";
-import AdminPayoutQueues from "./AdminPayoutQueues";
 import AdminAudience from "./AdminAudience";
-import AdminCurators from "./AdminCurators";
 import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
 import AdminFeedHealth from "./AdminFeedHealth";
 import AdminNudges from "./AdminNudges";
 import AdminArtistUpdates from "./AdminArtistUpdates";
+import AdminArtistNudges from "./AdminArtistNudges";
+import AdminChartWinners from "./AdminChartWinners";
 import AdminWeeklyChart from "./AdminWeeklyChart";
 import AdminScouts from "./AdminScouts";
 import AdminReports from "./AdminReports";
@@ -23,15 +22,8 @@ import PullToRefresh from "./PullToRefresh";
 type Stats = {
  counts: {
  fans: number;
- curators: number;
  artists: number;
  fanSwipes: number;
- curatorSwipes: number;
- awaitingPayment: number;
- pendingSubmissions: number;
- pendingApplications: number;
- pendingFeatures: number;
- pendingWithdrawals: number;
  };
  tracksByStatus: Record<string, number>;
  revenue: { totalCents: number; paidCount: number };
@@ -51,7 +43,7 @@ type Stats = {
 const money = (cents: number) =>
  (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
-const TABS = ["tracks", "payments", "artists", "curators"] as const;
+const TABS = ["tracks", "artists"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AdminDashboard({
@@ -160,76 +152,28 @@ export default function AdminDashboard({
  ) : (
  <>
  <section className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
- <Stat
- label="Revenue"
- value={money(stats.revenue.totalCents)}
- sub={`${stats.revenue.paidCount} paid`}
- />
- <Stat
- label="Owed to curators"
- value={money(stats.payouts.owedCents)}
- sub={`${stats.payouts.owedCount} share(s)`}
- />
- <Stat
- label="Paid out"
- value={money(stats.payouts.paidOutCents)}
- sub={`${stats.payouts.paidOutCount} share(s)`}
- />
  <Stat label="Artists" value={String(stats.counts.artists)} />
  <Stat
- label="Fans"
+ label="Listeners"
  value={String(stats.counts.fans)}
  sub={`${stats.counts.fanSwipes} swipes`}
  />
- <Stat label="Curators" value={String(stats.counts.curators)} />
- <Stat label="In discovery" value={String(stats.tracksByStatus.DISCOVERY ?? 0)} />
- <Stat label="With curators" value={String(stats.tracksByStatus.VETTING ?? 0)} />
+ <Stat label="In the feed" value={String(stats.tracksByStatus.DISCOVERY ?? 0)} />
+ <Stat label="Pulled" value={String(stats.tracksByStatus.REJECTED ?? 0)} />
  </section>
-
- <div className="mt-4 space-y-2">
- {stats.counts.awaitingPayment > 0 && (
- <Alert tone="amber">
- {stats.counts.awaitingPayment} track(s) hit the fan threshold and are awaiting
- artist payment.
- </Alert>
- )}
- {stats.counts.pendingSubmissions > 0 && (
- <Alert tone="sky">
- {stats.counts.pendingSubmissions} paid submission(s) waiting on your review.
- </Alert>
- )}
- {stats.counts.pendingApplications > 0 && (
- <Alert tone="violet">
- {stats.counts.pendingApplications} curator application(s) waiting on your review.
- </Alert>
- )}
- {stats.counts.pendingFeatures > 0 && (
- <Alert tone="emerald">
- {stats.counts.pendingFeatures} curator share(s) waiting to be verified.
- </Alert>
- )}
- {stats.counts.pendingWithdrawals > 0 && (
- <Alert tone="rose">
- {stats.counts.pendingWithdrawals} cashout request(s) to send.
- </Alert>
- )}
- </div>
 
  <div key={refreshKey}>
  <AdminReports />
 
 
- <AdminReviewQueues onChanged={loadStats} />
 
 
 
  <AdminRefused onChanged={loadStats} />
- <AdminPayoutQueues onChanged={loadStats} />
 
  <AdminAudience />
 
 
- <AdminCurators onChanged={loadStats} />
 
 
 
@@ -237,7 +181,7 @@ export default function AdminDashboard({
 
  <AdminSection
  title="Records"
- description="Raw rows behind the app — artists, curators, tracks and payments."
+ description="Raw rows behind the app: artists, tracks and listeners."
  defaultOpen={false}
  >
  <div className="flex gap-2">
@@ -251,7 +195,7 @@ export default function AdminDashboard({
  className={`rounded-full px-4 py-1.5 text-sm capitalize ${
  tab === t
  ? "bg-gold text-bg"
- : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+ : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
  }`}
  >
  {t}
@@ -314,7 +258,11 @@ export default function AdminDashboard({
 
  <AdminScouts />
 
+ <AdminChartWinners />
+
  <AdminWeeklyChart />
+
+ <AdminArtistNudges />
 
  <AdminArtistUpdates />
 

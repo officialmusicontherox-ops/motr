@@ -28,7 +28,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <li>Artists submit music for free, and it stays in the feed for free.</li>
         <li>
           Every track is heard with{" "}
-          <strong className="text-white">no artist name attached</strong>, so what comes back is a
+          <strong className="text-ink">no artist name attached</strong>, so what comes back is a
           verdict on the song.
         </li>
         <li>Nobody can buy their way past the fan vote, because there is nothing to buy.</li>
@@ -53,12 +53,12 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         </p>
         <ul>
           <li>
-            <span className="text-white">What you get:</span> your track goes into the feed and is
+            <span className="text-ink">What you get:</span> your track goes into the feed and is
             played to listeners with no name and no artwork they recognise, so the response is to
             the music itself.
           </li>
           <li>
-            <span className="text-white">What we don&apos;t promise:</span> a particular number of
+            <span className="text-ink">What we don&apos;t promise:</span> a particular number of
             plays, a good reception, or any outcome at all. Listeners may pass on it. That is a
             legitimate result, not a failure of the service.
           </li>
@@ -89,7 +89,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           counts in full.
         </p>
         <p className="mt-3">
-          <span className="text-white">If you sign in, we may email you.</span> That means things
+          <span className="text-ink">If you sign in, we may email you.</span> That means things
           like a reminder when you haven&apos;t swiped in a while, or news about tracks you
           saved, not adverts for anyone else. Every one carries an unsubscribe link and a single
           click ends them permanently, without touching your account or your saves. Swipe without

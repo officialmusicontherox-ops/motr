@@ -109,7 +109,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
                       <Disc className="text-gold/30 h-6 w-6" />
                     </span>
                   )}
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-white">
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-ink">
                     {playing === t.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </span>
                 </button>

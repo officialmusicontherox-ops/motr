@@ -114,7 +114,7 @@ export default function AdminReports() {
             className={`rounded-full px-4 py-1.5 text-sm font-semibold ${
               period === p.key
                 ? "bg-gold text-bg"
-                : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+                : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
             }`}
           >
             {p.label}
@@ -250,7 +250,7 @@ export default function AdminReports() {
 
           <p className="mt-3 text-xs text-muted">
             &ldquo;Save as PDF&rdquo; opens your browser&apos;s print dialog — choose
-            <strong className="text-white"> Save as PDF</strong> as the destination. Only this
+            <strong className="text-ink"> Save as PDF</strong> as the destination. Only this
             report is included.
           </p>
         </div>

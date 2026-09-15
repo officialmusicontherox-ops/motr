@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function ScoutPage() {
   return (
-    <main className="bg-bg min-h-screen text-white">
+    <main className="bg-bg min-h-screen text-ink">
       <ScoutPortal />
     </main>
   );

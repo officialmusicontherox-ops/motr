@@ -20,8 +20,37 @@
   --motr-muted: #8b8b8b;
 }
 
+/*
+ * Light mode.
+ *
+ * Only the variables change — every component reads them through Tailwind's
+ * theme, so nothing else needs to know which mode it's in.
+ *
+ * The gold drops to its dim variant here. The bright one is a highlight
+ * against near-black and turns illegible on white, which is why a second
+ * gold already existed.
+ */
+[data-theme="light"] {
+  --motr-bg: #faf9f7;
+  --motr-surface: #ffffff;
+  --motr-surface-2: #efedE8;
+  --motr-border: #e0ddd5;
+
+  --motr-gold: #8a6d3a;
+  --motr-gold-dim: #a1834d;
+
+  --motr-green: #2f8f2a;
+  --motr-red: #c02138;
+
+  --motr-text: #16161a;
+  --motr-muted: #67655f;
+}
+
 @theme inline {
   --color-bg: var(--motr-bg);
+  /* Text that has to flip with the theme. Components used text-white, which
+     is a literal and stays white however the page is themed. */
+  --color-ink: var(--motr-text);
   --color-surface: var(--motr-surface);
   --color-surface-2: var(--motr-surface-2);
   --color-edge: var(--motr-border);
@@ -35,9 +64,13 @@
   --font-display: var(--font-anton), var(--font-inter), sans-serif;
 }
 
-/* This is a dark product — don't let the OS flip it to light. */
+/* Follows whichever theme is set, so form controls and scrollbars match. */
 html {
   color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {

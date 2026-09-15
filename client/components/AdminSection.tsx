@@ -96,7 +96,7 @@ export function ShowMore({
         </button>
       )}
       {shown > 10 && (
-        <button onClick={onLess} className="text-muted underline underline-offset-2 hover:text-white">
+        <button onClick={onLess} className="text-muted underline underline-offset-2 hover:text-ink">
           Collapse
         </button>
       )}

@@ -242,7 +242,7 @@ export default function ScoutPortal() {
             className={`rounded-full border px-4 py-2 text-sm transition ${
               sort === key
                 ? "border-gold bg-gold/10 text-gold"
-                : "border-edge text-muted hover:text-white"
+                : "border-edge text-muted hover:text-ink"
             }`}
           >
             {label}
@@ -510,7 +510,7 @@ function TrackRow({ track: t }: { track: ScoutTrack }) {
               {t.benchmark.beats.map((b, i) => (
                 <span key={b.title}>
                   {i > 0 && " and "}
-                  <span className="text-white">
+                  <span className="text-ink">
                     &ldquo;{b.title}&rdquo; by {b.artistName}
                   </span>{" "}
                   ({pct(b.saveRate)})
@@ -528,7 +528,7 @@ function TrackRow({ track: t }: { track: ScoutTrack }) {
           {places.map((p, i) => (
             <span key={p.name}>
               {i > 0 && " · "}
-              <span className="text-white">{p.name}</span> {p.swipes}
+              <span className="text-ink">{p.name}</span> {p.swipes}
             </span>
           ))}
         </p>

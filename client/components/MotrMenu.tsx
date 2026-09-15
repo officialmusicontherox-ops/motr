@@ -23,6 +23,28 @@ export default function MotrMenu({
 }) {
   // Escape to dismiss, and don't let the page scroll behind the drawer.
   const [signingOut, setSigningOut] = useState(false);
+  const [light, setLight] = useState(false);
+
+  // Read from the document rather than from storage: the inline script in
+  // layout.tsx has already applied the saved theme by now, so the DOM is the
+  // one source that can't disagree with what's on screen.
+  useEffect(() => {
+    setLight(document.documentElement.getAttribute("data-theme") === "light");
+  }, []);
+
+  function toggleTheme() {
+    const next = !light;
+    setLight(next);
+    const root = document.documentElement;
+    if (next) root.setAttribute("data-theme", "light");
+    else root.removeAttribute("data-theme");
+    try {
+      localStorage.setItem("motr_theme", next ? "light" : "dark");
+    } catch {
+      // A private window can refuse storage. The theme still applies for
+      // this session; it just won't be remembered.
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -78,7 +100,7 @@ export default function MotrMenu({
           <button
             onClick={onClose}
             aria-label="Close menu"
-            className="text-muted hover:text-white transition"
+            className="text-muted hover:text-ink transition"
           >
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -104,6 +126,34 @@ export default function MotrMenu({
               </li>
             ))}
           </ul>
+
+          {/* In the menu rather than on the swipe screen: that screen has to
+              fit a phone without scrolling, and a theme switch is something
+              people set once and forget. */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="border-edge hover:border-gold mt-3 flex w-full items-center justify-between rounded-xl border px-3 py-3 transition"
+          >
+            <span className="flex flex-col items-start">
+              <span className="font-semibold">{light ? "Light mode" : "Dark mode"}</span>
+              <span className="text-muted mt-0.5 text-xs">
+                Tap to switch to {light ? "dark" : "light"}
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                light ? "bg-gold" : "bg-surface-2"
+              }`}
+            >
+              <span
+                className={`bg-bg absolute top-1 h-4 w-4 rounded-full shadow transition-all ${
+                  light ? "left-6" : "left-1"
+                }`}
+              />
+            </span>
+          </button>
 
           {/* Renders nothing once MOTR is already installed, so the menu
               doesn't offer something that's already done. */}

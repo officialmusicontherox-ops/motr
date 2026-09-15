@@ -85,7 +85,7 @@ export default function ChartsView() {
               className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
                 range === key
                   ? "border-gold bg-gold/10 text-gold"
-                  : "border-edge text-muted hover:text-white"
+                  : "border-edge text-muted hover:text-ink"
               }`}
             >
               {label}

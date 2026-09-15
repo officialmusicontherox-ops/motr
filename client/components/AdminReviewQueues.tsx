@@ -61,7 +61,7 @@ function FilterTabs({
  className={`rounded-full px-3 py-1 text-xs font-medium ${
  value === f
  ? "bg-gold text-bg"
- : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+ : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
  }`}
  >
  {f}
@@ -360,7 +360,7 @@ function ApplicationsQueue({ onChanged }: { onChanged: () => void }) {
  href={s}
  target="_blank"
  rel="noreferrer"
- className="rounded-full border border-edge px-2.5 py-0.5 text-[0.65rem] text-muted underline-offset-2 hover:text-white"
+ className="rounded-full border border-edge px-2.5 py-0.5 text-[0.65rem] text-muted underline-offset-2 hover:text-ink"
  >
  {s.replace(/^https?:\/\/(www\.)?/, "").slice(0, 32)}
  </a>

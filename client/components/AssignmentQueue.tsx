@@ -102,7 +102,7 @@ export default function AssignmentQueue({ curator }: { curator: User }) {
               className={`rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-widest transition ${
                 tab === t
                   ? "bg-gold text-bg"
-                  : "border-edge text-muted hover:border-gold/50 border hover:text-white"
+                  : "border-edge text-muted hover:border-gold/50 border hover:text-ink"
               }`}
             >
               {t}
@@ -172,7 +172,7 @@ export default function AssignmentQueue({ curator }: { curator: User }) {
                         <button
                           onClick={() => setPassing(passing === a.id ? null : a.id)}
                           disabled={busy === a.id}
-                          className="border-edge text-muted hover:text-white rounded-full border px-4 py-2 text-sm transition disabled:opacity-40"
+                          className="border-edge text-muted hover:text-ink rounded-full border px-4 py-2 text-sm transition disabled:opacity-40"
                         >
                           {passing === a.id ? "Cancel" : "Pass"}
                         </button>
@@ -307,7 +307,7 @@ function FeatureForm({
         </button>
         <button
           onClick={onCancel}
-          className="border-edge text-muted hover:text-white rounded-full border px-4 py-2 text-sm transition"
+          className="border-edge text-muted hover:text-ink rounded-full border px-4 py-2 text-sm transition"
         >
           Cancel
         </button>

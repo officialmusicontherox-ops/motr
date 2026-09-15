@@ -177,7 +177,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
       <div className="mb-3 flex w-full max-w-sm shrink-0 items-center justify-between md:max-w-2xl">
         <span className="motr-label">
-          <span className="text-white">{fan.username}</span>
+          <span className="text-ink">{fan.username}</span>
         </span>
         <div className="flex items-center gap-3">
           <button
@@ -191,7 +191,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
             }
             className={`motr-label flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition ${
               allowAi
-                ? "border-edge text-muted hover:text-white"
+                ? "border-edge text-muted hover:text-ink"
                 : "border-gold/50 bg-gold/10 text-gold"
             }`}
           >

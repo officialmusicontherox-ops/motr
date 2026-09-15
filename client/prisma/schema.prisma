@@ -393,6 +393,12 @@ model Artist {
   // than the artist was worth.
   emailOptOut Boolean @default(false)
 
+  // Come-back email state, same shape as Fan's. An artist who ignores three
+  // of these isn't coming back because of a fourth, and a recurring email
+  // nobody opens costs the sending domain more than the artist was worth.
+  lastNudgeAt DateTime?
+  nudgeCount  Int       @default(0)
+
   tracks        Track[]
   notifications ArtistNotification[]
   payments      Payment[]
@@ -702,4 +708,32 @@ model ScoutLoginToken {
   createdAt DateTime  @default(now())
 
   @@index([email, expiresAt])
+}
+
+/// The artist who topped the chart in a given week, and what was written about them.
+///
+/// Stored rather than recomputed. A chart is a moving window: the same query
+/// run a month later gives a different answer, so the week someone actually
+/// won has to be written down at the time or it's gone.
+model ChartWinner {
+  id String @id @default(cuid())
+
+  /// Monday of the week this covers, at midnight UTC. Unique, so one winner
+  /// per week and locking the same week twice can't create a second row.
+  weekStart DateTime @unique
+
+  artistId   String?
+  artistName String
+  /// Saves across that artist's tracks during the week, kept as the record of
+  /// why they won even after the underlying swipes age out of any window.
+  saves      Int      @default(0)
+
+  /// Where the write-up went once it was published.
+  writeUpUrl String?
+  note       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([weekStart])
 }

@@ -24,7 +24,6 @@ type Track = {
   addedAt: string;
   submittedBy: { name: string; email: string } | null;
   swipes: number;
-  curatorsAssigned: number;
   previewSource: "iTunes" | "Deezer" | "Other";
   previewExpires: boolean;
   avgListenMs: number | null;
@@ -33,7 +32,7 @@ type Track = {
   votesThisWeek: number;
 };
 
-type Counts = { live: number; pulled: number; submitted: number; withCurators: number };
+type Counts = { live: number; pulled: number; submitted: number };
 
 const SORTS = [
   { key: "newest", label: "Newest first" },
@@ -46,7 +45,6 @@ const SORTS = [
 const VIEWS = [
   { key: "live", label: "In rotation", hint: "Playing in the fan feed right now" },
   { key: "submitted", label: "Artist submissions", hint: "Sent in by a real artist" },
-  { key: "curators", label: "With curators", hint: "Paid for and routed out" },
   { key: "pulled", label: "Pulled", hint: "Removed from rotation" },
 ] as const;
 
@@ -126,7 +124,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
       body: JSON.stringify({ trackId: t.id, action: "SET_GENRE", genre }),
     });
     setBusy(null);
-    setFlash(`"${t.title}" moved to ${genre}. It'll route to ${genre} curators from now on.`);
+    setFlash(`"${t.title}" moved to ${genre}. It'll go out to ${genre} listeners from now on.`);
     load();
   }
 
@@ -210,7 +208,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
             className={`rounded-full px-4 py-1.5 text-sm ${
               view === v.key
                 ? "bg-gold text-bg font-semibold"
-                : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+                : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
             }`}
           >
             {v.label}
@@ -222,7 +220,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                     ? counts.pulled
                     : v.key === "submitted"
                       ? counts.submitted
-                      : counts.withCurators}
+                      : 0}
               </span>
             )}
           </button>
@@ -273,7 +271,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={t.artworkUrl} alt="" className="h-full w-full object-cover" />
                   )}
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-white">
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs text-ink">
                     {playing === t.id ? "❚❚" : "▶"}
                   </span>
                 </button>
@@ -318,30 +316,30 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                     {t.genre === null && <span className="text-nope">routes nowhere</span>}
                   </label>
 
-                  {/* Cycles unknown to AI to not-AI and back. One control
-                      rather than three buttons on every row, since most
-                      tracks never need touching and the list is long. */}
-                  <button
-                    type="button"
-                    disabled={busy === t.id}
-                    onClick={() =>
-                      setAi(t, t.aiGenerated === null ? true : t.aiGenerated ? false : null)
-                    }
-                    title="Click to cycle: not asked → AI → not AI"
-                    className={`mt-1.5 rounded-md border px-2 py-1 text-xs transition disabled:opacity-40 ${
-                      t.aiGenerated === true
-                        ? "border-gold/50 bg-gold/10 text-gold"
-                        : t.aiGenerated === false
-                          ? "border-edge text-muted"
-                          : "border-edge text-muted/60"
-                    }`}
-                  >
-                    {t.aiGenerated === true
-                      ? "AI: yes"
-                      : t.aiGenerated === false
-                        ? "AI: no"
-                        : "AI: not asked"}
-                  </button>
+                  {/* A select, matching the genre control directly above
+                      it. The first version was a button that cycled through
+                      the three states, and it read as a status label rather
+                      than a control — nobody would think to click it. */}
+                  <label className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
+                    <span className="sr-only">AI status for {t.title}</span>
+                    <select
+                      value={t.aiGenerated === null ? "" : t.aiGenerated ? "yes" : "no"}
+                      disabled={busy === t.id}
+                      onChange={(e) =>
+                        setAi(
+                          t,
+                          e.target.value === "yes" ? true : e.target.value === "no" ? false : null
+                        )
+                      }
+                      className={`rounded-md border bg-bg px-2 py-1 text-xs outline-none transition focus:border-gold disabled:opacity-40 ${
+                        t.aiGenerated === true ? "border-gold/50 text-gold" : "border-edge"
+                      }`}
+                    >
+                      <option value="">AI: not asked</option>
+                      <option value="yes">AI: yes</option>
+                      <option value="no">AI: no</option>
+                    </select>
+                  </label>
                   <p className="mt-0.5 text-xs text-muted">
                     Added {new Date(t.addedAt).toLocaleDateString()} ·{" "}
                     {t.submittedBy ? (
@@ -349,7 +347,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                         Submitted by {t.submittedBy.name} ({t.submittedBy.email})
                       </span>
                     ) : (
-                      "Catalogue — no artist attached, can never be sold on to curators"
+                      "Catalog: no artist attached, so it exists to keep the feed full"
                     )}
                   </p>
                 </div>
@@ -396,9 +394,6 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                     <p className="text-muted/70 italic">no listen data yet</p>
                   )}
                   {t.votesThisWeek > 0 && <p>{t.votesThisWeek} vote(s) this week</p>}
-                  {t.curatorsAssigned > 0 && (
-                    <p className="text-gold">with {t.curatorsAssigned} curators</p>
-                  )}
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 md:mt-0 md:contents">
@@ -433,11 +428,11 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                 {fixing === t.id && (
                   <div className="w-full border-t border-edge pt-3">
                     <label className="block text-xs text-muted">
-                      <strong className="text-white">Spotify link</strong> — fixes a track
+                      <strong className="text-ink">Spotify link</strong> — fixes a track
                       matched to the wrong recording: re-reads title, artist, artwork and
                       audio, and refuses if it can&apos;t confirm they belong together.
                       <br />
-                      <strong className="text-white">Apple Music or iTunes link</strong>, or a
+                      <strong className="text-ink">Apple Music or iTunes link</strong>, or a
                       direct audio link — replaces the audio only.
                       <br />
                       Whatever you paste is played before it&apos;s saved.
@@ -504,13 +499,6 @@ function PullDialog({
           record stay intact, and you can put it back at any time.
         </p>
 
-        {track.curatorsAssigned > 0 && (
-          <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
-            This track is already with {track.curatorsAssigned} curator(s). Pulling it here
-            won&apos;t retract it from them — talk to them directly if it needs to come down.
-          </p>
-        )}
-
         {track.submittedBy && (
           <p className="mt-2 rounded-lg border border-edge bg-bg px-3 py-2 text-sm text-muted">
             An artist submitted this — {track.submittedBy.email}. Consider telling them why.
@@ -530,7 +518,7 @@ function PullDialog({
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="rounded-full border border-edge px-5 py-2.5 text-sm font-semibold transition hover:text-white"
+            className="rounded-full border border-edge px-5 py-2.5 text-sm font-semibold transition hover:text-ink"
           >
             Cancel
           </button>
@@ -540,7 +528,7 @@ function PullDialog({
               setBusy(true);
               onConfirm(note);
             }}
-            className="rounded-full bg-nope px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40"
+            className="rounded-full bg-nope px-5 py-2.5 text-sm font-bold text-ink disabled:opacity-40"
           >
             {busy ? "Pulling..." : "Pull from rotation"}
           </button>

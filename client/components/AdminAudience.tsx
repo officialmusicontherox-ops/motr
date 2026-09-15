@@ -45,7 +45,7 @@ export default function AdminAudience() {
   const [error, setError] = useState<string | null>(null);
   const [showSaves, setShowSaves] = useState(false);
   // The listener list only grows, and it sat above every other section —
-  // pushing tracks, curators and errors off the screen entirely.
+  // pushing tracks and errors off the screen entirely.
   const page = useVisibleCount(10);
 
   const load = useCallback(async (t: "google" | "anonymous") => {
@@ -117,7 +117,7 @@ export default function AdminAudience() {
             className={`rounded-full px-4 py-1.5 text-sm capitalize ${
               type === t
                 ? "bg-gold text-bg"
-                : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+                : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
             }`}
           >
             {t}

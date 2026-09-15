@@ -60,7 +60,7 @@ function Tabs<T extends string>({
  className={`rounded-full px-3 py-1 text-xs font-medium ${
  value === o
  ? "bg-gold text-bg"
- : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+ : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
  }`}
  >
  {o}

@@ -117,7 +117,7 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${
               view === v.key
                 ? "bg-gold text-bg"
-                : "border border-edge text-muted transition hover:border-gold/50 hover:text-white"
+                : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
             }`}
           >
             {v.label}
@@ -217,7 +217,7 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
                     <p className="text-xs text-muted">
                       Leave the link blank to retry theirs, or paste a corrected Spotify link.
                       It&apos;s verified the same way a submission is, and the track is attached
-                      to <strong className="text-white">{r.artistEmail}</strong> — they
+                      to <strong className="text-ink">{r.artistEmail}</strong> — they
                       don&apos;t resubmit anything.
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">

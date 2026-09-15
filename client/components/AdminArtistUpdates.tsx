@@ -123,7 +123,7 @@ export default function AdminArtistUpdates() {
               <ul className="mt-2 space-y-1">
                 {r.tracks.map((t) => (
                   <li key={t.trackId} className="text-sm">
-                    <span className="text-white">{t.title}</span>
+                    <span className="text-ink">{t.title}</span>
                     <span className="text-gold"> · {t.rightSwipes} right swipes</span>
                     <span className="text-muted"> (passing {t.milestone})</span>
                   </li>

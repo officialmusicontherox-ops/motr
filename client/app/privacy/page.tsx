@@ -32,13 +32,13 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: "What we collect",
     body: (
       <>
-        <p className="font-semibold text-white">If you swipe anonymously</p>
+        <p className="font-semibold text-ink">If you swipe anonymously</p>
         <ul>
           <li>A randomly generated username and account ID. No email, no name.</li>
           <li>Which tracks you swiped on, which direction, and when.</li>
         </ul>
 
-        <p className="mt-4 font-semibold text-white">If you sign in with Google</p>
+        <p className="mt-4 font-semibold text-ink">If you sign in with Google</p>
         <ul>
           <li>Your email address and the name on your Google account.</li>
           <li>Your swipe history and saved tracks.</li>
@@ -50,12 +50,12 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         </p>
 
 
-        <p className="mt-4 font-semibold text-white">If you submit music as an artist</p>
+        <p className="mt-4 font-semibold text-ink">If you submit music as an artist</p>
         <ul>
           <li>Your name, email, and the track you submitted.</li>
         </ul>
 
-        <p className="mt-4 font-semibold text-white">Automatically</p>
+        <p className="mt-4 font-semibold text-ink">Automatically</p>
         <ul>
           <li>
             Standard server logs (IP address, browser type, pages requested) kept briefly for
@@ -100,17 +100,17 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <p>Only the services needed to run MOTR, and only what each one needs:</p>
         <ul>
           <li>
-            <span className="text-white">Google</span>: sign-in. We receive your name and email;
+            <span className="text-ink">Google</span>: sign-in. We receive your name and email;
             Google is told nothing about what you listen to.
           </li>
           <li>
-            <span className="text-white">Resend</span>: transactional email.
+            <span className="text-ink">Resend</span>: transactional email.
           </li>
           <li>
-            <span className="text-white">Neon and Netlify</span>: database and hosting.
+            <span className="text-ink">Neon and Netlify</span>: database and hosting.
           </li>
           <li>
-            <span className="text-white">Apple and Deezer</span>: track previews and artwork.
+            <span className="text-ink">Apple and Deezer</span>: track previews and artwork.
             These are lookups we make about music, not a handover of anything about you.
           </li>
         </ul>
@@ -157,16 +157,16 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <>
         <ul>
           <li>
-            <span className="text-white">Ask for a copy</span> of what we hold about you, or ask
+            <span className="text-ink">Ask for a copy</span> of what we hold about you, or ask
             us to correct it.
           </li>
           <li>
-            <span className="text-white">Ask us to delete your account.</span>{" "}
+            <span className="text-ink">Ask us to delete your account.</span>{" "}
             We&apos;ll remove your profile and sign-in data. Anonymised swipe counts stay in a track&apos;s totals,
             and financial records we&apos;re required to keep will remain.
           </li>
           <li>
-            <span className="text-white">Unsubscribe</span> from any non-essential email using the
+            <span className="text-ink">Unsubscribe</span> from any non-essential email using the
             link in it.
           </li>
         </ul>

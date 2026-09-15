@@ -101,7 +101,19 @@ export default function RootLayout({
           <body> after SSR, which React reports as a hydration mismatch. This
           suppresses that one-level diff only — it does not hide real
           mismatches inside the app. */}
-      <body suppressHydrationWarning className="bg-bg text-white flex min-h-full flex-col">
+      <head>
+        {/*
+          Applied before the first paint. Reading the saved theme in React
+          would mean rendering dark first and correcting a frame later, which
+          is a white flash on every load for anyone using light mode.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem("motr_theme");if(t==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}`,
+          }}
+        />
+      </head>
+      <body suppressHydrationWarning className="bg-bg text-ink flex min-h-full flex-col">
         {/* AdSense library. Loaded once for the app; individual ad slots are
             rendered by SponsoredCard pushing to the adsbygoogle queue. */}
         {ADSENSE_CLIENT && (

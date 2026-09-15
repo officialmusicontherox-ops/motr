@@ -154,7 +154,7 @@ export default function ArtistsPage() {
               const shareText = `My track "${t.title}" is on MOTR. Give it the full 30 seconds, then swipe right if you like it. Full listens count double: ${shareUrl}`;
               return (
                 <div key={t.id} className="border-edge bg-bg mt-3 rounded-xl border p-3">
-                  <p className="text-sm font-semibold text-white">{t.title}</p>
+                  <p className="text-sm font-semibold text-ink">{t.title}</p>
                   <p className="text-gold mt-1 break-all text-xs">{shareUrl}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button
@@ -257,7 +257,7 @@ export default function ArtistsPage() {
         </label>
 
         <p className="text-muted -mb-1 text-xs leading-relaxed">
-          Every song has to be <strong className="text-white">already released</strong>. We match
+          Every song has to be <strong className="text-ink">already released</strong>. We match
           it to a 30-second clip from Apple Music. A song that hasn&apos;t reached the stores yet
           has nothing for us to play, so we turn it away rather than risk putting the wrong
           recording under your name. In Spotify: Share, then Copy Song Link.
@@ -300,7 +300,7 @@ export default function ArtistsPage() {
                   className={`rounded-full border px-3 py-1.5 text-sm transition ${
                     song.genre === g
                       ? "border-gold bg-gold text-bg font-semibold"
-                      : "border-edge text-muted hover:border-gold/50 hover:text-white"
+                      : "border-edge text-muted hover:border-gold/50 hover:text-ink"
                   }`}
                 >
                   {g}
@@ -330,7 +330,7 @@ export default function ArtistsPage() {
                   className={`rounded-full border px-4 py-1.5 text-sm transition ${
                     song.ai === value
                       ? "border-gold bg-gold text-bg font-semibold"
-                      : "border-edge text-muted hover:border-gold/50 hover:text-white"
+                      : "border-edge text-muted hover:border-gold/50 hover:text-ink"
                   }`}
                 >
                   {label}

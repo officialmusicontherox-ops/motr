@@ -104,7 +104,7 @@ export default function SponsoredCard({
             <button
               onClick={onDismiss}
               aria-label="Skip this ad"
-              className="text-muted hover:text-white flex items-center gap-1.5 text-xs font-semibold transition"
+              className="text-muted hover:text-ink flex items-center gap-1.5 text-xs font-semibold transition"
             >
               Skip
               <Cross className="h-3.5 w-3.5" />
