@@ -42,17 +42,9 @@ export async function GET(req: NextRequest) {
       });
       return NextResponse.json({ artists });
     }
-    case "curators": {
-      const curators = await prisma.user.findMany({
-        orderBy: { curationWeight: "desc" },
-        take: 100,
-        include: { _count: { select: { swipes: true, payouts: true } } },
-      });
-      return NextResponse.json({ curators });
-    }
     default:
       return NextResponse.json(
-        { error: "kind must be one of: tracks, payments, artists, curators" },
+        { error: "kind must be one of: tracks, artists" },
         { status: 400 }
       );
   }
