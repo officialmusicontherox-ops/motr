@@ -8,7 +8,11 @@ import {
   submissionReceivedEmail,
 } from "@/lib/email";
 import { TrackLookupError, resolveSpotifyTrack, trackIdentity } from "@/lib/trackLookup";
-import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
+import {
+  describeSpotifyLink,
+  parseSpotifyTrackId,
+  resolveSpotifyShortLink,
+} from "@/lib/spotifyUrl";
 import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 // Two ways to ingest a track into the vetting queue:
@@ -42,14 +46,54 @@ export async function POST(req: NextRequest) {
   }
 
   // Artists paste a share link; accept the raw id or a spotify: URI too.
-  const spotifyTrackId =
+  let spotifyTrackId =
     body.spotifyTrackId ?? (body.spotifyUrl ? parseSpotifyTrackId(body.spotifyUrl) : null);
 
+  // Sharing from the Spotify iPhone app often produces a spotify.link short
+  // URL, which carries no id and has to be followed to find one. Artists were
+  // pasting exactly what Spotify handed them and being told it wasn't a track
+  // link.
+  if (!spotifyTrackId && source === "SPOTIFY" && body.spotifyUrl) {
+    spotifyTrackId = await resolveSpotifyShortLink(String(body.spotifyUrl));
+  }
+
   if (source === "SPOTIFY" && body.spotifyUrl && !spotifyTrackId) {
-    return NextResponse.json(
-      { error: "That doesn't look like a Spotify track link." },
-      { status: 400 }
-    );
+    const problem = describeSpotifyLink(String(body.spotifyUrl));
+    const reason =
+      problem === "album"
+        ? "That's a link to an album. We need a link to one track, so open the song itself and share that."
+        : problem === "artist"
+          ? "That's a link to your artist page. We need a link to one track, so open the song itself and share that."
+          : problem === "playlist"
+            ? "That's a link to a playlist. We need a link to one track."
+            : problem === "episode"
+              ? "That's a podcast episode rather than a song."
+              : problem === "short"
+                ? "We couldn't follow that spotify.link short link. Open the song in Spotify, choose Share, then Copy Song Link, and paste that instead."
+                : "That doesn't look like a Spotify track link. Open the song in Spotify, choose Share, then Copy Song Link.";
+
+    // Recorded like any other refusal. These used to return a 400 and leave
+    // nothing behind: no track, no refusal row, no error. An artist would try
+    // three times and the dashboard showed no sign any of it had happened.
+    const url = String(body.spotifyUrl ?? "");
+    if (url && artistEmail) {
+      await prisma.refusedSubmission
+        .upsert({
+          where: {
+            spotifyUrl_artistEmail: { spotifyUrl: url, artistEmail: String(artistEmail) },
+          },
+          update: { attempts: { increment: 1 }, reason, status: "PENDING" },
+          create: {
+            spotifyUrl: url,
+            artistEmail: String(artistEmail),
+            genre: genre ?? null,
+            reason,
+          },
+        })
+        .catch(() => {});
+    }
+
+    return NextResponse.json({ error: reason }, { status: 400 });
   }
 
   let normalized;

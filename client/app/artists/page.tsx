@@ -256,12 +256,24 @@ export default function ArtistsPage() {
           />
         </label>
 
-        <p className="text-muted -mb-1 text-xs leading-relaxed">
-          Every song has to be <strong className="text-ink">already released</strong>. We match
-          it to a 30-second clip from Apple Music. A song that hasn&apos;t reached the stores yet
-          has nothing for us to play, so we turn it away rather than risk putting the wrong
-          recording under your name. In Spotify: Share, then Copy Song Link.
-        </p>
+        {/* Stated as a requirement rather than an explanation, and given its
+            own box. It was a grey footnote under the email field, and an
+            increasing number of artists were submitting Spotify-only releases
+            and only learning the rule from the refusal. */}
+        <div className="border-gold/40 bg-gold/5 -mb-1 rounded-xl border px-4 py-3">
+          <p className="text-sm leading-relaxed">
+            <strong className="text-gold">Your song has to be on Apple Music as well as Spotify.</strong>{" "}
+            <span className="text-muted">
+              You paste a Spotify link because it identifies the track, but the 30-second clip we
+              play comes from Apple. A release that is on Spotify only has nothing for us to play,
+              and we won&apos;t substitute someone else&apos;s recording to fill the gap.
+            </span>
+          </p>
+          <p className="text-muted mt-2 text-xs leading-relaxed">
+            It also has to be <strong className="text-ink">already released</strong> on both. In
+            Spotify: Share, then Copy Song Link.
+          </p>
+        </div>
 
         {songs.map((song, i) => (
           <div key={i} className="border-edge bg-surface/40 rounded-2xl border p-4">

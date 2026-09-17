@@ -395,9 +395,10 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
   // artist's name and artwork.
   throw new TrackLookupError(
     `We found "${displayTitle}" on Spotify but couldn't find a matching preview from Apple for ` +
-      `${spotifyArtist}, so we haven't added it — we won't put another artist's audio under your ` +
-      `name. This usually means the release hasn't reached Apple Music yet. ` +
-      `If it has, email the link to ${CONTACT_EMAIL} and we'll add it by hand.`
+      `${spotifyArtist}, so we haven't added it. We won't put another artist's audio under your ` +
+      `name. This almost always means the release is on Spotify but not yet on Apple Music. ` +
+      `Once it's live there, submit it again, or email the link to ${CONTACT_EMAIL} and we'll ` +
+      `add it by hand.`
   );
 }
 
