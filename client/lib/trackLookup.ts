@@ -32,6 +32,9 @@ export type ResolvedTrack = {
   artworkUrl: string | null;
   previewUrl: string;
   durationMs: number | null;
+  /** Apple's own id for the preview, so the feed check can later confirm this
+   *  track with a lookup instead of another rate-limited search. */
+  appleTrackId: string | null;
 };
 
 export class TrackLookupError extends Error {}
@@ -334,6 +337,97 @@ function upscaleArtwork(url: string | undefined): string | null {
  * An artist seeing their picture over someone else's song is the worst thing
  * this app can do, so a lookup that can't be verified is refused outright.
  */
+/** Past three same-named artists we are no longer looking at the submitter. */
+const MAX_ARTIST_IDS = 3;
+
+/**
+ * Every playable song Apple files under this artist.
+ *
+ * Apple's /search and /lookup endpoints do not answer from the same place. A
+ * small artist's release is routinely missing from search under every word
+ * order, and under attribute=artistTerm too, while a lookup of that artist's
+ * id lists it plainly. Names are not unique either: "Wavy Josef" answers to
+ * two Apple artist ids, one holding nothing but guest features and the other
+ * holding the real catalogue, and search returns the features.
+ *
+ * So the name is resolved to ids and each catalogue is read directly. This is
+ * the route a person takes by hand -- search the artist, open them, read down
+ * the list -- and it reached all six of the tracks that had to be added by
+ * hand, none of which any phrasing of a search query could find.
+ */
+export async function appleArtistCatalogue(
+  spotifyArtist: string
+): Promise<{ songs: ItunesResult[]; throttled: boolean }> {
+  const lead = spotifyArtist.split(/[,&]/)[0].trim();
+  if (!lead) return { songs: [], throttled: false };
+
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://itunes.apple.com/search?term=${encodeURIComponent(
+        lead
+      )}&media=music&entity=musicArtist&limit=25`
+    );
+  } catch {
+    return { songs: [], throttled: false };
+  }
+  if (res.status === 403 || res.status === 429) return { songs: [], throttled: true };
+  if (!res.ok) return { songs: [], throttled: false };
+
+  const data = (await res.json().catch(() => ({}))) as {
+    results?: { artistId?: number; artistName?: string }[];
+  };
+
+  // Only names the matcher would accept anyway, so a lookup is never spent on
+  // an artist we would go on to reject.
+  const ids = (data.results ?? [])
+    .filter((a) => a.artistId && artistMatches(spotifyArtist, a.artistName ?? ""))
+    .slice(0, MAX_ARTIST_IDS)
+    .map((a) => a.artistId as number);
+
+  const songs: ItunesResult[] = [];
+  let throttled = false;
+
+  for (const artistId of ids) {
+    let look: Response;
+    try {
+      look = await fetch(
+        `https://itunes.apple.com/lookup?id=${artistId}&entity=song&limit=200`
+      );
+    } catch {
+      continue;
+    }
+    if (look.status === 403 || look.status === 429) {
+      throttled = true;
+      continue;
+    }
+    if (!look.ok) continue;
+
+    const body = (await look.json().catch(() => ({}))) as {
+      results?: (ItunesResult & { wrapperType?: string })[];
+    };
+    // The first entry of an artist lookup is the artist themselves, not a song.
+    for (const x of body.results ?? []) {
+      if (x.wrapperType === "track" && x.previewUrl) songs.push(x);
+    }
+  }
+
+  return { songs, throttled };
+}
+
+/** The artist's own recording of `title`, from their Apple catalogue. */
+async function findInArtistCatalogue(
+  spotifyArtist: string,
+  title: string
+): Promise<{ hit: ItunesResult | null; throttled: boolean }> {
+  const { songs, throttled } = await appleArtistCatalogue(spotifyArtist);
+  const hit =
+    songs.find(
+      (c) => titleMatches(title, c.trackName) && artistMatches(spotifyArtist, c.artistName)
+    ) ?? null;
+  return { hit, throttled };
+}
+
 export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrack> {
   const [oembed, spotifyArtist] = await Promise.all([
     fetchSpotifyOembed(trackId),
@@ -366,28 +460,52 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
     `${spotifyArtist} ${title}`,
   ];
 
+  const accept = (hit: ItunesResult): ResolvedTrack => ({
+    title: displayTitle,
+    // Spotify's credits, not Apple's — this is the artist's own link.
+    artistName: spotifyArtist,
+    albumName: hit.collectionName ?? null,
+    artworkUrl: oembed.thumbnail_url ?? upscaleArtwork(hit.artworkUrl100),
+    previewUrl: hit.previewUrl as string,
+    durationMs: hit.trackTimeMillis ?? null,
+    appleTrackId: hit.trackId ? String(hit.trackId) : null,
+  });
+
+  // Whether Apple refused to answer at any point, which is not the same thing
+  // as Apple having nothing.
+  let throttled = false;
+
   for (const term of terms) {
     // Every playable result, not just the first: the first is regularly a
     // cover, an interlude or a same-titled song by someone far more famous,
     // and the real recording sits below it.
-    const candidates = await searchItunesAll(term, 20);
+    const { results, throttled: refused } = await searchItunesChecked(term, 20);
+    if (refused) throttled = true;
     // Both have to agree. The artist alone was never enough — it let a
     // correctly-identified artist hand back the wrong song of theirs, and a
     // near-miss on the name hand back someone else's entirely.
-    const hit = candidates.find(
+    const hit = results.find(
       (c) => artistMatches(spotifyArtist, c.artistName) && titleMatches(title, c.trackName)
     );
-    if (hit?.previewUrl) {
-      return {
-        title: displayTitle,
-        // Spotify's credits, not Apple's — this is the artist's own link.
-        artistName: spotifyArtist,
-        albumName: hit.collectionName ?? null,
-        artworkUrl: oembed.thumbnail_url ?? upscaleArtwork(hit.artworkUrl100),
-        previewUrl: hit.previewUrl,
-        durationMs: hit.trackTimeMillis ?? null,
-      };
-    }
+    if (hit?.previewUrl) return accept(hit);
+  }
+
+  // Search finding nothing is not the same as Apple having nothing, so the
+  // artist's own catalogue is read before anything is refused. Six of the six
+  // tracks that had to be added by hand were sitting in it.
+  const catalogue = await findInArtistCatalogue(spotifyArtist, title);
+  if (catalogue.throttled) throttled = true;
+  if (catalogue.hit?.previewUrl) return accept(catalogue.hit);
+
+  // Apple declined to answer rather than answering nothing. Saying the release
+  // isn't on Apple Music here would be a guess, and the wrong one: it sends an
+  // artist away to check a link that was right all along, which is how one of
+  // them came to submit the same track three times in a day.
+  if (throttled) {
+    throw new TrackLookupError(
+      `Apple limits how often we can ask about a track, and we reached that limit while checking ` +
+        `"${displayTitle}". Nothing is wrong with your link. Give it a minute and send it again.`
+    );
   }
 
   // Nothing Apple has can be confirmed as theirs. Refusing is right: serving
@@ -417,5 +535,6 @@ export async function resolveBySearch(
     artworkUrl: upscaleArtwork(itunes.artworkUrl100),
     previewUrl: itunes.previewUrl,
     durationMs: itunes.trackTimeMillis ?? null,
+    appleTrackId: itunes.trackId ? String(itunes.trackId) : null,
   };
 }

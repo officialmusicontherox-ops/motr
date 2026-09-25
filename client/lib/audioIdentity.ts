@@ -1,6 +1,11 @@
 import type { TrackStatus } from "@prisma/client";
 import { prisma } from "./prisma";
-import { artistMatches, searchItunesChecked, titleMatches } from "./trackLookup";
+import {
+  appleArtistCatalogue,
+  artistMatches,
+  searchItunesChecked,
+  titleMatches,
+} from "./trackLookup";
 
 export type Verdict = "MATCH" | "MISMATCH" | "UNVERIFIED";
 
@@ -8,11 +13,16 @@ export type Verdict = "MATCH" | "MISMATCH" | "UNVERIFIED";
 const LOOKUP_BATCH = 150;
 
 /**
- * How many *searches* one run may make. Lookups are batched and effectively
- * free; searches are throttled at roughly twenty a minute, so this is the only
- * thing that still has to be rationed.
+ * How many tracks one run may check by searching. Lookups are batched and
+ * effectively free; searches are throttled at roughly twenty a minute, so they
+ * are the only thing that has to be rationed.
+ *
+ * Six rather than ten because a track that search cannot surface now costs a
+ * third request to read its artist's catalogue, and running into Apple's limit
+ * mid-run buys nothing: the run stops there either way, and the leftovers wait
+ * for the next one.
  */
-const SEARCH_BUDGET = 10;
+const SEARCH_BUDGET = 6;
 
 /** The statuses a track can be in and still be playing to somebody. */
 const CHECKED_STATUSES: TrackStatus[] = ["DISCOVERY", "VETTING", "GRADUATED"];
@@ -78,11 +88,12 @@ export type IdentityCheck = {
  * wrong song passes that test perfectly — artwork, title, play button, sound.
  * The artist is the one who finds out.
  *
- * The check works backwards from the stored preview URL: search Apple, find
- * the result carrying that exact URL, and see whether its title and artist
- * agree with what we filed it under. If Apple's search can't surface it at
- * all the answer is UNVERIFIED, which is genuinely different from wrong —
- * small artists are frequently unsearchable even when the audio is right.
+ * The check works backwards from the stored preview URL: find the Apple result
+ * carrying that exact URL, and see whether its title and artist agree with what
+ * we filed it under. Search is tried first because it is one request, then the
+ * artist's own catalogue, which reaches releases search will not surface at any
+ * word order. Only when neither finds the URL is the answer UNVERIFIED, which
+ * is genuinely different from wrong.
  */
 export async function checkAudioIdentity(track: {
   title: string;
@@ -114,7 +125,24 @@ export async function checkAudioIdentity(track: {
     };
   }
 
-  return { verdict: "UNVERIFIED", actual: null };
+  // Search could not surface it. That is not evidence about the track: Apple's
+  // search index and its catalogue disagree, routinely and specifically for
+  // small artists, so the artist's own catalogue gets read before the track is
+  // written off as unverifiable.
+  const { songs, throttled } = await appleArtistCatalogue(track.artistName);
+  const found = songs.find((r) => r.previewUrl === track.previewUrl);
+  if (found) {
+    const ok =
+      artistMatches(track.artistName, found.artistName) &&
+      titleMatches(track.title, found.trackName);
+    return {
+      verdict: ok ? "MATCH" : "MISMATCH",
+      actual: { title: found.trackName, artistName: found.artistName },
+      appleTrackId: found.trackId ? String(found.trackId) : undefined,
+    };
+  }
+
+  return { verdict: "UNVERIFIED", actual: null, throttled: throttled || undefined };
 }
 
 /**

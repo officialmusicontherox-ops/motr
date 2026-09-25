@@ -167,6 +167,7 @@ export async function POST(req: NextRequest) {
       artworkUrl: body.artworkUrl ?? null,
       previewUrl,
       durationMs: body.durationMs ?? null,
+      appleTrackId: null,
     };
   }
 
