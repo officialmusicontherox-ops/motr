@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
 import { GENRES } from "@/lib/genres";
-import { TrackLookupError, resolveSpotifyTrack } from "@/lib/trackLookup";
+import {
+  TrackLookupError,
+  appleArtistCatalogue,
+  resolveSpotifyTrack,
+  titleMatches,
+} from "@/lib/trackLookup";
 import { parseSpotifyTrackId } from "@/lib/spotifyUrl";
 
 /**
@@ -255,13 +260,52 @@ export async function POST(req: NextRequest) {
       raw.match(/[?&]i=(\d+)/)?.[1] ??
       raw.match(/\/song\/[^/]*\/(\d+)/)?.[1] ??
       (/^\d{6,}$/.test(raw) ? raw : undefined);
+    // An album link with no ?i= names a release, not a recording. Pasting one
+    // used to store the web page itself as the preview, which plays nothing:
+    // two tracks sat in the feed silent, one of them through four swipes. The
+    // album's songs are read instead and matched against this track's title.
+    const albumId = appleId ? undefined : raw.match(/\/album\/[^/]*\/(\d+)/)?.[1];
+
+    // Apple ids are per storefront, and lookup defaults to the US one. A
+    // Canadian release pasted as music.apple.com/ca/... returns nothing at all
+    // from the US store, which reads as "Apple has never heard of it".
+    const storefront = raw.match(/music\.apple\.com\/([a-z]{2})\//i)?.[1]?.toLowerCase();
+    const country = storefront ? `&country=${storefront}` : "";
+
     if (appleId) {
-      const look = await fetch(`https://itunes.apple.com/lookup?id=${appleId}`);
+      const look = await fetch(`https://itunes.apple.com/lookup?id=${appleId}${country}`);
       const data = look.ok ? await look.json() : null;
       const hit = data?.results?.[0];
       if (!hit?.previewUrl) {
         return NextResponse.json(
           { error: "That Apple link has no preview available." },
+          { status: 400 }
+        );
+      }
+      resolved = hit.previewUrl;
+    } else if (albumId) {
+      const current = await prisma.track.findUnique({
+        where: { id: trackId },
+        select: { title: true, artistName: true },
+      });
+      if (!current) {
+        return NextResponse.json({ error: "That track no longer exists." }, { status: 404 });
+      }
+
+      // Not by reading the album: Apple's album-to-songs expansion returns
+      // nothing at all for some singles, including the one that caused this.
+      // The artist's own catalogue answers reliably and is already how a
+      // submission finds its audio.
+      const { songs } = await appleArtistCatalogue(current.artistName);
+      const hit = songs.find((r) => titleMatches(current.title, r.trackName));
+      if (!hit?.previewUrl) {
+        const names = [...new Set(songs.map((r) => r.trackName))].slice(0, 8).join(", ");
+        return NextResponse.json(
+          {
+            error: songs.length
+              ? `We couldn't find "${current.title}" among ${current.artistName}'s songs on Apple. Found: ${names}. Open the song itself on Apple Music, use Share, then Copy Link, so the link carries the song id.`
+              : `Apple returned no songs for ${current.artistName}. Open the song itself on Apple Music and copy its link.`,
+          },
           { status: 400 }
         );
       }
@@ -275,6 +319,20 @@ export async function POST(req: NextRequest) {
     try {
       const probe = await fetch(resolved, { headers: { Range: "bytes=0-500" } });
       if (!probe.ok) throw new Error(String(probe.status));
+      // Reachable is not the same as playable. An Apple Music web page answers
+      // 200 to this, which is exactly how a page URL came to be stored as a
+      // preview and play silence.
+      const type = probe.headers.get("content-type") ?? "";
+      if (!/^audio\//i.test(type)) {
+        return NextResponse.json(
+          {
+            error: `That link isn't audio, it answered with ${
+              type || "no content type"
+            }. It needs to be a preview file, not an Apple Music page.`,
+          },
+          { status: 400 }
+        );
+      }
     } catch {
       return NextResponse.json(
         { error: "That link didn't play when we tried it. Check it and try again." },
