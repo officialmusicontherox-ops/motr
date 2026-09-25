@@ -15,7 +15,6 @@ type Point = {
   submissions: number;
   payments: number;
   revenueCents: number;
-  verifiedShares: number;
 };
 
 type Report = {
@@ -58,7 +57,6 @@ const METRICS = [
     label: "Revenue",
     format: (n: number) => `$${(n / 100).toFixed(2)}`,
   },
-  { key: "verifiedShares", label: "Verified shares", format: (n: number) => n.toLocaleString() },
 ] as const;
 
 type MetricKey = (typeof METRICS)[number]["key"];
@@ -172,7 +170,6 @@ export default function AdminReports() {
             />
             <Tile label="Tracks added" value={report.totals.tracksAdded.toLocaleString()} />
             <Tile label="Submissions" value={report.totals.submissions.toLocaleString()} />
-            <Tile label="Verified shares" value={report.totals.verifiedShares.toLocaleString()} />
             <Tile label="Revenue" value={money(report.totals.revenueCents)} gold />
           </div>
 
@@ -218,7 +215,6 @@ export default function AdminReports() {
                   <th className="p-2.5">Approval</th>
                   <th className="p-2.5">Avg listen</th>
                   <th className="p-2.5">Subs</th>
-                  <th className="p-2.5">Shares</th>
                   <th className="p-2.5">Revenue</th>
                 </tr>
               </thead>
@@ -238,7 +234,6 @@ export default function AdminReports() {
                       {p.avgListenMs === null ? "—" : `${(p.avgListenMs / 1000).toFixed(1)}s`}
                     </td>
                     <td className="p-2.5 tabular-nums">{p.submissions}</td>
-                    <td className="p-2.5 tabular-nums">{p.verifiedShares}</td>
                     <td className="p-2.5 tabular-nums">
                       {p.revenueCents ? money(p.revenueCents) : "—"}
                     </td>

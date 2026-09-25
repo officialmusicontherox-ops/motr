@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
   const trunc = Prisma.raw(`'${unit}'`);
 
-  const [fans, activeFans, swipes, rightSwipes, listens, tracks, submissions, revenue, features] =
+  const [fans, activeFans, swipes, rightSwipes, listens, tracks, submissions, revenue] =
     await Promise.all([
       prisma.$queryRaw<Row[]>`
         SELECT date_trunc(${trunc}, "createdAt") AS bucket, COUNT(*)::bigint AS n
@@ -79,10 +79,6 @@ export async function GET(req: NextRequest) {
                SUM("amountCents")::bigint AS cents
         FROM "Payment" WHERE "createdAt" >= ${since} AND "status" = 'PAID'
         GROUP BY 1 ORDER BY 1`,
-      prisma.$queryRaw<Row[]>`
-        SELECT date_trunc(${trunc}, "placedAt") AS bucket, COUNT(*)::bigint AS n
-        FROM "Feature" WHERE "placedAt" >= ${since} AND "status" = 'VERIFIED'
-        GROUP BY 1 ORDER BY 1`,
     ]);
 
   const at = <T extends { bucket: Date }>(rows: T[], iso: string): T | undefined =>
@@ -117,7 +113,6 @@ export async function GET(req: NextRequest) {
       submissions: Number(at(submissions, iso)?.n ?? 0),
       payments: Number(pay?.n ?? 0),
       revenueCents: Number(pay?.cents ?? 0),
-      verifiedShares: Number(at(features, iso)?.n ?? 0),
     };
   });
 
@@ -146,7 +141,6 @@ export async function GET(req: NextRequest) {
       submissions: sum("submissions"),
       payments: sum("payments"),
       revenueCents: sum("revenueCents"),
-      verifiedShares: sum("verifiedShares"),
     },
     generatedAt: new Date().toISOString(),
   });

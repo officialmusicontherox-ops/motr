@@ -27,12 +27,6 @@ type Stats = {
  };
  tracksByStatus: Record<string, number>;
  revenue: { totalCents: number; paidCount: number };
- payouts: {
- owedCents: number;
- owedCount: number;
- paidOutCents: number;
- paidOutCount: number;
- };
  recentNotifications: {
  id: string;
  sentAt: string;
