@@ -10,6 +10,7 @@ import AdminFeedHealth from "./AdminFeedHealth";
 import AdminNudges from "./AdminNudges";
 import AdminArtistUpdates from "./AdminArtistUpdates";
 import AdminArtistNudges from "./AdminArtistNudges";
+import AdminArtistShare from "./AdminArtistShare";
 import AdminChartWinners from "./AdminChartWinners";
 import AdminWeeklyChart from "./AdminWeeklyChart";
 import AdminScouts from "./AdminScouts";
@@ -255,6 +256,8 @@ export default function AdminDashboard({
  <AdminChartWinners />
 
  <AdminWeeklyChart />
+
+ <AdminArtistShare />
 
  <AdminArtistNudges />
 

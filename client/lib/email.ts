@@ -1,12 +1,4 @@
 import { Resend } from "resend";
-import {
-  CURATORS_PER_TRACK,
-  FEATURE_FEE_CENTS,
-  MIN_WITHDRAWAL_CENTS,
-  PAYOUT_MATURITY_DAYS,
-  SHARE_HOLD_DAYS,
-  WITHDRAWAL_FEE_CENTS,
-} from "./economics";
 
 /**
  * Transactional email. Two moments in the product depend on it: telling an
@@ -37,9 +29,6 @@ const APP_URL =
     : process.env.NODE_ENV === "production"
       ? "https://app.musicontherox.com"
       : "http://localhost:3000");
-
-const dollars = (cents: number) =>
-  cents % 100 === 0 ? `$${cents / 100}` : `$${(cents / 100).toFixed(2)}`;
 
 export type SendResult = { ok: boolean; id?: string; error?: string };
 
@@ -109,58 +98,6 @@ function shell(heading: string, body: string, cta?: { label: string; url: string
     Sent by MOTR · <a href="https://musicontherox.com" style="color:#8b8b8b">musicontherox.com</a>
   </p>
 </div>`;
-}
-
-/**
- * The welcome email, and the only complete explanation of the job a curator
- * ever gets — there's no onboarding screen and no handbook.
- *
- * Every number in it comes from lib/payouts.ts rather than being typed into
- * the copy, because an email that quietly disagrees with what the app pays is
- * worse than one that says nothing. Retuning the economics retunes this.
- */
-export function curatorApprovedEmail(username: string, email?: string) {
-  const signInNote = email
-    ? `Sign in with Google using <strong style="color:#fff">${email}</strong> — the address you applied with. A different Google account won't find your account. <strong style="color:#fff">If that address isn't a Google account</strong>, reply to this email with one that is and we'll switch it over.`
-    : `Sign in with Google using the address you applied with. A different Google account won't find your account.`;
-
-  return {
-    subject: "You're in — here's how curating on MOTR works",
-    html: shell(
-      "You're approved",
-      `<p style="margin:0 0 18px">Hi ${username} — we looked at your outlet and we'd like you curating. Here's everything you need.</p>
-
-       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">GETTING IN</p>
-       <p style="margin:0 0 18px">${signInNote}</p>
-
-       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">WHAT LANDS IN YOUR QUEUE</p>
-       <p style="margin:0 0 18px">Nothing unsolicited. A track only reaches you after real listeners voted it through on blind 30-second clips, the artist paid to put it in front of curators, and it matched your genres. It goes to ${CURATORS_PER_TRACK} curators, so you're one opinion of ${CURATORS_PER_TRACK} — not a gatekeeper.</p>
-
-       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">YOUR TWO OPTIONS</p>
-       <p style="margin:0 0 10px"><strong style="color:#fff">Share it</strong> — add it to a playlist, post a short-form video, play it on air or on your podcast, or write about it. You paste the link as proof.</p>
-       <p style="margin:0 0 18px"><strong style="color:#fff">Pass</strong> — perfectly fine, and often the right call. We ask for a sentence or two on why, and it goes to the artist with your name on it. When the answer is no, that explanation is most of what they paid for.</p>
-
-       <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">GETTING PAID</p>
-       <p style="margin:0 0 10px">A flat <strong style="color:#fff">${dollars(FEATURE_FEE_CENTS)}</strong> per verified share. Same fee whatever the track — nobody can pay you more for a better verdict.</p>
-       <p style="margin:0 0 10px">Playlist adds, videos, radio and podcast proof have to stay up for <strong style="color:#fff">${SHARE_HOLD_DAYS} days</strong> before they count. A published article clears straight away. After that, earnings sit for <strong style="color:#fff">${PAYOUT_MATURITY_DAYS} days</strong> before they can be withdrawn.</p>
-       <p style="margin:0 0 10px">Cash out from <strong style="color:#fff">${dollars(MIN_WITHDRAWAL_CENTS)}</strong>, with a ${dollars(WITHDRAWAL_FEE_CENTS)} transfer fee taken off each payout. It goes out through PayPal in US dollars wherever you are — if your account holds another currency, PayPal converts it at their rate. Your balance and every pending item are on your earnings page.</p>
-       <p style="margin:0 0 18px">You're independent, not employed by us, and payouts are gross: we don't withhold tax. What you owe on it is between you and the tax authority where you live. Full detail is in the <a href="${APP_URL}/terms" style="color:#dcb55f">terms</a>.</p>
-
-       <p style="margin:0;color:#8b8b8b;font-size:13px">Questions, or something looks wrong? Just reply to this email.</p>`,
-      { label: "Open your queue", url: `${APP_URL}/curate` }
-    ),
-  };
-}
-
-export function curatorDeclinedEmail(username: string) {
-  return {
-    subject: "About your MOTR curator application",
-    html: shell(
-      "Not this time",
-      `<p style="margin:0 0 12px">Hi ${username}, thanks for applying to curate on MOTR.</p>
-       <p style="margin:0">We're not moving forward right now, but outlets grow — you're welcome to apply again later.</p>`
-    ),
-  };
 }
 
 export function trackBrokeThroughEmail(params: {
@@ -464,26 +401,6 @@ export function trackMilestoneEmail(params: {
 }
 
 /**
- * The sign-in link itself.
- *
- * Deliberately plain: a curator is looking for one thing, and everything else
- * on the page is a reason to hesitate. It says who asked and how long the
- * link lasts, because a login email that explains itself is one people click.
- */
-export function curatorLoginLinkEmail(params: { url: string; minutes: number }) {
-  const { url, minutes } = params;
-  return {
-    subject: "Your MOTR sign-in link",
-    html: shell(
-      "Sign in to MOTR",
-      `<p style="margin:0 0 12px">Here's your link. It signs you into your curator queue — no password needed.</p>
-       <p style="margin:0 0 12px;color:#8b8b8b;font-size:13px">It works once and expires in ${minutes} minutes. If you didn't ask for it, ignore this email; nothing happens until the link is opened.</p>`,
-      { label: "Sign in", url }
-    ),
-  };
-}
-
-/**
  * Sign-in link for the A&R portal.
  *
  * Says who it is for and how long it lasts, because a login email that
@@ -499,6 +416,60 @@ export function scoutLoginLinkEmail(params: { name: string; url: string; minutes
        <p style="margin:0 0 12px">Here's your link into the MOTR A&amp;R portal. It works once and expires in ${minutes} minutes.</p>
        <p style="margin:0;color:#8b8b8b;font-size:13px">If you didn't ask for it, ignore this email. Nothing happens until the link is opened.</p>`,
       { label: "Open the portal", url }
+    ),
+  };
+}
+
+export function artistLoginLinkEmail(params: { name: string; url: string; minutes: number }) {
+  const { name, url, minutes } = params;
+  return {
+    subject: "Your MOTR artist page",
+    html: shell(
+      "Your page",
+      `<p style="margin:0 0 12px">Hi ${name},</p>
+       <p style="margin:0 0 12px">Here's your way in. It works once and expires in ${minutes} minutes, and once you're in you'll stay signed in on that device.</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">If you didn't ask for it, ignore this email. Nothing happens until the link is opened.</p>`,
+      { label: "Open your page", url }
+    ),
+  };
+}
+
+/**
+ * Tells an artist their page exists, and shows them the card rather than
+ * describing it.
+ *
+ * The image is the whole argument: an artist who can see what they would be
+ * posting decides in a second, where a paragraph about a share card gets
+ * skimmed and closed.
+ */
+export function artistSharePageEmail(params: {
+  name: string;
+  tracks: { id: string; title: string }[];
+}) {
+  const { name, tracks } = params;
+  const first = tracks[0];
+  const more = tracks.length - 1;
+
+  return {
+    subject: "Your MOTR page, and a card you can post",
+    html: shell(
+      "Something to share",
+      `<p style="margin:0 0 12px">Hi ${name},</p>
+       <p style="margin:0 0 12px">You now have a page on MOTR that shows how your music is doing: how many people opened your link, and how many kept the song. It updates as people swipe, and you can come back to it whenever you like.</p>
+       <p style="margin:0 0 18px">There's also a card for each of your tracks, ready to post. It carries a code people can scan straight from the screen, which matters because a link in an Instagram post isn't clickable for most accounts.</p>
+       ${
+         first
+           ? `<div style="margin:0 0 18px;text-align:center">
+                <img src="${APP_URL}/api/share-card/${first.id}?shape=post" width="464" alt="Share card for ${first.title}" style="width:100%;max-width:464px;border-radius:14px;display:block;margin:0 auto" />
+                <div style="color:#8b8b8b;font-size:12px;margin-top:8px">Your card for &ldquo;${first.title}&rdquo;${
+                  more > 0 ? `, and ${more} more on your page` : ""
+                }</div>
+              </div>`
+           : ""
+       }
+       <p style="margin:0 0 12px">Worth telling people what MOTR actually is when you post: nobody sees your name or your artwork. They hear thirty seconds and decide. That's the part that makes somebody curious enough to listen properly.</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">A verdict reached after the whole clip counts double, so one patient listener is worth two who skip.</p>`,
+      { label: "Open your page", url: `${APP_URL}/artist` }
     ),
   };
 }

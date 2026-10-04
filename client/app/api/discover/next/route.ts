@@ -34,7 +34,16 @@ export async function GET(req: NextRequest) {
         NOT: { fanSwipes: { some: { fanId } } },
       },
     });
-    if (asked) return NextResponse.json({ track: asked, fromShare: true });
+    if (asked) {
+      // Counted here rather than on arrival, so the number an artist is shown
+      // means "someone came from my link and got my song" rather than
+      // "someone loaded a page". The caller consumes the parameter once per
+      // visit, so a refresh doesn't inflate it.
+      await prisma.track
+        .update({ where: { id: asked.id }, data: { shareOpens: { increment: 1 } } })
+        .catch(() => {});
+      return NextResponse.json({ track: asked, fromShare: true });
+    }
   }
 
   // Optional mood filter. Anything not in the fixed list is ignored rather

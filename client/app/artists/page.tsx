@@ -191,6 +191,15 @@ export default function ArtistsPage() {
           </div>
 
           <p className="text-muted max-w-sm text-xs leading-relaxed">
+            Your page at{" "}
+            <a href="/artist" className="text-gold underline underline-offset-4">
+              app.musicontherox.com/artist
+            </a>{" "}
+            shows how many people opened your link and kept the song, and has a card you can post.
+            Sign in there any time with {artistEmail}.
+          </p>
+
+          <p className="text-muted max-w-sm text-xs leading-relaxed">
             We&apos;ve emailed {artistEmail} with {many ? "all of these links" : "this link"}.
             We&apos;ll be in touch the moment {many ? "one of them breaks" : "it breaks"} through.
           </p>
