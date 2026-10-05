@@ -37,6 +37,16 @@ async function resolveManualAudio(raw: string): Promise<{ previewUrl: string } |
   try {
     const probe = await fetch(resolved, { headers: { Range: "bytes=0-500" } });
     if (!probe.ok) throw new Error(String(probe.status));
+    // Reachable is not playable. An Apple Music web page answers 200 to this,
+    // which is how two tracks came to sit in the feed playing nothing.
+    const type = probe.headers.get("content-type") ?? "";
+    if (!/^audio\//i.test(type)) {
+      return {
+        error: `That link isn't audio, it answered with ${
+          type || "no content type"
+        }. It needs to be a preview file, not an Apple Music page.`,
+      };
+    }
   } catch {
     return { error: "That link didn't play when we tried it. Check it and try again." };
   }
@@ -105,6 +115,69 @@ async function reconcile() {
   }
 }
 
+/**
+ * How many refusals one bulk retry attempt works through.
+ *
+ * Small on purpose. The host cuts a request off after about ten seconds and
+ * each attempt can cost several Apple requests, so the dashboard asks
+ * repeatedly rather than this trying to clear the queue in one go.
+ */
+const RETRY_CHUNK = 3;
+
+/** Creates the track behind a refusal and closes the refusal out. */
+async function addResolvedTrack(
+  refused: { id: string; artistEmail: string; genre: string | null },
+  trackId: string,
+  resolved: {
+    title: string;
+    artistName: string;
+    albumName: string | null;
+    artworkUrl: string | null;
+    previewUrl: string;
+    durationMs: number | null;
+    appleTrackId?: string | null;
+  },
+  opts: { genre?: unknown; vouched?: boolean } = {}
+) {
+  const existing = await prisma.track.findUnique({
+    where: { source_externalId: { source: "SPOTIFY", externalId: trackId } },
+  });
+  if (existing) {
+    await prisma.refusedSubmission.update({
+      where: { id: refused.id },
+      data: { status: "ADDED" },
+    });
+    return { track: existing, artist: null, alreadyExisted: true };
+  }
+
+  // Attach it to the artist who originally submitted, by their email.
+  const artist = await prisma.artist.upsert({
+    where: { email: refused.artistEmail },
+    update: {},
+    create: { email: refused.artistEmail, name: resolved.artistName.split(/[,&]/)[0].trim() },
+  });
+
+  const track = await prisma.track.create({
+    data: {
+      source: "SPOTIFY",
+      externalId: trackId,
+      title: resolved.title,
+      artistName: resolved.artistName,
+      albumName: resolved.albumName,
+      artworkUrl: resolved.artworkUrl,
+      previewUrl: resolved.previewUrl,
+      durationMs: resolved.durationMs,
+      artistId: artist.id,
+      genre: (typeof opts.genre === "string" && opts.genre) || refused.genre || null,
+      ...(resolved.appleTrackId ? { appleTrackId: resolved.appleTrackId } : {}),
+      ...(opts.vouched ? { audioVerdict: "VOUCHED", audioCheckedAt: new Date() } : {}),
+    },
+  });
+
+  await prisma.refusedSubmission.update({ where: { id: refused.id }, data: { status: "ADDED" } });
+  return { track, artist, alreadyExisted: false };
+}
+
 export async function GET(req: NextRequest) {
   if (!(await getAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -140,7 +213,67 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id, action, spotifyUrl, genre, audioUrl } = await req.json().catch(() => ({}));
+  const { id, action, spotifyUrl, genre, audioUrl, cursor } = await req.json().catch(() => ({}));
+
+  /**
+   * Runs pending refusals back through the matcher as it stands today.
+   *
+   * Most of these were refused by an older, worse matcher: it searched Apple
+   * and gave up when search came back empty, which it does routinely for a
+   * small artist's release. Reading the artist's own catalogue finds a lot of
+   * them, so the queue holds submissions that would simply work now. Nothing
+   * is taken on trust here: a retry either resolves properly or is left
+   * exactly as it was.
+   */
+  if (action === "RETRY_PENDING") {
+    // Walked by a timestamp cursor rather than by always taking the oldest
+    // few: a refusal that fails again stays PENDING, so without a cursor the
+    // same three stuck rows would be retried for ever and the rest never
+    // reached.
+    const from = typeof cursor === "string" && cursor ? new Date(cursor) : null;
+    const pending = await prisma.refusedSubmission.findMany({
+      where: {
+        status: "PENDING",
+        ...(from && !Number.isNaN(from.getTime()) ? { createdAt: { gt: from } } : {}),
+      },
+      orderBy: { createdAt: "asc" },
+      take: RETRY_CHUNK,
+    });
+
+    const added: { title: string; artistName: string }[] = [];
+    const stillFailing: { url: string; reason: string }[] = [];
+
+    for (const row of pending) {
+      const trackId = parseSpotifyTrackId(row.spotifyUrl);
+      if (!trackId) {
+        stillFailing.push({ url: row.spotifyUrl, reason: "Not a Spotify track link." });
+        continue;
+      }
+      try {
+        const resolved = await resolveSpotifyTrack(trackId);
+        const result = await addResolvedTrack(row, trackId, resolved);
+        added.push({ title: result.track.title, artistName: result.track.artistName });
+      } catch (e) {
+        stillFailing.push({
+          url: row.spotifyUrl,
+          reason: e instanceof TrackLookupError ? e.message : "Couldn't resolve it.",
+        });
+      }
+    }
+
+    const pendingLeft = await prisma.refusedSubmission.count({ where: { status: "PENDING" } });
+    const last = pending[pending.length - 1];
+    return NextResponse.json({
+      tried: pending.length,
+      added,
+      stillFailing,
+      // Where the next slice should start, and whether there is one.
+      nextCursor: last ? last.createdAt.toISOString() : null,
+      done: pending.length < RETRY_CHUNK,
+      pending: pendingLeft,
+    });
+  }
+
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
 
   const refused = await prisma.refusedSubmission.findUnique({ where: { id } });
@@ -225,41 +358,13 @@ export async function POST(req: NextRequest) {
     };
   }
 
-  const existing = await prisma.track.findUnique({
-    where: { source_externalId: { source: "SPOTIFY", externalId: trackId } },
-  });
-  if (existing) {
-    await prisma.refusedSubmission.update({ where: { id }, data: { status: "ADDED" } });
-    return NextResponse.json({ track: existing, alreadyExisted: true });
+  const result = await addResolvedTrack(refused, trackId, resolved, { genre, vouched });
+  if (result.alreadyExisted) {
+    return NextResponse.json({ track: result.track, alreadyExisted: true });
   }
 
-  // Attach it to the artist who originally submitted, by their email.
-  const artist = await prisma.artist.upsert({
-    where: { email: refused.artistEmail },
-    update: {},
-    create: {
-      email: refused.artistEmail,
-      name: resolved.artistName.split(/[,&]/)[0].trim(),
-    },
+  return NextResponse.json({
+    track: result.track,
+    artist: result.artist ? { name: result.artist.name, email: result.artist.email } : null,
   });
-
-  const track = await prisma.track.create({
-    data: {
-      source: "SPOTIFY",
-      externalId: trackId,
-      title: resolved.title,
-      artistName: resolved.artistName,
-      albumName: resolved.albumName,
-      artworkUrl: resolved.artworkUrl,
-      previewUrl: resolved.previewUrl,
-      durationMs: resolved.durationMs,
-      artistId: artist.id,
-      genre: (typeof genre === "string" && genre) || refused.genre || null,
-      ...(vouched ? { audioVerdict: "VOUCHED", audioCheckedAt: new Date() } : {}),
-    },
-  });
-
-  await prisma.refusedSubmission.update({ where: { id }, data: { status: "ADDED" } });
-
-  return NextResponse.json({ track, artist: { name: artist.name, email: artist.email } });
 }

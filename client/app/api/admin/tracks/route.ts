@@ -42,9 +42,21 @@ export async function GET(req: NextRequest) {
   else if (view === "curators") where.status = { in: ["VETTING", "GRADUATED"] };
 
   if (q) {
+    // A pasted link is the fastest way to answer "is this artist's song
+    // actually on there?", which is the question most emails about a missing
+    // track are really asking. Spotify and Apple links both carry an id we
+    // already store, so the search looks for those as well as for text.
+    const spotifyId = parseSpotifyTrackId(q);
+    const appleId =
+      q.match(/[?&]i=(\d+)/)?.[1] ??
+      q.match(/\/song\/[^/]*\/(\d+)/)?.[1] ??
+      (/^\d{6,}$/.test(q) ? q : undefined);
+
     where.OR = [
       { title: { contains: q, mode: "insensitive" } },
       { artistName: { contains: q, mode: "insensitive" } },
+      ...(spotifyId ? [{ externalId: spotifyId }] : []),
+      ...(appleId ? [{ appleTrackId: appleId }] : []),
     ];
   }
 

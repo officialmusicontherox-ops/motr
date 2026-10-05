@@ -205,6 +205,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ trac
       headers: {
         // Cached hard: the card only changes if the track is renamed.
         "cache-control": "public, max-age=3600, s-maxage=86400",
+        // Netlify keys its cache on the path and a fixed list of query
+        // parameters, so without this both shapes share one entry and
+        // whichever was asked for first is served for ever after. The square
+        // card came back 1080x1920 in production because of exactly that.
+        "netlify-vary": "query=shape",
       },
     }
   );

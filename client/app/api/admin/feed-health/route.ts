@@ -79,7 +79,13 @@ export async function POST(req: NextRequest) {
           // A range request fetches a few hundred bytes rather than the whole
           // clip — enough to know the file is really there.
           const res = await fetch(t.previewUrl, { headers: { Range: "bytes=0-500" } });
-          return res.ok ? null : t;
+          if (!res.ok) return t;
+          // Answering is not the same as playing. A music.apple.com page
+          // replies 200 with HTML, so checking only the status passed two
+          // tracks that sat in the feed making no sound, one of them long
+          // enough to collect left swipes from people hearing silence.
+          const type = res.headers.get("content-type") ?? "";
+          return /^(audio|application\/octet-stream)/i.test(type) ? null : t;
         } catch {
           return t;
         }

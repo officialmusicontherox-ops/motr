@@ -28,6 +28,13 @@ const VIEWS = [
  * track can be added on their behalf — they submitted once, and shouldn't
  * have to do it again because our matching couldn't confirm the recording.
  */
+/** The queue, however it was asked for. Null when the request didn't land. */
+async function fetchRefused(view: string) {
+  const res = await fetch(`/api/admin/refused?view=${view}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
   const [view, setView] = useState<(typeof VIEWS)[number]["key"]>("pending");
   const [items, setItems] = useState<Refused[] | null>(null);
@@ -41,21 +48,82 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
   const [needsAudio, setNeedsAudio] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [retryNote, setRetryNote] = useState<string | null>(null);
   const page = useVisibleCount(10);
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/admin/refused?view=${view}`);
-    if (!res.ok) return;
-    const d = await res.json();
+    const d = await fetchRefused(view);
+    if (!d) return;
     setItems(d.items);
     setPendingCount(d.pendingCount);
   }, [view]);
 
   useEffect(() => {
-    load();
-    page.reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [load]);
+    // Fetched here rather than by calling load(), so nothing sets state
+    // synchronously as the effect runs, and guarded so a reply arriving after
+    // the view has changed can't overwrite the newer one.
+    //
+    // Paging resets where the view actually changes, not here.
+    let alive = true;
+    (async () => {
+      const d = await fetchRefused(view);
+      if (!alive || !d) return;
+      setItems(d.items);
+      setPendingCount(d.pendingCount);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [view]);
+
+  /**
+   * Runs every pending refusal back through the matcher as it stands now.
+   *
+   * Most of these were refused by a worse matcher, so a good number simply
+   * work on a second look. Done in slices with a cursor, because the host
+   * kills a request after about ten seconds and a stuck row must not be
+   * retried for ever while the rest go unreached.
+   */
+  async function retryPending() {
+    setRetrying(true);
+    setRetryNote("Retrying...");
+    let cursor: string | null = null;
+    let added = 0;
+    let tried = 0;
+
+    try {
+      for (let pass = 0; pass < 60; pass++) {
+        const res: Response = await fetch("/api/admin/refused", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "RETRY_PENDING", cursor }),
+        });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error ?? "That didn't work.");
+
+        tried += d.tried;
+        added += d.added.length;
+        setRetryNote(
+          `Retried ${tried}, rescued ${added}${d.added.length ? `: ${d.added.map((a: { title: string }) => a.title).join(", ")}` : ""}`
+        );
+
+        if (d.done || !d.nextCursor) break;
+        cursor = d.nextCursor;
+      }
+
+      setRetryNote(
+        added > 0
+          ? `Rescued ${added} of ${tried}. The rest still can't be matched automatically.`
+          : `Retried ${tried}. None of them match automatically yet.`
+      );
+      load();
+    } catch (e) {
+      setRetryNote(e instanceof Error ? e.message : "That didn't work.");
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   async function act(r: Refused, action: "ADD" | "DISMISS" | "REOPEN") {
     setBusy(r.id);
@@ -113,7 +181,10 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
         {VIEWS.map((v) => (
           <button
             key={v.key}
-            onClick={() => setView(v.key)}
+            onClick={() => {
+              setView(v.key);
+              page.reset();
+            }}
             className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${
               view === v.key
                 ? "bg-gold text-bg"
@@ -123,7 +194,23 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
             {v.label}
           </button>
         ))}
+
+        {pendingCount > 0 && (
+          <button
+            onClick={retryPending}
+            disabled={retrying}
+            className="ml-auto rounded-full border border-edge px-3.5 py-1.5 text-xs font-semibold transition hover:border-gold hover:text-gold disabled:opacity-40"
+          >
+            {retrying ? "Retrying..." : `Retry all ${pendingCount} with the current matcher`}
+          </button>
+        )}
       </div>
+
+      {retryNote && (
+        <p className="mt-3 rounded-lg border border-edge bg-bg px-3 py-2 text-sm text-gold">
+          {retryNote}
+        </p>
+      )}
 
       {flash && (
         <p className="mt-3 rounded-lg border border-edge bg-bg px-3 py-2 text-sm text-muted">

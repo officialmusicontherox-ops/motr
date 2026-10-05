@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AdminSection from "./AdminSection";
 
 type Track = { id: string; title: string; opens: number; saves: number };
@@ -169,28 +169,7 @@ export default function AdminArtistShare() {
                   </button>
                 </div>
 
-                {open === a.id && (
-                  <ul className="border-edge mt-3 space-y-2 border-t pt-3">
-                    {a.tracks.map((t) => (
-                      <li key={t.id} className="flex items-center justify-between gap-3 text-sm">
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate">{t.title}</span>
-                          <span className="text-muted text-xs">
-                            {t.opens} opens · {t.saves} saves
-                          </span>
-                        </span>
-                        <a
-                          href={`/api/share-card/${t.id}?shape=post`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-gold shrink-0 text-xs underline underline-offset-4"
-                        >
-                          Card
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                {open === a.id && <ArtistDetail artistId={a.id} />}
               </li>
             ))}
           </ul>
@@ -202,3 +181,130 @@ export default function AdminArtistShare() {
 
 /** The shape of a POST reply, which differs per action. */
 type PostReply = { sent?: number; failed?: number; sentTo?: string };
+
+type Detail = {
+  artist: {
+    name: string;
+    email: string;
+    optedOut: boolean;
+    nudgeCount: number;
+    lastNudgeAt: string | null;
+    toldAboutPage: string | null;
+    since: string;
+  };
+  tracks: {
+    id: string;
+    title: string;
+    status: string;
+    genre: string | null;
+    ai: boolean | null;
+    opens: number;
+    saves: number;
+    passes: number;
+    verdict: string | null;
+    addedAt: string;
+  }[];
+  refusals: { id: string; url: string; reason: string; status: string; attempts: number; at: string }[];
+  emails: { id: string; type: string; track: string | null; at: string }[];
+};
+
+const day = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "2-digit" });
+
+/** One artist, everything: tracks, what was emailed, and what never got in. */
+function ArtistDetail({ artistId }: { artistId: string }) {
+  const [d, setD] = useState<Detail | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/admin/artist-detail?artistId=${artistId}`);
+        const body = await res.json();
+        if (!alive) return;
+        if (!res.ok) throw new Error(body.error ?? "Couldn't load it");
+        setD(body);
+      } catch (e) {
+        if (alive) setErr(e instanceof Error ? e.message : "Couldn't load it");
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [artistId]);
+
+  if (err) return <p className="text-nope mt-3 text-sm">{err}</p>;
+  if (!d) return <p className="text-muted mt-3 text-sm">Loading...</p>;
+
+  return (
+    <div className="border-edge mt-3 space-y-4 border-t pt-3">
+      <p className="text-muted text-xs">
+        Submitting since {day(d.artist.since)}
+        {d.artist.toldAboutPage ? ` · told about their page ${day(d.artist.toldAboutPage)}` : " · not told about their page"}
+        {d.artist.nudgeCount > 0 ? ` · ${d.artist.nudgeCount} come-back email${d.artist.nudgeCount === 1 ? "" : "s"}` : ""}
+        {d.artist.optedOut ? " · opted out of email" : ""}
+      </p>
+
+      <div>
+        <div className="motr-label text-muted mb-1.5">In the feed</div>
+        <ul className="space-y-1.5">
+          {d.tracks.map((t) => (
+            <li key={t.id} className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{t.title}</span>
+                <span className="text-muted text-xs">
+                  {t.opens} opens · {t.saves} saves · {t.passes} passes
+                  {t.genre ? ` · ${t.genre}` : ""}
+                  {t.ai ? " · AI" : ""}
+                  {t.status !== "DISCOVERY" ? ` · ${t.status.toLowerCase()}` : ""}
+                  {t.verdict && t.verdict !== "MATCH" ? ` · ${t.verdict.toLowerCase()}` : ""}
+                </span>
+              </span>
+              <a
+                href={`/api/share-card/${t.id}?shape=post`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-gold shrink-0 text-xs underline underline-offset-4"
+              >
+                Card
+              </a>
+            </li>
+          ))}
+          {d.tracks.length === 0 && <li className="text-muted text-xs">Nothing in the feed.</li>}
+        </ul>
+      </div>
+
+      {d.refusals.length > 0 && (
+        <div>
+          <div className="motr-label text-muted mb-1.5">Never got in</div>
+          <ul className="space-y-1.5">
+            {d.refusals.map((r) => (
+              <li key={r.id} className="text-xs leading-relaxed">
+                <span className="text-muted block truncate">{r.url}</span>
+                <span className={r.status === "PENDING" ? "text-gold" : "text-muted/70"}>
+                  {r.status.toLowerCase()}
+                  {r.attempts > 1 ? ` · tried ${r.attempts} times` : ""} · {day(r.at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {d.emails.length > 0 && (
+        <div>
+          <div className="motr-label text-muted mb-1.5">Emails sent</div>
+          <ul className="space-y-1">
+            {d.emails.slice(0, 6).map((e) => (
+              <li key={e.id} className="text-muted text-xs">
+                {day(e.at)} · {e.type.toLowerCase().replace(/_/g, " ")}
+                {e.track ? ` · ${e.track}` : ""}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
