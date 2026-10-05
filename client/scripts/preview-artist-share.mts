@@ -4,6 +4,26 @@ import { pendingSharePageArtists } from "../lib/artistSharePage";
 import { artistSharePageEmail } from "../lib/email";
 import { renderShareCard } from "../lib/shareCard";
 
+/**
+ * Refuses to run against a dev URL.
+ *
+ * The email embeds the card by absolute URL, and APP_URL falls back to
+ * localhost outside production. A send with that fallback in place mails
+ * everybody a broken image, which is exactly what happened the first time.
+ */
+function requirePublicAppUrl() {
+  const url = process.env.APP_URL;
+  if (!url || !/^https:\/\//.test(url) || /localhost|127\.0\.0\.1/.test(url)) {
+    console.error(
+      `APP_URL is ${url ?? "not set"}. The card is embedded by absolute URL, so this would send a broken image.\n` +
+        `Run it with:  npx tsx --env-file=.env scripts/<script>`
+    );
+    process.exit(1);
+  }
+}
+requirePublicAppUrl();
+
+
 const out = process.argv[2] ?? "/tmp/motr-share-email.html";
 const due = await pendingSharePageArtists();
 
