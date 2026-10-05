@@ -58,7 +58,8 @@ export default function SavedList({ fan }: { fan: Fan }) {
       <div className="w-full max-w-sm md:max-w-2xl">
         <h1 className="font-display text-3xl uppercase tracking-wide">Saved</h1>
         <p className="text-muted mt-1 text-sm">
-          Tracks you backed. Tap the Spotify icon to open one there and save it.
+          Tracks you backed, and now you can see who made them. Tap the Spotify icon to open
+          one there and save it.
         </p>
 
         {saved === null ? (
@@ -70,7 +71,8 @@ export default function SavedList({ fan }: { fan: Fan }) {
             <Bookmark className="text-gold/40 h-10 w-10" />
             <p className="font-display text-xl uppercase tracking-wide">Nothing saved yet</p>
             <p className="text-muted max-w-xs text-sm">
-              Swipe right on something you like and it&apos;ll show up here.
+              Swipe right on something you like and it&apos;ll show up here, with the artist
+              named.
             </p>
             <Link
               href="/"

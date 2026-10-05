@@ -238,7 +238,22 @@ export async function weeklyLeaders(days = 7): Promise<{
   artists: WeeklyArtist[];
   since: string;
 }> {
-  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return leadersBetween(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+}
+
+/**
+ * The same chart over an explicit window.
+ *
+ * The weekly chart is a calendar week now, Sunday to Saturday, rather than
+ * the last seven days from whenever someone happens to look: a position is
+ * something an artist is told about and screenshots, so it has to mean the
+ * same thing to them on Sunday as it did on Friday.
+ */
+export async function leadersBetween(
+  since: Date,
+  until?: Date
+): Promise<{ songs: WeeklySong[]; artists: WeeklyArtist[]; since: string }> {
+  const upper = until ? Prisma.sql`AND s."createdAt" < ${until}` : Prisma.empty;
 
   const [songRows, artistRows] = await Promise.all([
     prisma.$queryRaw<
@@ -259,6 +274,7 @@ export async function weeklyLeaders(days = 7): Promise<{
       WHERE t."artistId" IS NOT NULL
         AND t."status" <> 'REJECTED'
         AND s."createdAt" >= ${since}
+        ${upper}
       GROUP BY t."id"
       ORDER BY saves DESC, verdicts DESC
       LIMIT 10
@@ -277,6 +293,7 @@ export async function weeklyLeaders(days = 7): Promise<{
       WHERE t."artistId" IS NOT NULL
         AND t."status" <> 'REJECTED'
         AND s."createdAt" >= ${since}
+        ${upper}
       GROUP BY t."artistId"
       ORDER BY saves DESC, verdicts DESC
       LIMIT 10

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { weeklyLeaders } from "@/lib/scoutData";
+import { leadersBetween, weeklyLeaders } from "@/lib/scoutData";
+import { weekOf } from "@/lib/weekWindow";
 
 /**
  * The public charts: what listeners backed hardest, over a week or a month.
@@ -18,8 +19,15 @@ export const revalidate = 0;
 export async function GET(req: NextRequest) {
   // Two windows, nothing else. A range picker with six options is a decision
   // nobody wants to make on a chart they opened to see one number.
-  const days = req.nextUrl.searchParams.get("range") === "month" ? 30 : 7;
-  const weekly = await weeklyLeaders(days);
+  //
+  // The week is a calendar week, Sunday to Saturday, and says which one it
+  // is. A rolling seven days quietly changes what it means between one look
+  // and the next, which is no use to an artist told they finished fourth.
+  // The month stays rolling: a calendar month would be nearly empty on the
+  // 1st, and nobody is being told their monthly position.
+  const month = req.nextUrl.searchParams.get("range") === "month";
+  const week = weekOf();
+  const weekly = month ? await weeklyLeaders(30) : await leadersBetween(week.start, week.end);
 
   return NextResponse.json(
     {
@@ -37,7 +45,10 @@ export async function GET(req: NextRequest) {
         tracks: a.tracks,
       })),
       since: weekly.since,
-      days,
+      days: month ? 30 : 7,
+      // What the heading should say above the list.
+      label: month ? "Last 30 days" : week.label,
+      range: month ? "month" : "week",
     },
     { headers: { "cache-control": "no-store" } }
   );

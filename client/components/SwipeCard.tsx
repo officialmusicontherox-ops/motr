@@ -248,11 +248,16 @@ export default function SwipeCard({
 
         <div className="shrink-0 px-5 pb-3 pt-2 md:flex md:flex-1 md:flex-col md:justify-center md:px-7">
           <h2 className="truncate text-xl font-bold md:text-2xl">{track.title}</h2>
-          {/* No artist name here, deliberately.
-              The whole promise of the feed is a verdict on the song rather
-              than on whoever made it, and a name is the one thing that makes
-              a listener decide before the clip has played. They find out who
-              it was in Saved, once they have already kept it. */}
+          {/* No artist name here, deliberately: the whole promise of the feed
+              is a verdict on the song rather than on whoever made it, and a
+              name is the one thing that makes a listener decide before the
+              clip has played.
+
+              Said out loud rather than left as a gap, because an absence
+              reads as a bug. This also tells them what saving gets them,
+              which is the one thing that makes a right swipe worth more than
+              a shrug. */}
+          <p className="text-muted mt-0.5 truncate text-sm">Artist revealed when you save it</p>
 
           {track.genre && (
             <div className="mt-2 flex flex-wrap gap-2">

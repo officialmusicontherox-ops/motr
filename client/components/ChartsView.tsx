@@ -15,7 +15,15 @@ type ChartSong = {
 
 type ChartArtist = { rank: number; id: string; name: string; tracks: number };
 
-type Charts = { songs: ChartSong[]; artists: ChartArtist[]; since: string; days: number };
+type Charts = {
+  songs: ChartSong[];
+  artists: ChartArtist[];
+  since: string;
+  days: number;
+  /** "October 4 - October 10", or "Last 30 days". */
+  label: string;
+  range: Range;
+};
 
 type Range = "week" | "month";
 
@@ -72,7 +80,7 @@ export default function ChartsView() {
           </p>
         </header>
 
-        <div className="mb-5 flex justify-center gap-2">
+        <div className="mb-3 flex justify-center gap-2">
           {(
             [
               ["week", "This week"],
@@ -92,6 +100,13 @@ export default function ChartsView() {
             </button>
           ))}
         </div>
+
+        {data && (
+          <p className="motr-label text-muted mb-5 text-center">
+            {data.label}
+            {data.range === "week" && " · closes Saturday at midnight"}
+          </p>
+        )}
 
         {failed && (
           <p className="text-muted py-10 text-center text-sm">

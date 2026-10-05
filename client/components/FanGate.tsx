@@ -172,8 +172,9 @@ export default function FanGate({
         <span className="text-gold"> favorite song</span>
       </h1>
       <p className="text-muted relative mt-2.5 max-w-sm text-sm leading-relaxed">
-        Thirty seconds each, no artist names. Swipe what moves you and
-        keep what you love.
+        Thirty seconds each, with no artist name attached. Swipe what moves you, and
+        whatever you keep turns up in Saved with the artist revealed, ready to open in
+        Spotify.
       </p>
 
       {signedOut && (
