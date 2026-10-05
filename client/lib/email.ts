@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { CARD_VERSION } from "./shareCard";
 
 /**
  * Transactional email. Two moments in the product depend on it: telling an
@@ -500,7 +501,7 @@ export function artistSharePageEmail(params: {
        ${
          first
            ? `<div style="margin:0 0 18px;text-align:center">
-                <img src="${APP_URL}/api/share-card/${first.id}?shape=post" width="464" alt="Your MOTR graphic for ${first.title}" style="width:100%;max-width:464px;border-radius:14px;display:block;margin:0 auto" />
+                <img src="${APP_URL}/api/share-card/${first.id}?shape=post&v=${CARD_VERSION}" width="464" alt="Your MOTR graphic for ${first.title}" style="width:100%;max-width:464px;border-radius:14px;display:block;margin:0 auto" />
               </div>`
            : ""
        }

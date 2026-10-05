@@ -14,6 +14,17 @@ import QRCode from "qrcode";
  * no type check was ever going to catch.
  */
 
+/**
+ * Bumped whenever the card's design changes.
+ *
+ * The image is cached hard at the edge for a day, so without this a design
+ * change leaves old cards being served to anyone whose copy was already
+ * stored: an email went out showing a card that claimed "no artwork" over a
+ * card that had artwork on it. The version travels in the URL and is part of
+ * the cache key, so bumping it retires every stored copy at once.
+ */
+export const CARD_VERSION = "2";
+
 const INK = "#09090a";
 const GOLD = "#dcb55f";
 const EDGE = "#262625";
@@ -275,7 +286,7 @@ export async function renderShareCard(params: {
         // Netlify keys its cache on the path and a fixed list of query
         // parameters, so without this both shapes share one entry and
         // whichever was asked for first is served for ever after.
-        "netlify-vary": "query=shape",
+        "netlify-vary": "query=shape|v",
       },
     }
   );
