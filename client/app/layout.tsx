@@ -25,7 +25,7 @@ const SITE = "https://app.musicontherox.com";
 // in development so no ad calls are made while testing.
 const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 const DESCRIPTION =
-  "Discover music before anyone else does. Thirty-second clips from artists you have probably never heard. Swipe what moves you and keep what you love.";
+  "Discover music before anyone tells you who made it. Thirty-second clips with no artist names. Swipe what moves you and keep what you love.";
 
 export const metadata: Metadata = {
   // Required for the share image below: without it, social platforms get a

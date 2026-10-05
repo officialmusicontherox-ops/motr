@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { newSubmissionEmail, sendEmail, submissionReceivedEmail } from "@/lib/email";
+import { storyCardAttachment } from "@/lib/artistSharePage";
 import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 /** Nobody submits six songs in one sitting; the form stops at five. */
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
       id: true,
       title: true,
       artistName: true,
+      artworkUrl: true,
       genre: true,
       requiredFanVotes: true,
       requiredApprovalRate: true,
@@ -66,6 +68,9 @@ export async function POST(req: NextRequest) {
       tracks: tracks.map((t) => ({ id: t.id, title: t.title, artistName: t.artistName })),
       requiredVotes: tracks[0].requiredFanVotes,
       requiredRate: tracks[0].requiredApprovalRate,
+      // One graphic even for a batch. The rest are on their page, and a
+      // five-megabyte email helps nobody.
+      attachments: await storyCardAttachment(tracks[0]),
     })
   );
 

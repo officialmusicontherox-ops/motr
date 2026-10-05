@@ -68,7 +68,7 @@ export default function ChartsView() {
         <header className="mb-4 text-center">
           <h1 className="font-display text-2xl uppercase tracking-wide">Charts</h1>
           <p className="text-muted mt-1.5 text-sm leading-relaxed">
-            The tracks listeners backed hardest, ranked only by how many kept them.
+            The tracks listeners backed hardest, heard with no artist name attached.
           </p>
         </header>
 

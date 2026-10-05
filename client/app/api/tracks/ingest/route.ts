@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resetArtistNudges } from "@/lib/artistNudges";
+import { storyCardAttachment } from "@/lib/artistSharePage";
 import { prisma } from "@/lib/prisma";
 import {
   newSubmissionEmail,
@@ -252,12 +253,16 @@ export async function POST(req: NextRequest) {
   // motivated to. Never awaited into failure: a mail problem must not turn a
   // good submission into an error for them.
   if (artistEmail && !deferEmail) {
+    // The graphic rides along with the confirmation, while the artist is still
+    // sitting there having just submitted. That is the moment they are most
+    // likely to post it, and a separate email days later catches nobody.
     await sendEmail(
       String(artistEmail),
       submissionReceivedEmail({
         tracks: [{ id: track.id, title: track.title, artistName: track.artistName }],
         requiredVotes: track.requiredFanVotes,
         requiredRate: track.requiredApprovalRate,
+        attachments: await storyCardAttachment(track),
       })
     );
   }

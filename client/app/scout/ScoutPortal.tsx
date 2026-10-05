@@ -124,8 +124,8 @@ export default function ScoutPortal() {
           Blind performance
         </h1>
         <p className="text-muted mt-2 max-w-2xl text-sm leading-relaxed">
-          Every number here comes from listeners who heard thirty seconds of a song they did
-          not know, with no reason to be kind. It is what a record does before
+          Every number here comes from listeners who heard thirty seconds with no artist name,
+          no idea who made it and no reason to be kind. It is what a record does before
           anyone&apos;s marketing touches it.
         </p>
       </header>

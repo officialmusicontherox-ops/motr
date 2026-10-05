@@ -143,7 +143,8 @@ export default function ArtistsPage() {
               Nothing breaks through without listeners backing it first, and your own fans are
               the ones most likely to swipe right.{" "}
               {many ? "Each link opens on that track" : "This link opens on your track"} rather
-              than a random one, so everyone you send lands straight on it.
+              than a random one, so everyone you send lands straight on it. The graphic has a code
+              on it people can scan, so it works on a story where a link does not.
             </p>
 
             {done.accepted.map((t) => {
@@ -157,6 +158,16 @@ export default function ArtistsPage() {
                   <p className="text-sm font-semibold text-ink">{t.title}</p>
                   <p className="text-gold mt-1 break-all text-xs">{shareUrl}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
+                    {/* First, and the only one that is a file: this is the
+                        moment they are most likely to post, and a graphic
+                        they have to go and find later is one nobody finds. */}
+                    <a
+                      href={`/api/share-card/${t.id}`}
+                      download={`motr-${t.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "track"}-story.png`}
+                      className="bg-gold text-bg rounded-full px-4 py-2 text-xs font-bold"
+                    >
+                      Download story graphic
+                    </a>
                     <button
                       onClick={() =>
                         navigator.clipboard?.writeText(shareText).then(
@@ -164,7 +175,7 @@ export default function ArtistsPage() {
                           () => setCopied(null)
                         )
                       }
-                      className="bg-gold text-bg rounded-full px-4 py-2 text-xs font-bold"
+                      className="border-edge hover:border-gold rounded-full border px-4 py-2 text-xs font-semibold transition"
                     >
                       {copied === t.id ? "Copied" : "Copy post"}
                     </button>

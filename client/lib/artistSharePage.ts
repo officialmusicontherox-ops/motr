@@ -14,8 +14,15 @@ import { renderShareCard } from "./shareCard";
  * behaviour, not two that drift.
  */
 
-/** At most this many cards per email, so a prolific artist's mail still arrives. */
-const MAX_CARDS = 3;
+/**
+ * One card per email, their most recent track.
+ *
+ * A card drawn over real cover art encodes to well over a megabyte, so three
+ * of them made a near four-megabyte email: slow on a phone, unwelcome to spam
+ * filters, and three things to choose between when the ask is to post one.
+ * The rest are a click away on their page.
+ */
+const MAX_CARDS = 1;
 
 const slug = (s: string) =>
   s
@@ -116,4 +123,36 @@ export async function sendSharePageEmails(
   }
 
   return { eligible: due.length, sent, failed, failures };
+}
+
+/**
+ * One story graphic for a track, ready to attach, or nothing.
+ *
+ * Never throws: a graphic that will not draw must not cost an artist their
+ * confirmation email, which is the one piece of mail they are actually
+ * waiting for.
+ */
+export async function storyCardAttachment(track: {
+  id: string;
+  title: string;
+  artistName: string;
+  artworkUrl?: string | null;
+}): Promise<Attachment[]> {
+  try {
+    const res = await renderShareCard({
+      trackId: track.id,
+      title: track.title,
+      artistName: track.artistName,
+      artworkUrl: track.artworkUrl,
+      square: false,
+    });
+    return [
+      {
+        filename: `motr-${slug(track.title)}-story.png`,
+        content: Buffer.from(await res.arrayBuffer()),
+      },
+    ];
+  } catch {
+    return [];
+  }
 }
