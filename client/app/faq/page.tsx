@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: "Is any of this paid for?",
-    a: "No. There is nothing to buy. Every track is heard with no name attached, and the only thing that moves it is whether people keep it.",
+    a: "No. There is nothing to buy. The only thing that moves a track is whether people keep it.",
   },
   {
     q: "What if my track doesn't break through?",
@@ -95,7 +95,7 @@ export default function FaqPage() {
           />
           <Card
             title="If you're an artist"
-            body="Free entry, and a fair hearing. Your song goes out with no name on it, so what comes back is a verdict on the music rather than on your follower count."
+            body="Free entry, and a fair hearing. Your song goes out to listeners who have never heard of you, so what comes back is a verdict on the music rather than on your follower count."
           />
         </div>
       </section>

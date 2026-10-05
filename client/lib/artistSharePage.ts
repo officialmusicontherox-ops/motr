@@ -28,7 +28,7 @@ export type SharePageRecipient = {
   artistId: string;
   name: string;
   email: string;
-  tracks: { id: string; title: string }[];
+  tracks: { id: string; title: string; artworkUrl: string | null }[];
 };
 
 /** Artists who have music in the feed and have not been told about their page. */
@@ -46,7 +46,7 @@ export async function pendingSharePageArtists(): Promise<SharePageRecipient[]> {
       tracks: {
         where: { status: { not: "REJECTED" } },
         orderBy: { createdAt: "desc" },
-        select: { id: true, title: true },
+        select: { id: true, title: true, artworkUrl: true },
       },
     },
   });
@@ -63,6 +63,7 @@ async function cardsFor(r: SharePageRecipient): Promise<Attachment[]> {
         trackId: t.id,
         title: t.title,
         artistName: r.name,
+        artworkUrl: t.artworkUrl,
         square: false,
       });
       out.push({

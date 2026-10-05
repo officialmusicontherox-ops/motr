@@ -141,9 +141,8 @@ function Dashboard({ me }: { me: Me }) {
 
       <div className="border-edge bg-surface mt-6 rounded-xl border border-dashed p-4">
         <p className="text-muted text-xs leading-relaxed">
-          Nobody hears your name or sees your artwork in the app. They hear the song and decide. A
-          verdict after the full 30 seconds counts double, so one patient listener is worth two who
-          skip.
+          A verdict reached after the full 30 seconds counts double, so one patient listener is
+          worth two who skip.
         </p>
       </div>
 
@@ -165,7 +164,7 @@ function Dashboard({ me }: { me: Me }) {
 function TrackCard({ track }: { track: Track }) {
   const [copied, setCopied] = useState(false);
   const shareUrl = `https://app.musicontherox.com/?track=${track.id}`;
-  const caption = `My track "${track.title}" is on MOTR. They won't see my name or my artwork, just 30 seconds of the song. Give it the full listen, then swipe right if you like it: ${shareUrl}`;
+  const caption = `My track "${track.title}" is on MOTR. Give it 30 seconds and swipe right if you like it: ${shareUrl}`;
 
   return (
     <li className="border-edge bg-surface rounded-2xl border p-4">

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ trac
 
   const track = await prisma.track.findUnique({
     where: { id: trackId },
-    select: { id: true, title: true, artistName: true, status: true },
+    select: { id: true, title: true, artistName: true, artworkUrl: true, status: true },
   });
   if (!track || track.status === "REJECTED") {
     return new Response("Not found", { status: 404 });
@@ -32,6 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ trac
     trackId: track.id,
     title: track.title,
     artistName: track.artistName,
+    artworkUrl: track.artworkUrl,
     square,
   });
 }

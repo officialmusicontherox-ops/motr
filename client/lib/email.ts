@@ -241,7 +241,7 @@ export function submissionReceivedEmail(params: {
         many
           ? `All <strong style="color:#fff">${tracks.length}</strong> are now playing in the MOTR feed`
           : `<strong style="color:#fff">${first.title}</strong> by ${first.artistName} is now playing in the MOTR feed`
-      }, where listeners hear thirty seconds with no artist name attached and decide on the music alone.</p>
+      }, where listeners hear thirty seconds and decide on the music alone.</p>
        <p style="margin:0 0 12px">To break through, a track needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that. MOTR is free, so there is nothing to buy.</p>
        <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${many ? "YOUR LINKS" : "YOUR LINK"}</p>
        <p style="margin:0 0 10px;font-size:14px">${many ? "Each link opens straight on that track" : "This link opens straight on your track"} rather than a random one, so everyone you send lands on it.</p>
@@ -326,7 +326,7 @@ export function comeBackEmail(params: {
            saved.length > 0
              ? `<p style="margin:0 0 10px">You backed ${saved.length === 1 ? "this" : "these"} early:</p>${list}
                 <p style="margin:12px 0 0">Tracks only climb if enough listeners push them there. Yours are still going.</p>`
-             : `<p style="margin:0">Thirty seconds each, no artist names, and the ones you like are saved for you.</p>`
+             : `<p style="margin:0">Thirty seconds each, and the ones you like are saved for you.</p>`
          }`,
         { label: "Pick up where you left off", url: APP_URL }
       ) +
@@ -391,7 +391,7 @@ export function trackMilestoneEmail(params: {
         `<p style="margin:0 0 12px">Hi ${leadName(artistName)},</p>
          <p style="margin:0 0 14px">${
            first
-             ? `Someone heard <strong style="color:#fff">${lead.title}</strong> with no name attached, no artwork they recognized and no idea who made it, and swiped right. That is the whole point of MOTR, and it just happened to you.`
+             ? `Someone who had never heard of you played <strong style="color:#fff">${lead.title}</strong> all the way through and swiped right. That is the whole point of MOTR, and it just happened to you.`
              : `${tracks.length === 1 ? "Your track has" : "Your tracks have"} picked up more support from listeners who had no idea who made ${tracks.length === 1 ? "it" : "them"}.`
          }</p>
          ${list}
@@ -479,29 +479,37 @@ export function artistSharePageEmail(params: {
   const first = tracks[0];
   const more = tracks.length - 1;
 
+  // Named after the thing itself, and after their own song.
+  //
+  // "Card" was the wrong word twice over: it reads as a payment card, which
+  // is a phrase spam filters weigh, and it tells an artist nothing about what
+  // is inside. A subject carrying their own track title is recognisable at a
+  // glance and has nothing in it for a filter to object to.
+  const subject =
+    tracks.length === 1 && first
+      ? `Your graphic for "${first.title}"`
+      : `Your graphics for ${tracks.length} tracks on MOTR`;
+
   return {
-    subject: "Your MOTR card, ready to post",
+    subject,
     attachments,
     html: shell(
       "Post this to your story",
       `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
-       <p style="margin:0 0 18px">Your card is attached to this email. Save it, put it on your story, and the people who follow you can scan it and hear your track. That is the whole job.</p>
+       <p style="margin:0 0 18px">Your card is attached. Put it on your story and anyone who follows you can scan it and hear your track.</p>
        ${
          first
            ? `<div style="margin:0 0 18px;text-align:center">
-                <img src="${APP_URL}/api/share-card/${first.id}?shape=post" width="464" alt="Share card for ${first.title}" style="width:100%;max-width:464px;border-radius:14px;display:block;margin:0 auto" />
-                <div style="color:#8b8b8b;font-size:12px;margin-top:8px">&ldquo;${first.title}&rdquo;${
-                  more > 0 ? `, and ${more} more on your page` : ""
-                }</div>
+                <img src="${APP_URL}/api/share-card/${first.id}?shape=post" width="464" alt="Your MOTR card for ${first.title}" style="width:100%;max-width:464px;border-radius:14px;display:block;margin:0 auto" />
+                ${
+                  more > 0
+                    ? `<div style="color:#8b8b8b;font-size:12px;margin-top:8px">One for each of your ${tracks.length} tracks, on your page.</div>`
+                    : ""
+                }
               </div>`
            : ""
        }
-       <p style="margin:0 0 10px"><strong style="color:#fff">Why a story</strong></p>
-       <p style="margin:0 0 18px">A link in a normal post isn't clickable for most accounts, so the code on the card is how someone gets from your post to the song. On a story they can scan it off the screen, or you can add the link sticker as well.</p>
-       <p style="margin:0 0 10px"><strong style="color:#fff">What to say</strong></p>
-       <p style="margin:0 0 18px">Tell them nobody on MOTR sees your name or your artwork. They hear thirty seconds and decide, and that is the part that makes someone curious enough to listen properly. A verdict reached after the whole clip counts double, so one patient listener is worth two who skip.</p>
-       <p style="margin:0 0 18px">Your page shows how many people opened your link and how many kept the song, and every track you have has its own card to download.</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">Sign in with this address, any time. There is no password.</p>`,
+       <p style="margin:0">Your page shows how many people opened your link and how many kept the song.</p>`,
       { label: "Open your page", url: `${APP_URL}/artist` }
     ),
   };
@@ -523,7 +531,7 @@ export function whatMotrIsEmail(params: { unsubscribeUrl: string }) {
       shell(
         "Music before anyone tells you who made it",
         `<p style="margin:0 0 14px">A quick note on what MOTR is, because the app has grown a lot since you signed in.</p>
-         <p style="margin:0 0 14px">Every track plays as a thirty-second clip with <strong style="color:#fff">no artist name and no artwork you'd recognize</strong>. You decide on the music alone. Swipe right to keep it, left to move on. Nothing in the feed was paid to be there, and there is no way to buy a place in it.</p>
+         <p style="margin:0 0 14px">Every track plays as a <strong style="color:#fff">thirty-second clip from someone you have probably never heard of</strong>. Swipe right to keep it, left to move on. Nothing in the feed was paid to be there, and there is no way to buy a place in it.</p>
          <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">NEW: CHARTS</p>
          <p style="margin:0 0 14px">There's now a Charts tab showing the tracks listeners backed hardest this week and this month. Every position on it was earned by people keeping the song, which makes it a genuinely different chart from the ones you already see.</p>
          <p style="margin:0 0 14px">At the end of every week we'll email you the week's Top Artists. If you want your favorite to make the cut, the way to do it is to play their track and swipe right.</p>
@@ -572,7 +580,7 @@ export function weeklyChartEmail(params: {
     html:
       shell(
         "This week's charts",
-        `<p style="margin:0 0 16px">Here's where the last seven days landed. Every position was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
+        `<p style="margin:0 0 16px">Here's where the last seven days landed. Every position was earned by listeners who heard thirty seconds and chose to keep the song.</p>
          ${
            artists.length > 0
              ? `<p style="margin:0 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP ARTISTS</p>${rows(artists.map((a) => a.name))}`
@@ -620,7 +628,7 @@ export function submitMoreMusicEmail(params: {
         `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
          <p style="margin:0 0 14px">${
            saves > 0
-             ? `Your ${tracks === 1 ? "track" : `${tracks} tracks`} on MOTR ${plural} still in rotation, and ${saves === 1 ? "one listener has" : `${saves} listeners have`} saved ${tracks === 1 ? "it" : "them"} after hearing thirty seconds with no name attached.`
+             ? `Your ${tracks === 1 ? "track" : `${tracks} tracks`} on MOTR ${plural} still in rotation, and ${saves === 1 ? "one listener has" : `${saves} listeners have`} saved ${tracks === 1 ? "it" : "them"} after hearing thirty seconds of it.`
              : `Your ${tracks === 1 ? "track is" : `${tracks} tracks are`} in rotation on MOTR, playing to listeners who hear thirty seconds with no idea who made ${tracks === 1 ? "it" : "them"}.`
          }</p>
          <p style="margin:0 0 14px"><strong style="color:#fff">If you've released anything since, send it over.</strong> It's free, it always will be, and a second track doubles the chances one of them catches. Paste a Spotify link and it's in the feed the same day.</p>

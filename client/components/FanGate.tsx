@@ -172,7 +172,7 @@ export default function FanGate({
         <span className="text-gold"> favorite song</span>
       </h1>
       <p className="text-muted relative mt-2.5 max-w-sm text-sm leading-relaxed">
-        Thirty seconds each, no artist names, no artwork you recognize. Swipe what moves you and
+        Thirty seconds each, from artists you have probably never heard. Swipe what moves you and
         keep what you love.
       </p>
 

@@ -309,8 +309,8 @@ export async function weeklyLeaders(days = 7): Promise<{
  * The seeded catalogue is major-label music that exists so a new listener has
  * something to swipe. It is not worth *listing* to a scout — but as a
  * yardstick it is the most valuable thing here, because it is measured on the
- * same listeners, in the same week, under the same rules, with no name
- * attached to either side.
+ * same listeners, in the same week, under the same rules, by people who had
+ * never heard of either artist.
  *
  * "Beats a proven hit under blind conditions" is a sentence no catalogue of
  * stream counts can produce, and it is the reason to get on a plane.

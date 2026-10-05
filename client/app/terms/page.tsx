@@ -27,9 +27,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <li>MOTR is free. Nothing is charged to anyone, ever.</li>
         <li>Artists submit music for free, and it stays in the feed for free.</li>
         <li>
-          Every track is heard with{" "}
-          <strong className="text-ink">no artist name attached</strong>, so what comes back is a
-          verdict on the song.
+          Every track is heard by{" "}
+          <strong className="text-ink">listeners who have never heard of the artist</strong>, so
+          what comes back is a verdict on the song.
         </li>
         <li>Nobody can buy their way past the fan vote, because there is nothing to buy.</li>
       </ul>
@@ -54,7 +54,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         <ul>
           <li>
             <span className="text-ink">What you get:</span> your track goes into the feed and is
-            played to listeners with no name and no artwork they recognise, so the response is to
+            played to listeners who have never heard of the artist, so the response is to
             the music itself.
           </li>
           <li>

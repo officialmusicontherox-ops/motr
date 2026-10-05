@@ -4,9 +4,14 @@ import QRCode from "qrcode";
 /**
  * The image an artist posts.
  *
+ * Built around their own cover art. The app is blind on purpose, but the
+ * graphic an artist puts on their story is their promotion, not the test, so
+ * the artwork belongs on it: without it the card is a code on a black field,
+ * which reads as a QR code rather than as a release.
+ *
  * Kept out of the route so it can be rendered and looked at without a server:
- * the first version shipped with the code running off the right edge of the
- * square card, which no type check was ever going to catch.
+ * an earlier version shipped with the code running off the right edge, which
+ * no type check was ever going to catch.
  */
 
 const INK = "#09090a";
@@ -33,41 +38,74 @@ async function anton(): Promise<ArrayBuffer | null> {
   return antonCache ?? null;
 }
 
+/**
+ * The cover as a data URI.
+ *
+ * Inlined rather than left as a URL: the renderer fetching it itself fails
+ * quietly and leaves a hole in the middle of the card, and a card that draws
+ * without the artwork is better than one that half-draws.
+ */
+async function cover(url: string | null | undefined): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const type = res.headers.get("content-type") ?? "image/jpeg";
+    if (!/^image\//i.test(type)) return null;
+    const b64 = Buffer.from(await res.arrayBuffer()).toString("base64");
+    return `data:${type};base64,${b64}`;
+  } catch {
+    return null;
+  }
+}
 
 export async function renderShareCard(params: {
   title: string;
   artistName: string;
   trackId: string;
+  artworkUrl?: string | null;
   square: boolean;
 }) {
   const { artistName, trackId, square } = params;
-  const track = { id: trackId, title: params.title, artistName };
 
-  const link = `app.musicontherox.com/?track=${track.id}`;
-  const qr = await QRCode.toDataURL(`https://${link}`, {
-    margin: 0,
-    width: square ? 420 : 560,
-    color: { dark: INK, light: "#ffffff" },
-  });
+  const link = `app.musicontherox.com/?track=${trackId}`;
+  const [qr, art, font] = await Promise.all([
+    QRCode.toDataURL(`https://${link}`, {
+      margin: 0,
+      width: square ? 300 : 360,
+      color: { dark: INK, light: "#ffffff" },
+    }),
+    cover(params.artworkUrl),
+    anton(),
+  ]);
 
-  const font = await anton();
   const display = font ? "Anton" : "sans-serif";
-
-  // Long titles have to come down in size or they run off the card.
-  const title = track.title.toUpperCase();
-  const titleSize = square
-    ? title.length > 26 ? 44 : title.length > 16 ? 56 : 72
-    : title.length > 26 ? 84 : title.length > 16 ? 108 : 136;
+  const title = params.title.toUpperCase();
 
   const W = 1080;
   const H = square ? 1080 : 1920;
-  const pad = square ? 72 : 96;
+  const pad = square ? 64 : 88;
+  const artSize = square ? 380 : 700;
+  const qrSize = square ? 300 : 360;
+
+  // Long titles come down a step rather than running off the card.
+  const titleSize = square
+    ? title.length > 26
+      ? 40
+      : title.length > 16
+        ? 50
+        : 62
+    : title.length > 26
+      ? 68
+      : title.length > 16
+        ? 84
+        : 100;
 
   const eyebrow = (
     <div
       style={{
-        fontSize: square ? 22 : 26,
-        letterSpacing: square ? 8 : 10,
+        fontSize: square ? 20 : 24,
+        letterSpacing: square ? 7 : 9,
         color: GOLD,
         fontWeight: 700,
         display: "flex",
@@ -77,27 +115,28 @@ export async function renderShareCard(params: {
     </div>
   );
 
-  const qrBlock = (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        // Never squeezed and never pushed out of the card: without this the
-        // title column grows to its text width and shoves the code off the
-        // right edge, which is what shipped the first time.
-        flexShrink: 0,
-      }}
-    >
-      <div style={{ display: "flex", background: "#ffffff", padding: square ? 22 : 30, borderRadius: 24 }}>
+  const artwork = art ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={art}
+      width={artSize}
+      height={artSize}
+      alt=""
+      style={{ borderRadius: 20, objectFit: "cover" }}
+    />
+  ) : null;
+
+  const code = (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+      <div style={{ display: "flex", background: "#ffffff", padding: 18, borderRadius: 18 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={qr} width={square ? 420 : 560} height={square ? 420 : 560} alt="" />
+        <img src={qr} width={qrSize} height={qrSize} alt="" />
       </div>
       <div
         style={{
-          marginTop: square ? 18 : 26,
-          fontSize: square ? 20 : 26,
-          letterSpacing: 5,
+          marginTop: 14,
+          fontSize: square ? 17 : 22,
+          letterSpacing: 4,
           color: MUTED,
           fontWeight: 700,
           display: "flex",
@@ -125,15 +164,13 @@ export async function renderShareCard(params: {
         {eyebrow}
 
         {square ? (
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 36 }}>
+            {artwork}
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
-                // An explicit width rather than flex-grow: the title then wraps
-                // inside it instead of setting the row's width itself.
-                width: W - pad * 2 - 464 - 40,
-                paddingRight: 40,
+                width: W - pad * 2 - artSize - 36,
               }}
             >
               <div
@@ -147,30 +184,34 @@ export async function renderShareCard(params: {
               >
                 {title}
               </div>
-              <div style={{ marginTop: 20, fontSize: 34, color: GOLD, fontWeight: 700, display: "flex" }}>
-                {track.artistName}
+              <div
+                style={{
+                  marginTop: 14,
+                  fontSize: 30,
+                  color: GOLD,
+                  fontWeight: 700,
+                  display: "flex",
+                }}
+              >
+                {artistName}
               </div>
-              <div style={{ marginTop: 28, fontSize: 30, lineHeight: 1.4, color: BODY, display: "flex" }}>
-                No name. No artwork. Just 30 seconds of the song.
-              </div>
+              <div style={{ marginTop: 22, display: "flex" }}>{code}</div>
             </div>
-            {qrBlock}
           </div>
         ) : (
-          // A real element, not a fragment: the image renderer does not treat a
-          // fragment as a flex child, so these three blocks collapsed on top of
-          // each other and the code vanished off the card entirely.
           <div
             style={{
               display: "flex",
               flexDirection: "column",
               flexGrow: 1,
-              justifyContent: "space-between",
-              paddingTop: 40,
-              paddingBottom: 40,
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 34,
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            {artwork}
+
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
               <div
                 style={{
                   fontFamily: display,
@@ -178,36 +219,43 @@ export async function renderShareCard(params: {
                   lineHeight: 1,
                   color: "#ffffff",
                   display: "flex",
+                  textAlign: "center",
                 }}
               >
                 {title}
               </div>
-              <div style={{ marginTop: 26, fontSize: 44, color: GOLD, fontWeight: 700, display: "flex" }}>
-                {track.artistName}
+              <div
+                style={{
+                  marginTop: 16,
+                  fontSize: 38,
+                  color: GOLD,
+                  fontWeight: 700,
+                  display: "flex",
+                }}
+              >
+                {artistName}
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <div style={{ fontSize: 40, color: BODY, display: "flex" }}>
-                They won&rsquo;t see my name or my artwork.
-              </div>
-              <div style={{ marginTop: 10, fontSize: 40, color: "#ffffff", fontWeight: 700, display: "flex" }}>
-                Just 30 seconds of the song.
-              </div>
-            </div>
-
-            {qrBlock}
+            {code}
           </div>
         )}
 
-        <div style={{ display: "flex", flexDirection: "column", borderTop: `2px solid ${EDGE}`, paddingTop: 28 }}>
-          <div style={{ fontSize: square ? 26 : 34, color: BODY, display: "flex" }}>
-            Swipe right if it lands.
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            borderTop: `2px solid ${EDGE}`,
+            paddingTop: 22,
+          }}
+        >
+          <div style={{ fontSize: square ? 22 : 30, color: BODY, display: "flex" }}>
+            Give it 30 seconds. Swipe right if you like it.
           </div>
           <div
             style={{
-              marginTop: 10,
-              fontSize: square ? 26 : 34,
+              marginTop: 8,
+              fontSize: square ? 22 : 30,
               color: GOLD,
               fontWeight: 700,
               display: "flex",
@@ -223,12 +271,10 @@ export async function renderShareCard(params: {
       height: H,
       fonts: font ? [{ name: "Anton", data: font, style: "normal", weight: 400 }] : [],
       headers: {
-        // Cached hard: the card only changes if the track is renamed.
         "cache-control": "public, max-age=3600, s-maxage=86400",
         // Netlify keys its cache on the path and a fixed list of query
         // parameters, so without this both shapes share one entry and
-        // whichever was asked for first is served for ever after. The square
-        // card came back 1080x1920 in production because of exactly that.
+        // whichever was asked for first is served for ever after.
         "netlify-vary": "query=shape",
       },
     }
