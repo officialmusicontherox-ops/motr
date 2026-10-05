@@ -9,6 +9,18 @@ import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
 import { Bookmark, Disc, Menu, Waveform } from "./icons";
 import PullToRefresh from "./PullToRefresh";
+import SideRail from "./SideRail";
+
+/**
+ * Ad slots for the desktop gutters.
+ *
+ * Each side has its own so one can run while the other stays off: three units
+ * on a page whose content is a single song card is a lot to ask of Google's
+ * "valuable inventory" rule, and starting with one is the cheaper bet.
+ */
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+const ADSENSE_RAIL_RIGHT = process.env.NEXT_PUBLIC_ADSENSE_RAIL_RIGHT;
+const ADSENSE_RAIL_LEFT = process.env.NEXT_PUBLIC_ADSENSE_RAIL_LEFT;
 
 // Only what a fan can actually use. Curating needs an approved account, so
 // it sits in the menu rather than taking a quarter of the main navigation.
@@ -179,6 +191,12 @@ export default function MotrShell({
             );
           })()}
       </header>
+
+      {/* Desktop only, and only where the gutter is genuinely wide enough.
+          Separate slots per side so each can be switched on by itself and
+          reported on separately. */}
+      <SideRail client={ADSENSE_CLIENT} slot={ADSENSE_RAIL_RIGHT} side="right" />
+      <SideRail client={ADSENSE_CLIENT} slot={ADSENSE_RAIL_LEFT} side="left" />
 
       {/* Bottom padding clears the fixed tab bar so actions never sit under it. */}
       <main
