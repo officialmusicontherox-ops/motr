@@ -118,3 +118,44 @@ export function lastCompleteWeek(at: Date = new Date()): Week {
   const current = weekOf(at);
   return weekOf(new Date(current.start.getTime() - 1));
 }
+
+export type PeriodUnit = "day" | "week" | "month" | "year";
+
+/**
+ * The period a report is actually about.
+ *
+ * The dashboard used to sum its whole series, so "Weekly" showed twelve weeks
+ * of swipes under a heading that said Weekly. These are the current day, week,
+ * month and year, in the chart's zone, so a number under a tab means the thing
+ * the tab is named after.
+ */
+export function periodWindow(unit: PeriodUnit, at: Date = new Date()): Week {
+  const { year, month, day, weekday } = localDate(at);
+
+  if (unit === "week") return weekOf(at);
+
+  const start =
+    unit === "day"
+      ? zonedMidnight(year, month, day)
+      : unit === "month"
+        ? zonedMidnight(year, month, 1)
+        : zonedMidnight(year, 1, 1);
+
+  const end =
+    unit === "day"
+      ? zonedMidnight(year, month, day + 1)
+      : unit === "month"
+        ? zonedMidnight(year, month + 1, 1)
+        : zonedMidnight(year + 1, 1, 1);
+
+  void weekday;
+
+  const label =
+    unit === "day"
+      ? `Today, ${format(start)}`
+      : unit === "month"
+        ? new Intl.DateTimeFormat("en-US", { timeZone: CHART_TZ, month: "long", year: "numeric" }).format(start)
+        : String(year);
+
+  return { start, end, label, shortLabel: label };
+}

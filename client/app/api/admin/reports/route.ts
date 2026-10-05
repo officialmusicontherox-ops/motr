@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
+import { periodWindow } from "@/lib/weekWindow";
 
 /**
  * Time-bucketed statistics for the dashboard.
@@ -116,31 +117,57 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  const sum = (k: keyof (typeof series)[number]) =>
-    series.reduce((t, r) => t + (typeof r[k] === "number" ? (r[k] as number) : 0), 0);
+  /**
+   * The figures above the chart are for the period the tab names, not for the
+   * whole series behind it.
+   *
+   * "Weekly" used to total twelve weeks, so the dashboard reported 2,221
+   * swipes under a heading that said Weekly. The chart still shows the run of
+   * periods, because that is what a chart is for; the tiles answer "how is
+   * this week going".
+   */
+  const current = periodWindow(unit, new Date());
+  const inWindow = { gte: current.start, lt: current.end };
 
-  const totalSwipes = sum("swipes");
-  const totalRight = sum("rightSwipes");
-  const measured = series.filter((r) => r.avgListenMs !== null);
+  const [nowFans, nowActive, nowSwipes, nowRight, nowListen, nowTracks, nowSubs, nowRevenue] =
+    await Promise.all([
+      prisma.fan.count({ where: { createdAt: inWindow } }),
+      prisma.fan.count({
+        where: { createdAt: inWindow, swipes: { some: {} } },
+      }),
+      prisma.fanSwipe.count({ where: { createdAt: inWindow } }),
+      prisma.fanSwipe.count({ where: { createdAt: inWindow, direction: "RIGHT" } }),
+      prisma.fanSwipe.aggregate({
+        where: { createdAt: inWindow, listenMs: { not: null } },
+        _avg: { listenMs: true },
+      }),
+      prisma.track.count({ where: { createdAt: inWindow } }),
+      prisma.track.count({ where: { createdAt: inWindow, artistId: { not: null } } }),
+      prisma.payment.aggregate({
+        where: { createdAt: inWindow, status: "PAID" },
+        _sum: { amountCents: true },
+        _count: { _all: true },
+      }),
+    ]);
 
   return NextResponse.json({
     period: key,
     label: period.label,
     since: since.toISOString(),
     series,
+    // What the tiles show, and what to call it.
+    periodLabel: current.label,
     totals: {
-      newFans: sum("newFans"),
-      activeFans: sum("activeFans"),
-      swipes: totalSwipes,
-      rightSwipes: totalRight,
-      approvalRate: totalSwipes > 0 ? totalRight / totalSwipes : null,
-      avgListenMs: measured.length
-        ? Math.round(measured.reduce((t, r) => t + (r.avgListenMs ?? 0), 0) / measured.length)
-        : null,
-      tracksAdded: sum("tracksAdded"),
-      submissions: sum("submissions"),
-      payments: sum("payments"),
-      revenueCents: sum("revenueCents"),
+      newFans: nowFans,
+      activeFans: nowActive,
+      swipes: nowSwipes,
+      rightSwipes: nowRight,
+      approvalRate: nowSwipes > 0 ? nowRight / nowSwipes : null,
+      avgListenMs: nowListen._avg.listenMs !== null ? Math.round(nowListen._avg.listenMs) : null,
+      tracksAdded: nowTracks,
+      submissions: nowSubs,
+      payments: nowRevenue._count._all,
+      revenueCents: nowRevenue._sum.amountCents ?? 0,
     },
     generatedAt: new Date().toISOString(),
   });

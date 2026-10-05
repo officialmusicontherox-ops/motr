@@ -20,6 +20,8 @@ type Point = {
 type Report = {
   period: string;
   label: string;
+  /** What the tiles cover: "Today, October 5", "October 4 - October 10". */
+  periodLabel: string;
   series: Point[];
   totals: Omit<Point, "bucket">;
   generatedAt: string;
@@ -142,7 +144,10 @@ export default function AdminReports() {
             </p>
           </div>
 
-          <p className="text-xs uppercase tracking-widest text-muted">{report.label}</p>
+          {/* Names the period the tiles below are for. It used to name the
+              chart's window, which is how "Weekly" came to sit above twelve
+              weeks of totals. */}
+          <p className="text-xs uppercase tracking-widest text-muted">{report.periodLabel}</p>
 
           <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
             <Tile label="Swipes" value={report.totals.swipes.toLocaleString()} gold />
@@ -172,6 +177,10 @@ export default function AdminReports() {
             <Tile label="Submissions" value={report.totals.submissions.toLocaleString()} />
             <Tile label="Revenue" value={money(report.totals.revenueCents)} gold />
           </div>
+
+          <p className="text-muted/70 mt-2 text-xs">
+            Figures above are for {report.periodLabel}. The chart below covers {report.label.toLowerCase()}.
+          </p>
 
           {/* One metric, one series, one hue — the chart's title says what it
               plots, so a legend would only restate it. */}
