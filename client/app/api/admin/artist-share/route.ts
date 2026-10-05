@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
 import { createArtistLoginToken } from "@/lib/artistLoginLink";
-import { sendEmail, artistLoginLinkEmail, artistSharePageEmail } from "@/lib/email";
+import { sendEmail, artistLoginLinkEmail } from "@/lib/email";
+import { sendSharePageEmails } from "@/lib/artistSharePage";
 
 /**
  * Who is actually promoting, and the two buttons that act on it.
@@ -107,47 +108,10 @@ export async function POST(req: NextRequest) {
   }
 
   // The one-off announcement. Only ever to artists who haven't had it.
+  // The one-off announcement. Only ever to artists who haven't had it.
   if (action === "ANNOUNCE") {
-    const due = await prisma.artist.findMany({
-      where: {
-        emailOptOut: false,
-        sharePageEmailAt: null,
-        tracks: { some: { status: { not: "REJECTED" } } },
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        tracks: {
-          where: { status: { not: "REJECTED" } },
-          orderBy: { createdAt: "desc" },
-          select: { id: true, title: true },
-        },
-      },
-    });
-
-    let sent = 0;
-    let failed = 0;
-    for (const a of due) {
-      // sendEmail reports failure in its result rather than throwing, so a
-      // rejected handler would count every bounce as a success.
-      const result = await sendEmail(
-        a.email,
-        artistSharePageEmail({ name: a.name, tracks: a.tracks })
-      );
-      if (result.ok) {
-        sent += 1;
-        // Marked per artist as it goes, so a failure part-way through doesn't
-        // re-send to everybody who already had it.
-        await prisma.artist
-          .update({ where: { id: a.id }, data: { sharePageEmailAt: new Date() } })
-          .catch(() => {});
-      } else {
-        failed += 1;
-      }
-    }
-
-    return NextResponse.json({ ok: true, eligible: due.length, sent, failed });
+    const result = await sendSharePageEmails();
+    return NextResponse.json({ ok: true, ...result });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

@@ -32,7 +32,15 @@ const APP_URL =
 
 export type SendResult = { ok: boolean; id?: string; error?: string };
 
-async function send(to: string, subject: string, html: string): Promise<SendResult> {
+/** A file to travel with the message, for when a link to it isn't enough. */
+export type Attachment = { filename: string; content: Buffer };
+
+async function send(
+  to: string,
+  subject: string,
+  html: string,
+  attachments?: Attachment[]
+): Promise<SendResult> {
   if (!resend) {
     console.log(`[email skipped — no RESEND_API_KEY] to=${to} subject="${subject}"`);
     return { ok: false, error: "RESEND_API_KEY not set" };
@@ -45,6 +53,13 @@ async function send(to: string, subject: string, html: string): Promise<SendResu
       subject,
       html,
       ...(REPLY_TO ? { replyTo: REPLY_TO } : {}),
+      // Attached as well as shown. Most clients block remote images until the
+      // reader allows them, so an artist opening this on a phone would
+      // otherwise be told about a card they cannot see — and a file they can
+      // save is the thing they actually need to post it.
+      ...(attachments?.length
+        ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content })) }
+        : {}),
     });
 
     if (error) {
@@ -373,7 +388,7 @@ export function trackMilestoneEmail(params: {
     html:
       shell(
         first ? "Your music is landing" : "Your music keeps climbing",
-        `<p style="margin:0 0 12px">Hi ${artistName},</p>
+        `<p style="margin:0 0 12px">Hi ${leadName(artistName)},</p>
          <p style="margin:0 0 14px">${
            first
              ? `Someone heard <strong style="color:#fff">${lead.title}</strong> with no name attached, no artwork they recognized and no idea who made it, and swiped right. That is the whole point of MOTR, and it just happened to you.`
@@ -412,12 +427,25 @@ export function scoutLoginLinkEmail(params: { name: string; url: string; minutes
     subject: "Your MOTR A&R sign-in link",
     html: shell(
       "Sign in to MOTR",
-      `<p style="margin:0 0 12px">Hi ${name},</p>
+      `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
        <p style="margin:0 0 12px">Here's your link into the MOTR A&amp;R portal. It works once and expires in ${minutes} minutes.</p>
        <p style="margin:0;color:#8b8b8b;font-size:13px">If you didn't ask for it, ignore this email. Nothing happens until the link is opened.</p>`,
       { label: "Open the portal", url }
     ),
   };
+}
+
+/**
+ * The name to greet someone by.
+ *
+ * Artist names arrive as full credits, so "NOR.BE, Vinnie Colaiuta, John
+ * Patitucci, Fawzi Chekili" is one artist as far as the database is
+ * concerned. Greeting them with all of it reads like a mail merge that went
+ * wrong, which is exactly what the reader will assume it is.
+ */
+function leadName(name: string): string {
+  const lead = name.split(/[,&]| and /i)[0].trim();
+  return lead || name;
 }
 
 export function artistLoginLinkEmail(params: { name: string; url: string; minutes: number }) {
@@ -426,7 +454,7 @@ export function artistLoginLinkEmail(params: { name: string; url: string; minute
     subject: "Your MOTR artist page",
     html: shell(
       "Your page",
-      `<p style="margin:0 0 12px">Hi ${name},</p>
+      `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
        <p style="margin:0 0 12px">Here's your way in. It works once and expires in ${minutes} minutes, and once you're in you'll stay signed in on that device.</p>
        <p style="margin:0;color:#8b8b8b;font-size:13px">If you didn't ask for it, ignore this email. Nothing happens until the link is opened.</p>`,
       { label: "Open your page", url }
@@ -445,30 +473,35 @@ export function artistLoginLinkEmail(params: { name: string; url: string; minute
 export function artistSharePageEmail(params: {
   name: string;
   tracks: { id: string; title: string }[];
+  attachments?: Attachment[];
 }) {
-  const { name, tracks } = params;
+  const { name, tracks, attachments } = params;
   const first = tracks[0];
   const more = tracks.length - 1;
 
   return {
-    subject: "Your MOTR page, and a card you can post",
+    subject: "Your MOTR card, ready to post",
+    attachments,
     html: shell(
-      "Something to share",
-      `<p style="margin:0 0 12px">Hi ${name},</p>
-       <p style="margin:0 0 12px">You now have a page on MOTR that shows how your music is doing: how many people opened your link, and how many kept the song. It updates as people swipe, and you can come back to it whenever you like.</p>
-       <p style="margin:0 0 18px">There's also a card for each of your tracks, ready to post. It carries a code people can scan straight from the screen, which matters because a link in an Instagram post isn't clickable for most accounts.</p>
+      "Post this to your story",
+      `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
+       <p style="margin:0 0 18px">Your card is attached to this email. Save it, put it on your story, and the people who follow you can scan it and hear your track. That is the whole job.</p>
        ${
          first
            ? `<div style="margin:0 0 18px;text-align:center">
                 <img src="${APP_URL}/api/share-card/${first.id}?shape=post" width="464" alt="Share card for ${first.title}" style="width:100%;max-width:464px;border-radius:14px;display:block;margin:0 auto" />
-                <div style="color:#8b8b8b;font-size:12px;margin-top:8px">Your card for &ldquo;${first.title}&rdquo;${
+                <div style="color:#8b8b8b;font-size:12px;margin-top:8px">&ldquo;${first.title}&rdquo;${
                   more > 0 ? `, and ${more} more on your page` : ""
                 }</div>
               </div>`
            : ""
        }
-       <p style="margin:0 0 12px">Worth telling people what MOTR actually is when you post: nobody sees your name or your artwork. They hear thirty seconds and decide. That's the part that makes somebody curious enough to listen properly.</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">A verdict reached after the whole clip counts double, so one patient listener is worth two who skip.</p>`,
+       <p style="margin:0 0 10px"><strong style="color:#fff">Why a story</strong></p>
+       <p style="margin:0 0 18px">A link in a normal post isn't clickable for most accounts, so the code on the card is how someone gets from your post to the song. On a story they can scan it off the screen, or you can add the link sticker as well.</p>
+       <p style="margin:0 0 10px"><strong style="color:#fff">What to say</strong></p>
+       <p style="margin:0 0 18px">Tell them nobody on MOTR sees your name or your artwork. They hear thirty seconds and decide, and that is the part that makes someone curious enough to listen properly. A verdict reached after the whole clip counts double, so one patient listener is worth two who skip.</p>
+       <p style="margin:0 0 18px">Your page shows how many people opened your link and how many kept the song, and every track you have has its own card to download.</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">Sign in with this address, any time. There is no password.</p>`,
       { label: "Open your page", url: `${APP_URL}/artist` }
     ),
   };
@@ -584,7 +617,7 @@ export function submitMoreMusicEmail(params: {
     html:
       shell(
         saves > 0 ? "Your music is still working" : "Room for more",
-        `<p style="margin:0 0 12px">Hi ${name},</p>
+        `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
          <p style="margin:0 0 14px">${
            saves > 0
              ? `Your ${tracks === 1 ? "track" : `${tracks} tracks`} on MOTR ${plural} still in rotation, and ${saves === 1 ? "one listener has" : `${saves} listeners have`} saved ${tracks === 1 ? "it" : "them"} after hearing thirty seconds with no name attached.`
@@ -601,6 +634,9 @@ export function submitMoreMusicEmail(params: {
   };
 }
 
-export async function sendEmail(to: string, template: { subject: string; html: string }) {
-  return send(to, template.subject, template.html);
+export async function sendEmail(
+  to: string,
+  template: { subject: string; html: string; attachments?: Attachment[] }
+) {
+  return send(to, template.subject, template.html, template.attachments);
 }

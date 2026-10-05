@@ -4,6 +4,8 @@ import { useState } from "react";
 import AdminSection from "./AdminSection";
 
 type Preview = {
+  /** Set while the start date hasn't arrived; the send refuses regardless. */
+  notYet?: string | null;
   recipients: number;
   songs: { title: string; artistName: string }[];
   artists: { name: string }[];
@@ -65,6 +67,7 @@ export default function AdminWeeklyChart() {
   }
 
   const empty = preview && preview.songs.length === 0 && preview.artists.length === 0;
+  const notYet = preview?.notYet ?? null;
 
   return (
     <AdminSection
@@ -87,7 +90,7 @@ export default function AdminWeeklyChart() {
           {busy && !preview ? "Checking..." : "Show this week's chart"}
         </button>
 
-        {preview && !empty && (
+        {preview && !empty && !notYet && (
           <button
             onClick={send}
             disabled={busy}
@@ -99,6 +102,12 @@ export default function AdminWeeklyChart() {
       </div>
 
       {error && <p className="text-nope mt-3 text-sm">{error}</p>}
+
+      {notYet && (
+        <p className="border-gold/40 bg-gold/10 text-gold mt-4 rounded-xl border p-4 text-sm leading-relaxed">
+          {notYet} You can still look at what the chart would say.
+        </p>
+      )}
 
       {empty && (
         <p className="border-edge bg-surface text-muted mt-4 rounded-xl border p-4 text-sm">

@@ -14,7 +14,26 @@ import { sendEmail, weeklyChartEmail } from "./email";
  * Refuses to send an empty chart. A week with nothing in it is a week with no
  * news, and mailing eighty people to tell them nothing is how a list learns
  * to ignore you.
+ *
+ * Refuses to send at all before the start date. A chart is only worth reading
+ * when enough has been played to make the order mean something, and the first
+ * one setting that expectation badly is worse than it arriving later.
  */
+
+/** Nothing goes out before this. */
+export const CHART_EMAIL_START = new Date(Date.UTC(2026, 10, 1)); // 1 November 2026
+
+/** Whether the chart email is allowed to send yet, and why not if it isn't. */
+export function chartEmailNotYet(now = new Date()): string | null {
+  if (now >= CHART_EMAIL_START) return null;
+  const when = CHART_EMAIL_START.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return `The weekly chart email starts on ${when}. Nothing is sent before then.`;
+}
 
 export type WeeklyChartResult = {
   recipients: number;
@@ -72,6 +91,7 @@ async function recipients(appUrl: string): Promise<Recipient[]> {
 export async function previewWeeklyChart(appUrl: string) {
   const [leaders, people] = await Promise.all([weeklyLeaders(), recipients(appUrl)]);
   return {
+    notYet: chartEmailNotYet(),
     recipients: people.length,
     songs: leaders.songs.map((s) => ({ title: s.title, artistName: s.artistName })),
     artists: leaders.artists.map((a) => ({ name: a.name })),
@@ -79,6 +99,13 @@ export async function previewWeeklyChart(appUrl: string) {
 }
 
 export async function sendWeeklyChart(appUrl: string): Promise<WeeklyChartResult> {
+  // Checked here rather than only in the dashboard, so a scheduled run or a
+  // direct call cannot get round it either.
+  const tooEarly = chartEmailNotYet();
+  if (tooEarly) {
+    return { recipients: 0, sent: 0, failed: 0, skipped: tooEarly, songs: 0, artists: 0 };
+  }
+
   const leaders = await weeklyLeaders();
   const songs = leaders.songs.map((s) => ({ title: s.title, artistName: s.artistName }));
   const artists = leaders.artists.map((a) => ({ name: a.name }));
