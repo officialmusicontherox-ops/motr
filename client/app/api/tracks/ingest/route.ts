@@ -36,8 +36,23 @@ export async function POST(req: NextRequest) {
   // deferEmail: the caller is submitting a batch and will ask for one
   // summary email once it's finished. Five songs in a sitting shouldn't mean
   // five near-identical emails to the artist and five more to the operator.
-  const { source, submittedById, artistEmail, requiredFanVotes, genre, aiGenerated, deferEmail } =
-    body;
+  const {
+    source,
+    submittedById,
+    artistEmail: rawArtistEmail,
+    requiredFanVotes,
+    genre,
+    aiGenerated,
+    deferEmail,
+  } = body;
+
+  // Lower-cased the moment it arrives, because it is the key an artist record
+  // is found by and Postgres treats Darwilli33@ and darwilli33@ as two
+  // different artists. Two people submitted with a stray capital and ended up
+  // with their catalogue split across two accounts, neither of which showed
+  // the other's tracks.
+  const artistEmail =
+    typeof rawArtistEmail === "string" ? rawArtistEmail.trim().toLowerCase() : rawArtistEmail;
 
   if (source !== "SPOTIFY" && source !== "APPLE_MUSIC") {
     return NextResponse.json(

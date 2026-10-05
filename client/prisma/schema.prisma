@@ -389,6 +389,14 @@ model Track {
   @@unique([source, externalId])
 }
 
+/// One artist per address.
+///
+/// There is a second uniqueness rule this schema cannot express: a unique
+/// index on lower("email"), added in 20261004020000_artist_email_case_unique.
+/// Postgres compares the column below byte for byte, so without it
+/// Darwilli33@gmail.com and darwilli33@gmail.com are two different artists,
+/// which is how two people ended up with their catalogue split across two
+/// records that each showed half their tracks.
 model Artist {
   id    String @id @default(cuid())
   name  String

@@ -151,10 +151,13 @@ async function addResolvedTrack(
   }
 
   // Attach it to the artist who originally submitted, by their email.
+  // Lower-cased for the same reason as at submission: this is the key, and a
+  // stray capital makes a second artist rather than finding the first.
+  const email = refused.artistEmail.trim().toLowerCase();
   const artist = await prisma.artist.upsert({
-    where: { email: refused.artistEmail },
+    where: { email },
     update: {},
-    create: { email: refused.artistEmail, name: resolved.artistName.split(/[,&]/)[0].trim() },
+    create: { email, name: resolved.artistName.split(/[,&]/)[0].trim() },
   });
 
   const track = await prisma.track.create({
