@@ -712,7 +712,14 @@ export function whatsNewListenerEmail(params: { appUrl?: string } = {}) {
 export function whatsNewArtistEmail(params: { name?: string | null; appUrl?: string } = {}) {
   const { name, appUrl = APP_URL } = params;
   return {
-    subject: "Sundays are about to mean something",
+    // Says what the email contains and nothing more.
+    //
+    // This read "Sundays are about to mean something", which was reaching for
+    // intrigue and landed as a slight: a good share of these artists are
+    // country, Americana and gospel, and Sunday already means a great deal to
+    // them. A subject line is not the place to be clever at the reader's
+    // expense.
+    subject: "From November, you'll know where you placed",
     html: branded(
       "From November, you'll know where you placed",
       `${name ? `<p style="margin:0 0 16px">Hi ${leadName(name)},</p>` : ""}
