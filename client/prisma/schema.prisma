@@ -763,6 +763,24 @@ model ScoutLoginToken {
 /// Stored rather than recomputed. A chart is a moving window: the same query
 /// run a month later gives a different answer, so the week someone actually
 /// won has to be written down at the time or it's gone.
+/// One weekly recap per artist per week.
+///
+/// The send runs on a schedule, and a schedule retries. Without a record of
+/// who has already had which week, a retry after a partial failure mails
+/// everyone who succeeded a second time. The unique pair is what makes the
+/// job safe to run again.
+model WeeklyRecapSend {
+  id        String   @id @default(cuid())
+  artistId  String
+  weekStart DateTime
+  /// Where they placed, kept so a question about last week can be answered.
+  position  Int?
+  sentAt    DateTime @default(now())
+
+  @@unique([artistId, weekStart])
+  @@index([weekStart])
+}
+
 model ChartWinner {
   id String @id @default(cuid())
 

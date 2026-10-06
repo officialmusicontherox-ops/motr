@@ -26,6 +26,7 @@ type Charts = {
 };
 
 type Range = "week" | "month";
+type Board = "songs" | "artists";
 
 /** Often enough to feel live, rarely enough not to matter on the bill. */
 const POLL_MS = 60_000;
@@ -44,6 +45,7 @@ const POLL_MS = 60_000;
 export default function ChartsView() {
   const [data, setData] = useState<Charts | null>(null);
   const [range, setRange] = useState<Range>("week");
+  const [board, setBoard] = useState<Board>("songs");
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
@@ -101,6 +103,29 @@ export default function ChartsView() {
           ))}
         </div>
 
+        {/* One board at a time. Ten songs and ten artists stacked is a scroll,
+            and this page is screenshotted every week. */}
+        <div className="mb-3 flex justify-center gap-2">
+          {(
+            [
+              ["songs", "Songs"],
+              ["artists", "Artists"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setBoard(key)}
+              className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
+                board === key
+                  ? "border-gold bg-gold/10 text-gold"
+                  : "border-edge text-muted hover:text-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {data && (
           <p className="motr-label text-muted mb-5 text-center">
             {data.label}
@@ -120,16 +145,16 @@ export default function ChartsView() {
 
         {data && (
           <div className="space-y-6">
-            <section>
+            <section hidden={board !== "songs"}>
               <h2 className="motr-label text-gold mb-3">Top songs</h2>
               {data.songs.length === 0 ? (
                 <Empty />
               ) : (
-                <ol className="space-y-2">
+                <ol className="space-y-1.5">
                   {data.songs.map((song) => (
                     <li
                       key={song.id}
-                      className="border-edge bg-surface flex items-center gap-3 rounded-xl border p-3"
+                      className="border-edge bg-surface flex items-center gap-3 rounded-xl border px-3 py-2"
                     >
                       <Rank n={song.rank} />
                       {song.artworkUrl ? (
@@ -139,10 +164,10 @@ export default function ChartsView() {
                           width={44}
                           height={44}
                           unoptimized
-                          className="h-11 w-11 shrink-0 rounded-lg object-cover"
+                          className="h-9 w-9 shrink-0 rounded-lg object-cover"
                         />
                       ) : (
-                        <span className="bg-surface-2 h-11 w-11 shrink-0 rounded-lg" />
+                        <span className="bg-surface-2 h-9 w-9 shrink-0 rounded-lg" />
                       )}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{song.title}</span>
@@ -156,16 +181,16 @@ export default function ChartsView() {
               )}
             </section>
 
-            <section>
+            <section hidden={board !== "artists"}>
               <h2 className="motr-label text-gold mb-3">Top artists</h2>
               {data.artists.length === 0 ? (
                 <Empty />
               ) : (
-                <ol className="space-y-2">
+                <ol className="space-y-1.5">
                   {data.artists.map((artist) => (
                     <li
                       key={artist.id}
-                      className="border-edge bg-surface flex items-center gap-3 rounded-xl border p-3"
+                      className="border-edge bg-surface flex items-center gap-3 rounded-xl border px-3 py-2"
                     >
                       <Rank n={artist.rank} />
                       <span className="min-w-0 flex-1">

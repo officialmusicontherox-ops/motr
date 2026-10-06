@@ -609,6 +609,58 @@ export function albumLinkFixEmail(params: { name?: string | null; count: number;
   };
 }
 
+/**
+ * What an artist's week came to.
+ *
+ * Two quite different messages. Someone who placed is told where, in the
+ * subject line, because that is the part they will screenshot. Someone who
+ * did not is told their own number instead, which is still good news and
+ * still true. Nobody is told they failed to chart.
+ */
+export function weeklyRecapEmail(params: {
+  name: string;
+  week: string;
+  position: number | null;
+  saves: number;
+  trackTitle: string | null;
+  attachments?: Attachment[];
+  appUrl?: string;
+}) {
+  const { name, week, position, saves, trackTitle, attachments, appUrl = APP_URL } = params;
+  const kept = `${saves} ${saves === 1 ? "person" : "people"} kept your music`;
+
+  if (position) {
+    return {
+      subject: `You finished #${position} this week`,
+      attachments,
+      html: shell(
+        `#${position} this week`,
+        `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
+         <p style="margin:0 0 18px">You finished <strong style="color:#dcb55f">number ${position}</strong> on the MOTR chart for ${week}${
+           trackTitle ? `, led by <strong style="color:#fff">${trackTitle}</strong>` : ""
+         }. ${kept} this week, and position is earned by nothing except that.</p>
+         <p style="margin:0 0 18px">There's a graphic attached saying so. Put it on your story and send your people over, and next week's position partly depends on who turns up.</p>
+         <p style="margin:0;color:#8b8b8b;font-size:13px">Every place on that chart was earned by listeners keeping the song. There is nothing to buy and no way to move it.</p>`,
+        { label: "See the full chart", url: `${appUrl}/charts` }
+      ),
+    };
+  }
+
+  return {
+    subject: `${saves} ${saves === 1 ? "person" : "people"} kept your music this week`,
+    attachments,
+    html: shell(
+      "Your week on MOTR",
+      `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
+       <p style="margin:0 0 18px">${kept} during ${week}${
+         trackTitle ? `, mostly <strong style="color:#fff">${trackTitle}</strong>` : ""
+       }. Each one is somebody who had never heard of you, heard thirty seconds, and chose to keep it.</p>
+       <p style="margin:0 0 18px">The chart is decided by that and nothing else, so the quickest way up it is more people hearing you. Your page has a graphic for every track, ready to post.</p>`,
+      { label: "Open your page", url: `${appUrl}/artist` }
+    ),
+  };
+}
+
 export function artistSharePageEmail(params: {
   name: string;
   tracks: { id: string; title: string }[];
