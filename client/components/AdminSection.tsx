@@ -103,3 +103,69 @@ export function ShowMore({
     </div>
   );
 }
+
+/**
+ * Page-at-a-time navigation, for lists whose rows are tall.
+ *
+ * "Show more" suits a list of short rows: you glance down it and press the
+ * button if you want another ten. It suits a failed submission badly, because
+ * each one carries a URL, a reason and three controls, so ten of them is a
+ * long scroll on a phone and the button is somewhere past the end of it.
+ */
+export function usePager(pageSize: number) {
+  const [page, setPage] = useState(0);
+  return {
+    page,
+    pageSize,
+    setPage,
+    reset: () => setPage(0),
+    slice<T>(items: T[]): T[] {
+      return items.slice(page * pageSize, page * pageSize + pageSize);
+    },
+  };
+}
+
+export function Pager({
+  page,
+  pageSize,
+  total,
+  onPage,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onPage: (p: number) => void;
+}) {
+  const pages = Math.ceil(total / pageSize);
+  if (pages <= 1) return null;
+
+  const first = page * pageSize + 1;
+  const last = Math.min((page + 1) * pageSize, total);
+
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+      <button
+        onClick={() => onPage(page - 1)}
+        disabled={page === 0}
+        className="border-edge hover:border-gold hover:text-gold rounded-full border px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        Back
+      </button>
+
+      <span className="text-muted text-center text-xs">
+        {first}&ndash;{last} of {total}
+        <span className="block">
+          Page {page + 1} of {pages}
+        </span>
+      </span>
+
+      <button
+        onClick={() => onPage(page + 1)}
+        disabled={page >= pages - 1}
+        className="border-edge hover:border-gold hover:text-gold rounded-full border px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        Next
+      </button>
+    </div>
+  );
+}

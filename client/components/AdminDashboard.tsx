@@ -18,6 +18,7 @@ import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
 import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
+import AdminAttention from "./AdminAttention";
 import PullToRefresh from "./PullToRefresh";
 
 type Stats = {
@@ -35,10 +36,24 @@ type Stats = {
  }[];
 };
 
-const money = (cents: number) =>
- (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 const TABS = ["tracks", "artists"] as const;
+
+/**
+ * The dashboard in five groups rather than fourteen stacked panels.
+ *
+ * Everything is still here; the difference is that finding one thing means
+ * choosing between five labels instead of scrolling past fourteen headers,
+ * and only the group you are looking at loads its data.
+ */
+const VIEWS = [
+  { key: "music", label: "Music" },
+  { key: "artists", label: "Artists" },
+  { key: "listeners", label: "Listeners" },
+  { key: "charts", label: "Charts" },
+  { key: "system", label: "System" },
+] as const;
+type View = (typeof VIEWS)[number]["key"];
 type Tab = (typeof TABS)[number];
 
 export default function AdminDashboard({
@@ -67,6 +82,7 @@ export default function AdminDashboard({
    window.setTimeout(() => setRefreshing(false), 600);
  }, []);
  const [tab, setTab] = useState<Tab>("tracks");
+ const [view, setView] = useState<View>("music");
  const [records, setRecords] = useState<Record<string, unknown>[] | null>(null);
  const [recordsError, setRecordsError] = useState<string | null>(null);
  const recordsPage = useVisibleCount(10);
@@ -157,23 +173,68 @@ export default function AdminDashboard({
  <Stat label="Pulled" value={String(stats.tracksByStatus.REJECTED ?? 0)} />
  </section>
 
- <div key={refreshKey}>
- <AdminReports />
+ {/* What needs you, before anything is opened. Tapping one goes to the
+ group that deals with it. */}
+ <AdminAttention onGo={(t) => setView(t as View)} />
 
+ <nav className="border-edge mt-6 flex gap-1 overflow-x-auto border-b pb-px">
+ {VIEWS.map((v) => (
+ <button
+ key={v.key}
+ onClick={() => setView(v.key)}
+ className={`shrink-0 rounded-t-lg border-b-2 px-4 py-2.5 text-sm font-semibold transition ${
+ view === v.key
+ ? "border-gold text-gold"
+ : "text-muted hover:text-ink border-transparent"
+ }`}
+ >
+ {v.label}
+ </button>
+ ))}
+ </nav>
 
-
-
-
- <AdminRefused onChanged={loadStats} />
-
- <AdminAudience />
-
-
-
-
-
+ <div key={`${view}-${refreshKey}`}>
+ {view === "music" && (
+ <>
  <AdminTracks onChanged={loadStats} />
+ <AdminRefused onChanged={loadStats} />
+ <AdminFeedHealth />
+ </>
+ )}
 
+ {view === "artists" && (
+ <>
+ <AdminArtistShare />
+ <AdminArtistUpdates />
+ <AdminArtistNudges />
+ </>
+ )}
+
+ {view === "listeners" && (
+ <>
+ <AdminAudience />
+ <AdminNudges />
+ <AdminWeeklyChart />
+ </>
+ )}
+
+ {view === "charts" && (
+ <>
+ <AdminChartWinners />
+ <AdminReports />
+ <AdminScouts />
+ </>
+ )}
+
+ {view === "system" && (
+ <>
+ <AdminErrors />
+ <AdminSecurity />
+ </>
+ )}
+
+
+ {view === "system" && (
  <AdminSection
  title="Records"
  description="Raw rows behind the app: artists, tracks and listeners."
@@ -247,31 +308,10 @@ export default function AdminDashboard({
  />
  )}
  </AdminSection>
-
- <AdminFeedHealth />
-
-
- <AdminScouts />
-
- <AdminChartWinners />
-
- <AdminWeeklyChart />
-
- <AdminArtistShare />
-
- <AdminArtistNudges />
-
- <AdminArtistUpdates />
-
- <AdminNudges />
+ )}
 
 
- <AdminErrors />
-
-
- <AdminSecurity />
-
-
+ {view === "system" && (
  <AdminSection
  title="Recent artist notifications"
  description="Emails sent to artists whose tracks broke through."
@@ -296,6 +336,7 @@ export default function AdminDashboard({
  </ul>
  )}
  </AdminSection>
+ )}
  </div>
  </>
  )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
+import AdminSection, { Pager, usePager } from "./AdminSection";
 import { GENRES } from "@/lib/genres";
 
 type Refused = {
@@ -50,7 +50,7 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
   const [flash, setFlash] = useState<string | null>(null);
   const [retrying, setRetrying] = useState(false);
   const [retryNote, setRetryNote] = useState<string | null>(null);
-  const page = useVisibleCount(10);
+  const page = usePager(5);
 
   const load = useCallback(async () => {
     const d = await fetchRefused(view);
@@ -230,7 +230,7 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
         </div>
       ) : (
         <ul className="mt-4 space-y-2">
-          {items.slice(0, page.visible).map((r) => {
+          {page.slice(items).map((r) => {
             const open = openId === r.id;
             return (
               <li key={r.id} className="rounded-xl border border-edge bg-surface">
@@ -360,11 +360,11 @@ export default function AdminRefused({ onChanged }: { onChanged: () => void }) {
       )}
 
       {items && items.length > 0 && (
-        <ShowMore
-          shown={page.visible}
+        <Pager
+          page={page.page}
+          pageSize={page.pageSize}
           total={items.length}
-          onMore={page.more}
-          onLess={page.reset}
+          onPage={page.setPage}
         />
       )}
     </AdminSection>
