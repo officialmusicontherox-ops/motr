@@ -653,6 +653,14 @@ model RefusedSubmission {
   genre       String?
   reason      String
   attempts    Int           @default(1)
+
+  /// When the artist was written to about what went wrong.
+  ///
+  /// Dismissing a refusal clears it from the dashboard; it tells the artist
+  /// nothing. Twenty-one album links sat dismissed while the people who sent
+  /// them had no idea what to fix. Recorded so the recovery email reaches
+  /// each person once.
+  helpedAt DateTime?
   status      RefusedStatus @default(PENDING)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt

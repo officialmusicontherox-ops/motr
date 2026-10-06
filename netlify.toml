@@ -22,6 +22,12 @@
   # Relative to base, so this is client/.next.
   publish = ".next"
 
+# Scheduled functions live here. Stated rather than left to detection, since
+# `base` already moves the root and a function Netlify cannot find simply
+# never runs, with nothing to show that it didn't.
+[functions]
+  directory = "netlify/functions"
+
 [build.environment]
   # Pinned rather than left to drift. Next 16 wants a modern runtime, and a
   # silent major-version bump on the build image is the kind of thing that

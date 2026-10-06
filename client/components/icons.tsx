@@ -226,3 +226,23 @@ export function Waveform({ className = "h-5 w-5" }: IconProps) {
     </svg>
   );
 }
+
+export function Share({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <path d="M8.6 10.6 15.4 6.4M8.6 13.4l6.8 4.2" />
+    </svg>
+  );
+}

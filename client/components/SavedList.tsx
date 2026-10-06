@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
-import { Bookmark, Disc, Pause, Play } from "./icons";
+import { Bookmark, Disc, Pause, Play, Share } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
@@ -25,6 +25,7 @@ type SavedTrack = {
 export default function SavedList({ fan }: { fan: Fan }) {
   const [saved, setSaved] = useState<SavedTrack[] | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
+  const [shared, setShared] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/fans/saved?fanId=${fan.id}`)
@@ -135,6 +136,38 @@ export default function SavedList({ fan }: { fan: Fan }) {
                     five users per app unless you have 250k+ monthly actives,
                     so the button could never have worked for most fans. This
                     opens the Spotify app straight at the track. */}
+                {/* Sharing a find is the only way a listener brings anyone
+                    in, and the link opens the app on this exact song rather
+                    than on a random one. Uses the phone's own share sheet
+                    where there is one, and falls back to the clipboard. */}
+                <button
+                  onClick={async () => {
+                    const url = `https://app.musicontherox.com/?track=${t.id}`;
+                    const text = `Found this on MOTR: "${t.title}" by ${t.artistName}. Give it 30 seconds.`;
+                    try {
+                      if (navigator.share) {
+                        await navigator.share({ title: t.title, text, url });
+                        return;
+                      }
+                      await navigator.clipboard?.writeText(`${text} ${url}`);
+                      setShared(t.id);
+                      window.setTimeout(() => setShared(null), 1800);
+                    } catch {
+                      // Cancelling the share sheet lands here too, which is
+                      // not a failure and must not look like one.
+                    }
+                  }}
+                  aria-label={`Share ${t.title}`}
+                  title="Share this find"
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition ${
+                    shared === t.id
+                      ? "border-gold text-gold"
+                      : "border-edge text-muted hover:border-gold hover:text-gold"
+                  }`}
+                >
+                  <Share className="h-4 w-4" />
+                </button>
+
                 <a
                   href={t.spotifyUrl}
                   target="_blank"

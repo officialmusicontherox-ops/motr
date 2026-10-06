@@ -36,6 +36,37 @@ export type SendResult = { ok: boolean; id?: string; error?: string };
 /** A file to travel with the message, for when a link to it isn't enough. */
 export type Attachment = { filename: string; content: Buffer };
 
+/**
+ * A readable plain-text version of an HTML email.
+ *
+ * Gmail treats HTML-only mail as a campaign, which is most of why these land
+ * under Promotions. Every real transactional sender ships both parts, and the
+ * text half is also what screen readers and watch notifications show.
+ */
+export function toPlainText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<a\b[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href, label) => {
+      const text = String(label).replace(/<[^>]+>/g, "").trim();
+      return text && !href.startsWith("mailto:") ? `${text}: ${href}` : text || href;
+    })
+    .replace(/<\/(p|div|h1|h2|h3|li|tr)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<li\b[^>]*>/gi, "- ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&ldquo;|&rdquo;/g, '"')
+    .replace(/&rsquo;/g, "'")
+    .replace(/&[a-z]+;/gi, "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l, i, a) => l || (a[i - 1] ?? "").length > 0)
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 async function send(
   to: string,
   subject: string,
@@ -53,6 +84,9 @@ async function send(
       to,
       subject,
       html,
+      // Both parts, always. HTML on its own is the single strongest signal
+      // that a message is a campaign rather than a reply someone is owed.
+      text: toPlainText(html),
       ...(REPLY_TO ? { replyTo: REPLY_TO } : {}),
       // Attached as well as shown. Most clients block remote images until the
       // reader allows them, so an artist opening this on a phone would
@@ -73,6 +107,31 @@ async function send(
     console.error(`[email threw] to=${to}: ${message}`);
     return { ok: false, error: message };
   }
+}
+
+/**
+ * A plain letter, for mail that has to reach the inbox.
+ *
+ * Gmail sorts on how a message is built as much as on what it says: a dark
+ * branded header, a wide coloured button and a marketing footer are the shape
+ * of a campaign, and campaigns go to Promotions. A sign-in link or an
+ * explanation of why a submission failed is not a campaign, and it is the
+ * mail a person is actually waiting on, so it is written like a letter
+ * somebody typed: left aligned, one link in the text, no artwork.
+ *
+ * Announcements and the weekly chart keep the designed shell. Those really
+ * are promotional, and Promotions is the right tab for them.
+ */
+function letter(body: string, cta?: { label: string; url: string }) {
+  return `
+<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#222;max-width:560px;margin:0 auto;padding:8px 4px">
+  ${body}
+  ${cta ? `<p style="margin:18px 0 0"><a href="${cta.url}" style="color:#8a6d3a;font-weight:600">${cta.label}</a></p>` : ""}
+  <p style="margin:26px 0 0;color:#777;font-size:13px">
+    Music On The Rox<br />
+    <a href="https://app.musicontherox.com" style="color:#777">app.musicontherox.com</a>
+  </p>
+</div>`;
 }
 
 /** Dark shell matching the app, with inline styles since mail clients ignore <style>. */
@@ -454,13 +513,12 @@ function leadName(name: string): string {
 export function artistLoginLinkEmail(params: { name: string; url: string; minutes: number }) {
   const { name, url, minutes } = params;
   return {
-    subject: "Your MOTR artist page",
-    html: shell(
-      "Your page",
-      `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
-       <p style="margin:0 0 12px">Here's your way in. It works once and expires in ${minutes} minutes, and once you're in you'll stay signed in on that device.</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">If you didn't ask for it, ignore this email. Nothing happens until the link is opened.</p>`,
-      { label: "Open your page", url }
+    subject: "Your MOTR sign-in link",
+    html: letter(
+      `<p style="margin:0 0 14px">Hi ${leadName(name)},</p>
+       <p style="margin:0 0 14px">Here's your way in. It works once and expires in ${minutes} minutes. Once you're in, you'll stay signed in on that device.</p>
+       <p style="margin:0 0 14px"><a href="${url}" style="color:#8a6d3a;font-weight:600">Open your page</a></p>
+       <p style="margin:0;color:#777;font-size:13px">If you didn't ask for this, ignore it. Nothing happens until the link is opened.</p>`
     ),
   };
 }
@@ -473,6 +531,84 @@ export function artistLoginLinkEmail(params: { name: string; url: string; minute
  * posting decides in a second, where a paragraph about a share card gets
  * skimmed and closed.
  */
+/**
+ * Why a submission did not go in, sent a few minutes after it failed.
+ *
+ * Batched on purpose. One artist sent six album links in a sitting, and six
+ * separate emails explaining the same mistake is worse than none. The wait
+ * also means someone fixing it themselves in the next minute is never told
+ * off for a problem they already solved.
+ */
+export function submissionFailedEmail(params: {
+  name?: string | null;
+  items: { url: string; reason: string }[];
+  albums: number;
+  appUrl?: string;
+}) {
+  const { name, items, albums, appUrl = APP_URL } = params;
+  const many = items.length > 1;
+
+  const list = items
+    .map(
+      (i) =>
+        `<p style="margin:0 0 14px">
+           <span style="color:#777;font-size:13px;word-break:break-all">${i.url}</span><br />
+           ${i.reason}
+         </p>`
+    )
+    .join("");
+
+  return {
+    subject: many ? `${items.length} of your songs didn't go through` : "Your song didn't go through",
+    html: letter(
+      `${name ? `<p style="margin:0 0 14px">Hi ${leadName(name)},</p>` : ""}
+       <p style="margin:0 0 16px">${
+         many ? "A few things you sent" : "Something you sent"
+       } didn't make it into the feed. Here's what happened, so you can fix it rather than wonder.</p>
+       ${list}
+       ${
+         albums > 0
+           ? `<p style="margin:0 0 14px"><strong>If it was an album link:</strong> open the song itself in Spotify rather than the album, tap the three dots next to it, then Share and Copy Song Link.</p>
+              <p style="margin:0 0 14px;color:#777;font-size:13px">Album links look like open.spotify.com/album/... and track links look like open.spotify.com/track/...</p>`
+           : ""
+       }
+       <p style="margin:0 0 14px">Send it again whenever you like. It's free, and there's no limit on how many songs you put in.</p>
+       <p style="margin:0"><a href="${appUrl}/artists" style="color:#8a6d3a;font-weight:600">Try again</a></p>`
+    ),
+  };
+}
+
+/**
+ * Tells an artist their link pointed at an album, and how to fix it.
+ *
+ * These people submitted and heard nothing useful back. Dismissing a refusal
+ * clears the dashboard, not the artist's inbox, so twenty-one of these sat
+ * unexplained while the artists assumed they had been passed over.
+ */
+export function albumLinkFixEmail(params: { name?: string | null; count: number; appUrl?: string }) {
+  const { name, count, appUrl = APP_URL } = params;
+  const many = count > 1;
+
+  return {
+    subject: many ? `${count} of your links pointed at an album` : "Your link pointed at an album",
+    html: shell(
+      "One small fix and they're in",
+      `${name ? `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>` : ""}
+       <p style="margin:0 0 18px">You sent ${
+         many ? `${count} links` : "a link"
+       } to MOTR that ${many ? "pointed" : "pointed"} at an album or EP rather than at one song. The feed plays a single track at a time, so we couldn't tell which one you meant, and ${
+         many ? "they" : "it"
+       } never made it in. That's on our side for not explaining it at the time.</p>
+       <p style="margin:0 0 10px"><strong style="color:#fff">How to get the right link</strong></p>
+       <p style="margin:0 0 10px">In Spotify, open the <strong style="color:#fff">song itself</strong> rather than the album, tap the three dots next to it, then Share and Copy Song Link.</p>
+       <p style="margin:0 0 18px;color:#8b8b8b;font-size:14px">An album link looks like <span style="color:#c9c9c9">open.spotify.com/album/...</span><br />A track link looks like <span style="color:#dcb55f">open.spotify.com/track/...</span></p>
+       <p style="margin:0 0 18px">Send it again and it goes straight in. It's free, it stays free, and you can send as many songs as you like.</p>
+       <p style="margin:0;color:#8b8b8b;font-size:13px">Listeners hear thirty seconds with no artist name attached, so what comes back is a verdict on the song.</p>`,
+      { label: "Submit your song", url: `${appUrl}/artists` }
+    ),
+  };
+}
+
 export function artistSharePageEmail(params: {
   name: string;
   tracks: { id: string; title: string }[];
