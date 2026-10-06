@@ -56,9 +56,17 @@ export function toPlainText(html: string): string {
     .replace(/<[^>]+>/g, "")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
-    .replace(/&ldquo;|&rdquo;/g, '"')
-    .replace(/&rsquo;/g, "'")
-    .replace(/&[a-z]+;/gi, "")
+    .replace(/&ldquo;|&rdquo;|&quot;/g, '"')
+    .replace(/&rsquo;|&lsquo;|&#39;/g, "'")
+    // Named dashes become real ones rather than nothing. Dropping them turned
+    // "1&ndash;7 November" into "17 November", which is not a typo but a
+    // different date.
+    .replace(/&ndash;/g, "-")
+    .replace(/&mdash;/g, " - ")
+    .replace(/&hellip;/g, "...")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&[a-z]+;/gi, " ")
     .split("\n")
     .map((l) => l.trim())
     .filter((l, i, a) => l || (a[i - 1] ?? "").length > 0)
@@ -107,6 +115,48 @@ async function send(
     console.error(`[email threw] to=${to}: ${message}`);
     return { ok: false, error: message };
   }
+}
+
+/**
+ * A letter with the mark on it.
+ *
+ * Between the two extremes: the dark campaign shell reads as an advert and
+ * sorts like one, while a bare letter carries no recognition at all. This is
+ * a readable page with the logo at the top and nothing else decorative.
+ *
+ * One image, served from our own domain. Several images, a wide coloured
+ * button, a tracking pixel and a multi-column layout are what filters count,
+ * and each one here is avoided deliberately rather than by accident.
+ */
+function branded(title: string, body: string, cta?: { label: string; url: string }) {
+  return `
+<div style="background:#faf9f7;padding:28px 14px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+  <div style="max-width:560px;margin:0 auto">
+    <div style="background:#09090a;border-radius:16px 16px 0 0;padding:22px 24px;text-align:center">
+      <img src="${APP_URL}/motr-logo.png" alt="Music On The Rox" width="190" style="width:190px;max-width:62%;height:auto;display:inline-block" />
+    </div>
+    <div style="background:#ffffff;border:1px solid #e0ddd5;border-top:none;border-radius:0 0 16px 16px;padding:28px 26px;color:#16161a;font-size:15px;line-height:1.62">
+      <h1 style="margin:0 0 16px;font-size:21px;line-height:1.25;color:#16161a">${title}</h1>
+      ${body}
+      ${
+        cta
+          ? `<p style="margin:22px 0 0"><a href="${cta.url}" style="color:#8a6d3a;font-weight:700">${cta.label}</a></p>`
+          : ""
+      }
+    </div>
+    <p style="margin:16px 0 0;text-align:center;color:#67655f;font-size:12px">
+      Music On The Rox ·
+      <a href="${APP_URL}" style="color:#67655f">app.musicontherox.com</a>
+    </p>
+  </div>
+</div>`;
+}
+
+/** A numbered point in a branded letter, so the three things read as three. */
+function point(n: number, heading: string, body: string) {
+  return `
+<p style="margin:0 0 6px"><strong style="color:#8a6d3a">${n}.</strong> <strong>${heading}</strong></p>
+<p style="margin:0 0 20px">${body}</p>`;
 }
 
 /**
@@ -617,6 +667,87 @@ export function albumLinkFixEmail(params: { name?: string | null; count: number;
  * did not is told their own number instead, which is still good news and
  * still true. Nobody is told they failed to chart.
  */
+/**
+ * What changed, for people who swipe.
+ *
+ * Three things they can do, not three things that were built. Nobody outside
+ * the people who made it cares what was shipped; they care what is different
+ * next time they open it.
+ */
+export function whatsNewListenerEmail(params: { appUrl?: string } = {}) {
+  const { appUrl = APP_URL } = params;
+  return {
+    subject: "Three things changed on MOTR",
+    html: branded(
+      "Three things changed",
+      `<p style="margin:0 0 20px">A few things are different since you were last in. All three are worth a minute.</p>
+       ${point(
+         1,
+         "You can share what you save",
+         `Found something good? Every track in Saved has a share button now, and the link opens MOTR <strong>on that exact song</strong> &mdash; so whoever you send it to hears the thing you were talking about, not something random.`
+       )}
+       ${point(
+         2,
+         "You don't see who made it any more",
+         `The artist's name is gone from the card while you're deciding. You get the artwork, the title and thirty seconds. Keep it and the name appears in Saved, one tap from Spotify. The whole point is that you decide on the song before you know whose it is.`
+       )}
+       ${point(
+         3,
+         "There's a chart",
+         `Top songs and top artists for the week, Sunday to Saturday, closing Saturday at midnight. Position is earned by one thing: how many people kept the song. Nothing can be bought and nothing is promoted.`
+       )}
+       <p style="margin:0;color:#67655f;font-size:14px">A full listen still counts double, so the patient ones carry more weight than the fast ones.</p>`,
+      { label: "Open MOTR", url: appUrl }
+    ),
+  };
+}
+
+/**
+ * What changed, for artists.
+ *
+ * Led by the only time-sensitive item. An artist who knows the chart email
+ * starts on 1 November has a reason to promote during the week that counts;
+ * told afterwards, the news is a week late and worth nothing.
+ */
+export function whatsNewArtistEmail(params: { name?: string | null; appUrl?: string } = {}) {
+  const { name, appUrl = APP_URL } = params;
+  return {
+    subject: "Sundays are about to mean something",
+    html: branded(
+      "From November, you'll know where you placed",
+      `${name ? `<p style="margin:0 0 16px">Hi ${leadName(name)},</p>` : ""}
+       <p style="margin:0 0 20px">A few things have landed since you last sent us music.</p>
+       ${point(
+         1,
+         "A Sunday email with your position, starting 1 November",
+         `Every Sunday morning you'll be told where you finished that week. Land in the top ten and the email says so and brings a graphic saying so, ready to post. Below that, you'll be told how many people kept your music. <strong>The first one covers 1&ndash;7 November</strong>, so the week worth pushing is the one starting that Sunday.`
+       )}
+       ${point(
+         2,
+         "You have your own page",
+         `Every track you've sent, how many people opened your link, and how many kept the song. Sign in with the address you submitted with. There's no password.`
+       )}
+       ${point(
+         3,
+         "Every track has a graphic",
+         `Downloadable from that page, with a code people can scan to go straight to your song. That matters because a link in an Instagram post isn't clickable for most accounts, but a code on screen always works.`
+       )}
+       ${point(
+         4,
+         "The weekly winner gets written up",
+         `Top artist each week gets a piece on Music On The Rox. <strong>That starts after the first full week of November</strong>, so the first winner is decided by the week of 1&ndash;7 November.`
+       )}
+       ${point(
+         5,
+         "If something doesn't go through, you'll be told why",
+         `Automatically, a few minutes later, with the fix. It used to just go quiet, which helped nobody.`
+       )}
+       <p style="margin:0;color:#67655f;font-size:14px">Listeners hear thirty seconds with no artist name attached, so what comes back is a verdict on the song.</p>`,
+      { label: "Open your page", url: `${appUrl}/artist` }
+    ),
+  };
+}
+
 export function weeklyRecapEmail(params: {
   name: string;
   week: string;
