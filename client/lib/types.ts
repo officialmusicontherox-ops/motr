@@ -24,6 +24,8 @@ export type Fan = {
   username: string;
   displayName?: string | null;
   hasSpotify?: boolean;
+  /** Whether we can reach them at all. Never the address itself. */
+  hasEmail?: boolean;
 };
 
 export type User = {

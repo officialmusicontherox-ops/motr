@@ -30,7 +30,7 @@ export const RECAP_START = new Date(Date.UTC(2026, 10, 1)); // 1 November 2026
  * contradict the page.
  */
 
-type Row = { artistId: string; name: string; email: string; saves: bigint; verdicts: bigint; topTrack: string | null };
+type Row = { artistId: string; name: string; email: string; saves: bigint; fullListens: bigint; verdicts: bigint; topTrack: string | null };
 
 /** Every artist with a save in the week, best first. */
 async function weekStandings(week: Week) {
@@ -39,6 +39,7 @@ async function weekStandings(week: Week) {
       MIN(a."name") AS name,
       MIN(a."email") AS email,
       COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
+      COUNT(*) FILTER (WHERE s."direction" = 'RIGHT' AND s."weight" > 1)::bigint AS "fullListens",
       COUNT(s."id")::bigint AS verdicts,
       (ARRAY_AGG(t."title" ORDER BY t."fanRightSwipes" DESC))[1] AS "topTrack"
     FROM "Track" t
@@ -60,6 +61,8 @@ export type Recap = {
   name: string;
   email: string;
   saves: number;
+  /** Of those saves, how many heard the clip out. Those count double. */
+  fullListens: number;
   position: number | null;
   /** Their best-performing track that week, for the graphic. */
   track: { id: string; title: string; artworkUrl: string | null } | null;
@@ -94,6 +97,7 @@ export async function recapsFor(week: Week): Promise<Recap[]> {
       name: r.name,
       email: r.email,
       saves: Number(r.saves),
+      fullListens: Number(r.fullListens),
       position: rankOf.get(r.artistId) ?? null,
       track,
     });
@@ -169,6 +173,7 @@ export async function sendWeeklyRecaps(appUrl: string, opts: { force?: boolean }
         week: week.label,
         position: r.position,
         saves: r.saves,
+        fullListens: r.fullListens,
         trackTitle: r.track?.title ?? null,
         attachments,
         appUrl,

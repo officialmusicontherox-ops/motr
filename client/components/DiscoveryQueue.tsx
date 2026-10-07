@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
 import SwipeCard from "./SwipeCard";
 import SponsoredCard from "./SponsoredCard";
+import SaveEmailPrompt, { savePromptDismissed } from "./SaveEmailPrompt";
 import GenrePicker from "./GenrePicker";
 import { Disc, Note } from "./icons";
 import Equalizer from "./Equalizer";
@@ -62,6 +63,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [pending, setPending] = useState(false);
   const [breakout, setBreakout] = useState<string | null>(null);
   const [savedCount, setSavedCount] = useState(0);
+  // Asked after the first save, never before, and never twice.
+  const [askEmail, setAskEmail] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [clip, setClip] = useState({ currentTime: 0, duration: 30 });
   const sharedRef = useRef<string | null | undefined>(undefined);
@@ -146,7 +149,15 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
     if (res.ok) {
       const data = await res.json();
-      if (direction === "RIGHT") setSavedCount((c) => c + 1);
+      if (direction === "RIGHT") {
+        setSavedCount((c) => {
+          const next = c + 1;
+          // The moment they have something worth keeping. Not on arrival,
+          // when they have heard nothing and owe us no address.
+          if (next === 1 && !fan.hasEmail && !savePromptDismissed()) setAskEmail(true);
+          return next;
+        });
+      }
       if (data.feeNowRequested) setBreakout(track.title);
     }
 
@@ -277,6 +288,14 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           disabled={pending}
           onSwipe={(direction, listenMs) => handleSwipe(direction, listenMs)}
           onProgress={(currentTime, duration) => setClip({ currentTime, duration })}
+        />
+      )}
+
+      {askEmail && (
+        <SaveEmailPrompt
+          fanId={fan.id}
+          savedCount={savedCount}
+          onClose={() => setAskEmail(false)}
         />
       )}
     </MotrShell>

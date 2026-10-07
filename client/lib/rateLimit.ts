@@ -24,6 +24,8 @@ export const LIMITS = {
   ingest: { max: 20, windowMs: 60 * 60 * 1000 },
   /** Generous: shared office and mobile-carrier addresses are one IP. */
   fanCreate: { max: 30, windowMs: 60 * 60 * 1000 },
+  /** Typed by hand, one listener at a time, so a low cap is plenty. */
+  fanEmail: { max: 20, windowMs: 60 * 60 * 1000 },
   curatorApply: { max: 5, windowMs: 24 * 60 * 60 * 1000 },
   errorReport: { max: 40, windowMs: 60 * 60 * 1000 },
   summary: { max: 20, windowMs: 60 * 60 * 1000 },

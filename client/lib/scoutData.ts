@@ -206,12 +206,14 @@ async function geographyFor(
   return out;
 }
 
+/** `score` is what ranks: a save counts 2 if the listener heard the clip out. */
 export type WeeklySong = {
   id: string;
   title: string;
   artistName: string;
   artworkUrl: string | null;
   saves: number;
+  score: number;
   verdicts: number;
 };
 
@@ -219,6 +221,7 @@ export type WeeklyArtist = {
   artistId: string;
   name: string;
   saves: number;
+  score: number;
   verdicts: number;
   tracks: number;
 };
@@ -263,11 +266,13 @@ export async function leadersBetween(
         artistName: string;
         artworkUrl: string | null;
         saves: bigint;
+        score: bigint;
         verdicts: bigint;
       }[]
     >(Prisma.sql`
       SELECT t."id", t."title", t."artistName", t."artworkUrl",
         COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
+        COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
         COUNT(s."id")::bigint AS verdicts
       FROM "Track" t
       JOIN "FanSwipe" s ON s."trackId" = t."id"
@@ -276,15 +281,16 @@ export async function leadersBetween(
         AND s."createdAt" >= ${since}
         ${upper}
       GROUP BY t."id"
-      ORDER BY saves DESC, verdicts DESC
+      ORDER BY score DESC, verdicts DESC
       LIMIT 10
     `),
     prisma.$queryRaw<
-      { artistId: string; name: string; saves: bigint; verdicts: bigint; tracks: bigint }[]
+      { artistId: string; name: string; saves: bigint; score: bigint; verdicts: bigint; tracks: bigint }[]
     >(Prisma.sql`
       SELECT t."artistId" AS "artistId",
         MIN(a."name") AS name,
         COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
+        COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
         COUNT(s."id")::bigint AS verdicts,
         COUNT(DISTINCT t."id")::bigint AS tracks
       FROM "Track" t
@@ -295,7 +301,7 @@ export async function leadersBetween(
         AND s."createdAt" >= ${since}
         ${upper}
       GROUP BY t."artistId"
-      ORDER BY saves DESC, verdicts DESC
+      ORDER BY score DESC, verdicts DESC
       LIMIT 10
     `),
   ]);
@@ -308,12 +314,14 @@ export async function leadersBetween(
       artistName: r.artistName,
       artworkUrl: r.artworkUrl,
       saves: Number(r.saves),
+      score: Number(r.score),
       verdicts: Number(r.verdicts),
     })),
     artists: artistRows.map((r) => ({
       artistId: r.artistId,
       name: r.name,
       saves: Number(r.saves),
+      score: Number(r.score),
       verdicts: Number(r.verdicts),
       tracks: Number(r.tracks),
     })),

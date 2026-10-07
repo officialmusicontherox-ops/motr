@@ -50,6 +50,7 @@ export async function winnerForWeek(weekStart: Date): Promise<WeekResult | null>
     SELECT t."artistId" AS "artistId",
       MIN(a."name") AS name,
       COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
+      COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
       COUNT(DISTINCT t."id")::bigint AS tracks
     FROM "Track" t
     JOIN "Artist" a ON a."id" = t."artistId"
@@ -60,7 +61,10 @@ export async function winnerForWeek(weekStart: Date): Promise<WeekResult | null>
       AND s."createdAt" < ${weekEnd}
     GROUP BY t."artistId"
     HAVING COUNT(*) FILTER (WHERE s."direction" = 'RIGHT') > 0
-    ORDER BY saves DESC, tracks ASC
+    -- Weighted, the same as the chart. The winner of the week has to be the
+    -- artist the chart shows at number one, or the two contradict each other
+    -- in public on the same morning.
+    ORDER BY score DESC, tracks ASC
     LIMIT 1
   `);
 

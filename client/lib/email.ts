@@ -760,12 +760,19 @@ export function weeklyRecapEmail(params: {
   week: string;
   position: number | null;
   saves: number;
+  fullListens: number;
   trackTitle: string | null;
   attachments?: Attachment[];
   appUrl?: string;
 }) {
-  const { name, week, position, saves, trackTitle, attachments, appUrl = APP_URL } = params;
+  const { name, week, position, saves, fullListens, trackTitle, attachments, appUrl = APP_URL } = params;
   const kept = `${saves} ${saves === 1 ? "person" : "people"} kept your music`;
+  // Say the weighting out loud. Without it an artist with more saves placed
+  // below one with fewer reads the chart as broken, and they would be right
+  // to, because the number they can see would not explain the position.
+  const heardOut = fullListens
+    ? `${fullListens} of them heard the full thirty seconds before deciding, and those count double.`
+    : `A listener who hears the full thirty seconds before deciding counts double, which is the quickest way to move.`;
 
   if (position) {
     return {
@@ -776,7 +783,7 @@ export function weeklyRecapEmail(params: {
         `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
          <p style="margin:0 0 18px">You finished <strong style="color:#dcb55f">number ${position}</strong> on the MOTR chart for ${week}${
            trackTitle ? `, led by <strong style="color:#fff">${trackTitle}</strong>` : ""
-         }. ${kept} this week, and position is earned by nothing except that.</p>
+         }. ${kept} this week. ${heardOut}</p>
          <p style="margin:0 0 18px">There's a graphic attached saying so. Put it on your story and send your people over, and next week's position partly depends on who turns up.</p>
          <p style="margin:0;color:#8b8b8b;font-size:13px">Every place on that chart was earned by listeners keeping the song. There is nothing to buy and no way to move it.</p>`,
         { label: "See the full chart", url: `${appUrl}/charts` }
@@ -792,8 +799,8 @@ export function weeklyRecapEmail(params: {
       `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
        <p style="margin:0 0 18px">${kept} during ${week}${
          trackTitle ? `, mostly <strong style="color:#fff">${trackTitle}</strong>` : ""
-       }. Each one is somebody who had never heard of you, heard thirty seconds, and chose to keep it.</p>
-       <p style="margin:0 0 18px">The chart is decided by that and nothing else, so the quickest way up it is more people hearing you. Your page has a graphic for every track, ready to post.</p>`,
+       }. Each one is somebody who had never heard of you, heard thirty seconds, and chose to keep it. ${heardOut}</p>
+       <p style="margin:0 0 18px">Nothing else feeds the chart, so the quickest way up it is more people hearing you. Your page has a graphic for every track, ready to post.</p>`,
       { label: "Open your page", url: `${appUrl}/artist` }
     ),
   };
