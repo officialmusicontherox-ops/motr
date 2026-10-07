@@ -38,11 +38,13 @@ export async function GET(req: NextRequest) {
         artistName: s.artistName,
         artworkUrl: s.artworkUrl,
       })),
+      // Rank and name only. How many tracks an artist has in rotation says
+      // nothing about how the week went, and next to a position it reads as
+      // though a bigger catalogue is what earned the placing.
       artists: weekly.artists.map((a, i) => ({
         rank: i + 1,
         id: a.artistId,
         name: a.name,
-        tracks: a.tracks,
       })),
       since: weekly.since,
       days: month ? 30 : 7,

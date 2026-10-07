@@ -2,13 +2,17 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const rows = await prisma.errorLog.findMany({
-  where: { lastSeen: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) } },
   orderBy: { lastSeen: "desc" },
-  take: 12,
-  select: { source: true, message: true, path: true, method: true, count: true, lastSeen: true, resolved: true },
+  take: 5,
+  select: { source: true, message: true, path: true, method: true, count: true,
+            firstSeen: true, lastSeen: true, resolved: true, userAgent: true, stack: true },
 });
-console.log(`errors in the last 48h: ${rows.length}\n`);
+console.log(`errors on record: ${rows.length}\n`);
 for (const r of rows) {
-  console.log(`${r.lastSeen.toISOString()}  x${r.count}  ${r.source}  ${r.method ?? ""} ${r.path ?? ""}`);
-  console.log(`   ${r.message.slice(0, 220)}\n`);
+  console.log("=".repeat(70));
+  console.log(`${r.source}  x${r.count}  ${r.method ?? ""} ${r.path ?? ""}  resolved=${r.resolved}`);
+  console.log(`first ${r.firstSeen.toISOString()}   last ${r.lastSeen.toISOString()}`);
+  console.log(`agent: ${(r.userAgent ?? "none").slice(0, 100)}`);
+  console.log(`\nMESSAGE:\n${r.message}`);
+  if (r.stack) console.log(`\nSTACK (first 900):\n${r.stack.slice(0, 900)}`);
 }

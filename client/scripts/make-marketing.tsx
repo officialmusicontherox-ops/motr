@@ -121,7 +121,7 @@ const squares: Square[] = [
   { file: "f07", label: "THE CHART", head: "Built by listeners, not labels.", body: "Every position was earned by people keeping the song. There is no other route up.", kind: "plain" },
   { file: "f08", label: "NO CATCH", head: "Free, and it stays free.", body: "Free for listeners and free for artists. Nobody is charged anything, ever.", kind: "plain" },
   { file: "f09", label: "HOW IT WORKS", head: "No feed. No search. Just songs.", body: "Nothing to scroll past and nothing to look up. The first track is already waiting.", kind: "swipe" },
-  { file: "f10", label: "THE POINT", head: "You are judging the song.", body: "Not the follower count, not the artwork you recognise, not who told you about it.", kind: "plain" },
+  { file: "f10", label: "THE POINT", head: "You are judging the song.", body: "Not the follower count, not the artwork you recognize, not who told you about it.", kind: "plain" },
   { file: "f11", label: "FOR ARTISTS", head: "Your name is hidden on purpose.", body: "So what comes back is a verdict on the track rather than on your following.", kind: "plain" },
   { file: "f12", label: "EVERY WEEK", head: "New music, every single week.", body: "Artists send tracks constantly. There is always something nobody has heard yet.", kind: "plain" },
   { file: "f13", label: "WORTH KNOWING", head: "Thirty seconds is all you get.", body: "It is usually all you need. You know by the end of the clip whether it is yours.", kind: "stat", stat: "0:30" },

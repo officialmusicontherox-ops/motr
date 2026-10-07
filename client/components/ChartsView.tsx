@@ -13,7 +13,7 @@ type ChartSong = {
   artworkUrl: string | null;
 };
 
-type ChartArtist = { rank: number; id: string; name: string; tracks: number };
+type ChartArtist = { rank: number; id: string; name: string };
 
 type Charts = {
   songs: ChartSong[];
@@ -193,12 +193,7 @@ export default function ChartsView() {
                       className="border-edge bg-surface flex items-center gap-3 rounded-xl border px-3 py-2"
                     >
                       <Rank n={artist.rank} />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">{artist.name}</span>
-                        <span className="text-muted block truncate text-sm">
-                          {artist.tracks} track{artist.tracks === 1 ? "" : "s"} in the feed
-                        </span>
-                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium">{artist.name}</span>
                     </li>
                   ))}
                 </ol>

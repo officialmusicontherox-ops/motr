@@ -92,10 +92,10 @@ const cards: Card[] = [
     glow: "rgba(220,181,95,0.16)",
   },
   {
-    file: "06-next-favourite",
+    file: "06-next-favorite",
     accent: PINK,
     kicker: "SOMEWHERE IN THE QUEUE",
-    lines: ["YOUR NEXT", "FAVOURITE", "SONG"],
+    lines: ["YOUR NEXT", "FAVORITE", "SONG"],
     sub: "By someone with no marketing budget and nobody telling you to listen.",
     glow: "rgba(255,45,155,0.18)",
   },

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { lastCompleteWeek, CHART_TZ, type Week } from "./weekWindow";
+import { leadersBetween } from "./scoutData";
 import { sendEmail, weeklyRecapEmail, type Attachment } from "./email";
 import { renderShareCard } from "./shareCard";
 
@@ -18,10 +19,18 @@ import { renderShareCard } from "./shareCard";
 /** Nothing before this. The chart needs enough in it to be worth reading. */
 export const RECAP_START = new Date(Date.UTC(2026, 10, 1)); // 1 November 2026
 
-/** Only the top this many are told a position. Below that it reads as a rebuke. */
-const PLACES = 10;
+/**
+ * Position comes from the public chart, never from a second calculation.
+ *
+ * An artist who is told "#6" opens the chart to check, so the two have to
+ * agree by construction rather than by two rules that happen to match today.
+ * leadersBetween is what /api/charts renders, including its tiebreak and its
+ * cut at ten, and including artists who have opted out of email: leaving them
+ * out here would shift everyone below them up a place and the email would
+ * contradict the page.
+ */
 
-type Row = { artistId: string; name: string; email: string; saves: bigint; topTrack: string | null };
+type Row = { artistId: string; name: string; email: string; saves: bigint; verdicts: bigint; topTrack: string | null };
 
 /** Every artist with a save in the week, best first. */
 async function weekStandings(week: Week) {
@@ -30,6 +39,7 @@ async function weekStandings(week: Week) {
       MIN(a."name") AS name,
       MIN(a."email") AS email,
       COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
+      COUNT(s."id")::bigint AS verdicts,
       (ARRAY_AGG(t."title" ORDER BY t."fanRightSwipes" DESC))[1] AS "topTrack"
     FROM "Track" t
     JOIN "Artist" a ON a."id" = t."artistId"
@@ -41,7 +51,7 @@ async function weekStandings(week: Week) {
       AND s."createdAt" < ${week.end}
     GROUP BY t."artistId"
     HAVING COUNT(*) FILTER (WHERE s."direction" = 'RIGHT') > 0
-    ORDER BY saves DESC
+    ORDER BY saves DESC, verdicts DESC
   `);
 }
 
@@ -64,6 +74,9 @@ export async function recapsFor(week: Week): Promise<Recap[]> {
   });
   const sent = new Set(already.map((a) => a.artistId));
 
+  const chart = await leadersBetween(week.start, week.end);
+  const rankOf = new Map(chart.artists.map((a, i) => [a.artistId, i + 1]));
+
   const out: Recap[] = [];
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
@@ -81,10 +94,12 @@ export async function recapsFor(week: Week): Promise<Recap[]> {
       name: r.name,
       email: r.email,
       saves: Number(r.saves),
-      position: i < PLACES ? i + 1 : null,
+      position: rankOf.get(r.artistId) ?? null,
       track,
     });
   }
+  // Chart order, placed first. The batch is read top down when it is checked.
+  out.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity) || b.saves - a.saves);
   return out;
 }
 
