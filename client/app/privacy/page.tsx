@@ -87,9 +87,11 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: "We don't sell your data",
     body: (
       <p>
-        We do not sell or rent your personal information, and we don&apos;t share it with
-        advertisers or data brokers. Artists see a track&apos;s swipe totals, never
-        who swiped.
+        We do not sell or rent your personal information, and we hand nothing about you
+        to data brokers. Artists see a track&apos;s swipe totals, never who swiped.
+        MOTR does carry Google ads, and serving them lets Google set its own cookies in
+        your browser; that is described under Cookies below. We pass Google nothing
+        about you to do it.
       </p>
     ),
   },
@@ -110,8 +112,13 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             <span className="text-ink">Neon and Netlify</span>: database and hosting.
           </li>
           <li>
-            <span className="text-ink">Apple and Deezer</span>: track previews and artwork.
-            These are lookups we make about music, not a handover of anything about you.
+            <span className="text-ink">Google AdSense</span>: the ads on the site. Google
+            receives your IP address and the page you are on, as it does on any site
+            carrying its ads. It is not told your account, your saves or what you played.
+          </li>
+          <li>
+            <span className="text-ink">Apple</span>: track previews and artwork. These are
+            lookups we make about music, not a handover of anything about you.
           </li>
         </ul>
         <p className="mt-2">
@@ -133,8 +140,27 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         We use a small number of first-party cookies to keep you signed in and to hold your
-        session while you sign in with Google. There are no advertising or
-        cross-site tracking cookies on MOTR. Blocking cookies will break sign-in.
+        session while you sign in with Google. Blocking those will break sign-in.
+        <br />
+        <br />
+        MOTR also shows ads from Google AdSense, and Google sets its own cookies and
+        similar identifiers through them, which it may use to personalise advertising
+        across sites. We do not control those and we receive nothing from them about you.
+        You can review and turn off personalised advertising at{" "}
+        <a
+          href="https://adssettings.google.com"
+          className="text-gold underline underline-offset-4"
+        >
+          adssettings.google.com
+        </a>
+        , and see how Google uses this data at{" "}
+        <a
+          href="https://policies.google.com/technologies/partner-sites"
+          className="text-gold underline underline-offset-4"
+        >
+          policies.google.com/technologies/partner-sites
+        </a>
+        .
       </p>
     ),
   },

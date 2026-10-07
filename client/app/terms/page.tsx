@@ -104,9 +104,40 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <p>
         Clips are 30-second previews supplied by third-party catalog services. Artists and rights
         holders keep everything they own; we claim no rights in your music beyond showing the
-        preview inside MOTR. If you hold rights to something here and want it removed, email us and
-        we&apos;ll take it down.
+        preview inside MOTR. Previews come from third-party catalogs, so a track can stop
+        playing or disappear if that catalog changes or withdraws it, which is outside our
+        control.
       </p>
+    ),
+  },
+  {
+    title: "Copyright complaints and takedowns",
+    body: (
+      <>
+        <p>
+          If you hold rights to something on MOTR and want it removed, email{" "}
+          <a href={`mailto:${EMAIL}`} className="text-gold underline underline-offset-4">
+            {EMAIL}
+          </a>{" "}
+          with the subject line <span className="text-ink">Copyright notice</span>. We act on
+          these quickly and we do not require a lawyer to be involved.
+        </p>
+        <p className="mt-3">Please include:</p>
+        <ul>
+          <li>What the work is, and a link to it on MOTR.</li>
+          <li>Proof you own it or act for the owner.</li>
+          <li>Your name, address and a contact email.</li>
+          <li>
+            A statement that you believe in good faith the use is not authorised, and that the
+            information in your notice is accurate.
+          </li>
+        </ul>
+        <p className="mt-3">
+          If we remove something of yours and you believe that was wrong, reply to us and say
+          why. We will put it back if the claim does not hold up. Repeatedly submitting music
+          you have no rights to will end your access.
+        </p>
+      </>
     ),
   },
   {
@@ -128,9 +159,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
         MOTR is provided as-is. We don&apos;t promise it will be uninterrupted or error-free, and
         we&apos;re not liable for indirect losses, including career outcomes that did or
         didn&apos;t follow from using it. Nothing here limits liability we can&apos;t limit by law,
-        including for fraud. These terms are governed by the laws of the United States and the
-        state in which MOTR operates. If we change them materially, we&apos;ll tell you before the
-        change takes effect.
+        including for fraud. These terms are governed by the laws of the State of Tennessee and
+        the United States. If we change them materially, we&apos;ll tell you before the change
+        takes effect.
       </p>
     ),
   },
