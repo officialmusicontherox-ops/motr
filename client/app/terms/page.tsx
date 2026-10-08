@@ -156,6 +156,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           <br />
           Nashville, TN 37209
           <br />
+          <a href="tel:+17205206252" className="text-gold underline underline-offset-4">
+            (720) 520-6252
+          </a>
+          <br />
           <a href={`mailto:${EMAIL}`} className="text-gold underline underline-offset-4">
             {EMAIL}
           </a>
