@@ -137,6 +137,29 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           why. We will put it back if the claim does not hold up. Repeatedly submitting music
           you have no rights to will end your access.
         </p>
+
+        {/* Section 512(c)(2) requires substantially this information to be
+            public on the site, not only in the Copyright Office directory.
+            If any of it changes, amend the registration too: the two
+            disagreeing is the first thing a rightsholder's lawyer points at. */}
+        <p className="mt-6 font-semibold text-ink">Designated copyright agent</p>
+        <p className="mt-2">
+          Registered with the United States Copyright Office, registration{" "}
+          <span className="text-ink">DMCA-1082285</span>.
+        </p>
+        <address className="mt-2 not-italic leading-relaxed">
+          Copyright Agent
+          <br />
+          Music On The Rox
+          <br />
+          6339 Charlotte Pike, Unit #D456
+          <br />
+          Nashville, TN 37209
+          <br />
+          <a href={`mailto:${EMAIL}`} className="text-gold underline underline-offset-4">
+            {EMAIL}
+          </a>
+        </address>
       </>
     ),
   },
