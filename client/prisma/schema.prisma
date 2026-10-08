@@ -674,6 +674,36 @@ model RefusedSubmission {
 /// Postgres rather than memory because serverless functions don't share
 /// state — an in-process counter resets on every cold start and stops
 /// nothing. Rows are pruned as they age out of their window.
+/// One page view. The app creates a Fan record the moment somebody starts
+/// swiping, so everyone who arrives and leaves without pressing anything was
+/// invisible before this table existed, which is exactly the number worth
+/// knowing when you are asking whether the front page works at all.
+model Visit {
+  id String @id @default(cuid())
+
+  /// Random id from a first-party cookie, so repeat views can be collapsed
+  /// into one person. It identifies a browser, not a human, and is never
+  /// joined to a Fan or an email.
+  visitorId String
+
+  path     String
+  /// Host only, never the full URL: enough to say where traffic comes from
+  /// without recording the page somebody was reading beforehand.
+  referrer String?
+  country  String?
+
+  /// Arrived through an artist's share link.
+  fromShare Boolean @default(false)
+  /// First view this browser has ever sent.
+  isNew     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([visitorId])
+  @@index([path, createdAt])
+}
+
 model RequestHit {
   id     String @id @default(cuid())
   /// endpoint + client, e.g. "ingest:203.0.113.9"

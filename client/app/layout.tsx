@@ -4,6 +4,7 @@ import "./globals.css";
 import Script from "next/script";
 import ClientErrorReporter from "@/components/ClientErrorReporter";
 import RegisterServiceWorker from "@/components/RegisterServiceWorker";
+import VisitCounter from "@/components/VisitCounter";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -126,6 +127,7 @@ export default function RootLayout({
         )}
         <ClientErrorReporter />
         <RegisterServiceWorker />
+        <VisitCounter />
         {children}
       </body>
     </html>

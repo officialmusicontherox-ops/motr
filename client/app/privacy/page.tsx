@@ -136,11 +136,32 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     ),
   },
   {
+    title: "Counting visits",
+    body: (
+      <>
+        <p>
+          We count page views so we can tell whether anyone is finding the site at
+          all. For each view we store the page, the country your request came from,
+          the site that linked you here if there was one, and a random id kept in a
+          first-party cookie so repeat views can be counted as one person rather
+          than several.
+        </p>
+        <p className="mt-3">
+          That id identifies a browser, not a person. It is never joined to your
+          account, your email or the tracks you swipe, it is never sent anywhere
+          outside MOTR, and we do not store the full address of the page you came
+          from, only the site it was on.
+        </p>
+      </>
+    ),
+  },
+  {
     title: "Cookies",
     body: (
       <p>
-        We use a small number of first-party cookies to keep you signed in and to hold your
-        session while you sign in with Google. Blocking those will break sign-in.
+        We use a small number of first-party cookies to keep you signed in, to hold your
+        session while you sign in with Google, and to count a returning visit as the same
+        person rather than a new one. Blocking those will break sign-in.
         <br />
         <br />
         MOTR also shows ads from Google AdSense, and Google sets its own cookies and

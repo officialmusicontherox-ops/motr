@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 import AdminAudience from "./AdminAudience";
+import AdminTraffic from "./AdminTraffic";
 import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
 import AdminFeedHealth from "./AdminFeedHealth";
@@ -212,6 +213,7 @@ export default function AdminDashboard({
 
  {view === "listeners" && (
  <>
+ <AdminTraffic />
  <AdminAudience />
  <AdminNudges />
  <AdminWeeklyChart />
