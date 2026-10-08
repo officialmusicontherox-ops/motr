@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { useVisibleCount, ShowMore } from "./AdminSection";
 
 type Track = { id: string; title: string; opens: number; saves: number };
 type Artist = {
@@ -33,6 +33,7 @@ export default function AdminArtistShare() {
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const list = useVisibleCount(10);
 
   async function load() {
     setBusy("load");
@@ -128,13 +129,13 @@ export default function AdminArtistShare() {
             <div className="border-edge bg-surface rounded-xl border p-3">
               <div className="text-2xl font-bold leading-none">{data.totals.promoting}</div>
               <div className="text-muted mt-1 text-xs">
-                of {data.artists.length} artists have brought someone
+                of {data.artists.length} artists have sent at least one listener to their own song
               </div>
             </div>
           </div>
 
           <ul className="mt-4 space-y-2">
-            {data.artists.map((a) => (
+            {data.artists.slice(0, list.visible).map((a) => (
               <li key={a.id} className="border-edge bg-surface rounded-xl border p-3">
                 <div className="flex items-start justify-between gap-3">
                   <button
@@ -173,6 +174,18 @@ export default function AdminArtistShare() {
               </li>
             ))}
           </ul>
+
+          <ShowMore
+            shown={list.visible}
+            total={data.artists.length}
+            onMore={list.more}
+            onLess={() => {
+              // An artist expanded below the fold would otherwise stay open
+              // and invisible, and the next click would appear to do nothing.
+              setOpen(null);
+              list.reset();
+            }}
+          />
         </>
       )}
     </AdminSection>

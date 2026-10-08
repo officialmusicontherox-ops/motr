@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { useVisibleCount, ShowMore } from "./AdminSection";
 
 type BrokenTrack = {
   id: string;
@@ -48,6 +48,8 @@ type Report = {
  */
 export default function AdminFeedHealth() {
   const [report, setReport] = useState<Report | null>(null);
+  const wrongList = useVisibleCount(10);
+  const brokenList = useVisibleCount(10);
   const [running, setRunning] = useState(false);
   const [repairing, setRepairing] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -271,7 +273,7 @@ export default function AdminFeedHealth() {
             song. Repair looks the track up again with the corrected matching.
           </p>
           <ul className="mt-3 space-y-2">
-            {wrongAudio.map((t) => (
+            {wrongAudio.slice(0, wrongList.visible).map((t) => (
               <li
                 key={t.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-500/40 bg-surface p-3"
@@ -295,6 +297,12 @@ export default function AdminFeedHealth() {
               </li>
             ))}
           </ul>
+          <ShowMore
+            shown={wrongList.visible}
+            total={wrongAudio.length}
+            onMore={wrongList.more}
+            onLess={wrongList.reset}
+          />
         </>
       )}
 
@@ -305,7 +313,7 @@ export default function AdminFeedHealth() {
             links don&apos;t expire; if Apple doesn&apos;t have it, pull it from Tracks instead.
           </p>
           <ul className="mt-3 space-y-2">
-            {report.broken.map((t) => (
+            {report.broken.slice(0, brokenList.visible).map((t) => (
               <li
                 key={t.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-edge bg-surface p-3"
@@ -329,6 +337,12 @@ export default function AdminFeedHealth() {
               </li>
             ))}
           </ul>
+          <ShowMore
+            shown={brokenList.visible}
+            total={report.broken.length}
+            onMore={brokenList.more}
+            onLess={brokenList.reset}
+          />
         </>
       )}
     </AdminSection>

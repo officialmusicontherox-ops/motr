@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { useVisibleCount, ShowMore } from "./AdminSection";
 
 type MilestoneTrack = {
   trackId: string;
@@ -29,6 +29,7 @@ type Result = { eligible: number; sent: number; failed: number; tracksMarked: nu
  */
 export default function AdminArtistUpdates() {
   const [preview, setPreview] = useState<Preview | null>(null);
+  const list = useVisibleCount(10);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -116,7 +117,7 @@ export default function AdminArtistUpdates() {
 
       {preview && preview.artists > 0 && (
         <ul className="mt-4 space-y-2">
-          {preview.recipients.map((r) => (
+          {preview.recipients.slice(0, list.visible).map((r) => (
             <li key={r.artistId} className="border-edge bg-surface rounded-xl border p-3">
               <p className="font-medium">{r.artistName}</p>
               <p className="text-muted truncate text-xs">{r.email}</p>
@@ -132,6 +133,15 @@ export default function AdminArtistUpdates() {
             </li>
           ))}
         </ul>
+      )}
+
+      {preview && preview.artists > 0 && (
+        <ShowMore
+          shown={list.visible}
+          total={preview.recipients.length}
+          onMore={list.more}
+          onLess={list.reset}
+        />
       )}
 
       {result && (

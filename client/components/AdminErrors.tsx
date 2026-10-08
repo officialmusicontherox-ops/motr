@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { useVisibleCount, ShowMore } from "./AdminSection";
 
 type ErrorRow = {
   id: string;
@@ -45,6 +45,7 @@ export default function AdminErrors() {
   const [errors, setErrors] = useState<ErrorRow[] | null>(null);
   const [counts, setCounts] = useState<Counts | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const list = useVisibleCount(10);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/errors?view=${view}`);
@@ -130,7 +131,7 @@ export default function AdminErrors() {
         </div>
       ) : (
         <ul className="mt-4 space-y-2">
-          {errors.map((e) => {
+          {errors.slice(0, list.visible).map((e) => {
             const open = openId === e.id;
             const why = explain(e);
             return (
@@ -189,6 +190,20 @@ export default function AdminErrors() {
             );
           })}
         </ul>
+      )}
+
+      {errors && errors.length > 0 && (
+        <ShowMore
+          shown={list.visible}
+          total={errors.length}
+          onMore={list.more}
+          onLess={() => {
+            // Same reason as the artist list: a row expanded below the fold
+            // would stay open where nobody can see it.
+            setOpenId(null);
+            list.reset();
+          }}
+        />
       )}
     </AdminSection>
   );

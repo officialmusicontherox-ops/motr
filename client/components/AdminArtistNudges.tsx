@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { useVisibleCount, ShowMore } from "./AdminSection";
 
 type Candidate = {
   artistId: string;
@@ -24,6 +24,7 @@ type Result = { eligible: number; sent: number; failed: number };
  */
 export default function AdminArtistNudges() {
   const [preview, setPreview] = useState<Preview | null>(null);
+  const list = useVisibleCount(10);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -110,7 +111,7 @@ export default function AdminArtistNudges() {
 
       {preview && preview.eligible > 0 && (
         <ul className="mt-4 space-y-2">
-          {preview.artists.map((a) => (
+          {preview.artists.slice(0, list.visible).map((a) => (
             <li
               key={a.artistId}
               className="border-edge bg-surface flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3"
@@ -130,6 +131,15 @@ export default function AdminArtistNudges() {
             </li>
           ))}
         </ul>
+      )}
+
+      {preview && preview.eligible > 0 && (
+        <ShowMore
+          shown={list.visible}
+          total={preview.artists.length}
+          onMore={list.more}
+          onLess={list.reset}
+        />
       )}
 
       {result && (
