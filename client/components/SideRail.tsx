@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 declare global {
   interface Window {
@@ -33,8 +33,23 @@ export default function SideRail({
 }) {
   const pushed = useRef(false);
 
+  // Hiding the rail with CSS still left the <ins> in the page at zero width,
+  // and the push below ran anyway, so every phone logged
+  // "adsbygoogle.push() error: No slot size for availableWidth=0".
+  // Matching the breakpoint in JS means the element is never created at all
+  // below it, which is also one less ad request on mobile.
+  const [wide, setWide] = useState(false);
   useEffect(() => {
-    if (!client || !slot) return;
+    const mq = window.matchMedia("(min-width: 1280px)");
+    const sync = () => setWide(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    // Never push into something that is not on screen with a real width.
+    if (!client || !slot || !wide) return;
     // Strict mode mounts twice in development; pushing the same slot twice
     // makes AdSense log "already have ads in them" and render nothing.
     if (pushed.current) return;
@@ -44,14 +59,14 @@ export default function SideRail({
     } catch {
       // A blocked or failed ad must never break the page.
     }
-  }, [client, slot]);
+  }, [client, slot, wide]);
 
-  if (!client || !slot) return null;
+  if (!client || !slot || !wide) return null;
 
   return (
     <aside
       aria-label="Advertisement"
-      className={`pointer-events-auto fixed top-1/2 z-10 hidden -translate-y-1/2 xl:block ${
+      className={`pointer-events-auto fixed top-1/2 z-10 block -translate-y-1/2 ${
         side === "left" ? "left-6 2xl:left-10" : "right-6 2xl:right-10"
       }`}
     >

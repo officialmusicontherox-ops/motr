@@ -7,7 +7,7 @@ type Row = { views: number; viewers: number };
 type Data = {
   totals: { views: number; viewers: number; fromShare: number };
   windows: { day: Row; week: Row; month: Row };
-  bounceRate: number | null;
+  funnel: { landed: number; started: number; rate: number | null };
   paths: { path: string; views: number }[];
   referrers: { host: string | null; views: number }[];
   countries: { country: string | null; views: number }[];
@@ -77,9 +77,9 @@ export default function AdminTraffic() {
 
           <div className="mt-2 grid grid-cols-2 gap-2">
             <Tile
-              label="saw one page and left"
-              value={d.bounceRate === null ? "--" : `${d.bounceRate}%`}
-              sub="the lower this is, the further people get"
+              label="landed, then started listening"
+              value={d.funnel.rate === null ? "--" : `${d.funnel.rate}%`}
+              sub={`${d.funnel.started} of ${d.funnel.landed} who opened the front page`}
             />
             <Tile
               label="came from an artist's share link"

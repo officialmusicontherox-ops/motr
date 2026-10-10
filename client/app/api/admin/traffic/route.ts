@@ -23,7 +23,7 @@ export async function GET() {
   const d7 = since(7);
   const d30 = since(30);
 
-  const [views, viewers, v1, v7, v30, people1, people7, people30, fromShare, paths, referrers, countries, bounce] =
+  const [views, viewers, v1, v7, v30, people1, people7, people30, fromShare, paths, referrers, countries, funnel] =
     await Promise.all([
       prisma.visit.count(),
       prisma.visit.findMany({ distinct: ["visitorId"], select: { visitorId: true } }).then((r) => r.length),
@@ -56,15 +56,26 @@ export async function GET() {
         take: 8,
       }),
 
-      // A browser that sent exactly one view looked at one screen and left.
-      prisma.$queryRaw<{ once: bigint; total: bigint }[]>`
-        SELECT COUNT(*) FILTER (WHERE n = 1)::bigint AS once, COUNT(*)::bigint AS total
-        FROM (SELECT "visitorId", COUNT(*) AS n FROM "Visit" GROUP BY "visitorId") s
-      `,
+      // How many of the people who landed on the front page went on to start
+      // listening. Counting page views could not answer this: the whole swipe
+      // screen lives at "/", so somebody who swiped two hundred times sent
+      // exactly one view and looked identical to somebody who left at once.
+      //
+      // Two aggregates compared over the same window, never a join: Visit is
+      // deliberately not linked to Fan, and it stays that way.
+      Promise.all([
+        prisma.visit
+          .findMany({ where: { path: "/" }, distinct: ["visitorId"], select: { visitorId: true } })
+          .then((r) => r.length),
+        prisma.visit.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
+      ]).then(async ([landed, firstEver]) => {
+        if (!firstEver) return { landed, started: 0 };
+        return {
+          landed,
+          started: await prisma.fan.count({ where: { createdAt: { gte: firstEver.createdAt } } }),
+        };
+      }),
     ]);
-
-  const b = bounce[0];
-  const total = Number(b?.total ?? 0);
 
   return NextResponse.json({
     totals: { views, viewers, fromShare },
@@ -73,8 +84,11 @@ export async function GET() {
       week: { views: v7, viewers: people7 },
       month: { views: v30, viewers: people30 },
     },
-    // What share of browsers saw one page and nothing else.
-    bounceRate: total ? Math.round((Number(b?.once ?? 0) / total) * 100) : null,
+    funnel: {
+      landed: funnel.landed,
+      started: funnel.started,
+      rate: funnel.landed ? Math.round((funnel.started / funnel.landed) * 100) : null,
+    },
     paths: paths.map((p) => ({ path: p.path, views: p._count.path })),
     referrers: referrers.map((r) => ({ host: r.referrer, views: r._count.referrer })),
     countries: countries.map((c) => ({ country: c.country, views: c._count.country })),
