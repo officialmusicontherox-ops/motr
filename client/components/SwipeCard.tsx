@@ -252,8 +252,13 @@ export default function SwipeCard({
         <div className="min-w-0 shrink-0 px-5 pb-3 pt-2 md:flex md:flex-1 md:flex-col md:justify-center md:px-7">
           {/* The title is the only thing a listener is given, so on the wide
               layout it wraps to two lines rather than being cut: there is
-              vertical room there and no reason to spend the title on it. */}
-          <h2 className="truncate text-xl font-bold md:line-clamp-2 md:text-2xl md:whitespace-normal">
+              vertical room there and no reason to spend the title on it.
+
+              min-h is two lines of text-2xl. The column is centred, so without
+              it a two-line title would re-centre the block and nudge the
+              subtitle, the genre pill and the play button. Reserving the
+              second line means nothing below moves, whatever the title. */}
+          <h2 className="truncate text-xl font-bold md:line-clamp-2 md:min-h-[4rem] md:text-2xl md:whitespace-normal">
             {track.title}
           </h2>
           {/* No artist name here, deliberately: the whole promise of the feed
