@@ -246,8 +246,16 @@ export default function SwipeCard({
           )}
         </div>
 
-        <div className="shrink-0 px-5 pb-3 pt-2 md:flex md:flex-1 md:flex-col md:justify-center md:px-7">
-          <h2 className="truncate text-xl font-bold md:text-2xl">{track.title}</h2>
+        {/* min-w-0 is load-bearing: a flex item will not shrink below its
+            content width without it, so the truncate on the title below never
+            fired and a long title ran under the card's overflow-hidden edge. */}
+        <div className="min-w-0 shrink-0 px-5 pb-3 pt-2 md:flex md:flex-1 md:flex-col md:justify-center md:px-7">
+          {/* The title is the only thing a listener is given, so on the wide
+              layout it wraps to two lines rather than being cut: there is
+              vertical room there and no reason to spend the title on it. */}
+          <h2 className="truncate text-xl font-bold md:line-clamp-2 md:text-2xl md:whitespace-normal">
+            {track.title}
+          </h2>
           {/* No artist name here, deliberately: the whole promise of the feed
               is a verdict on the song rather than on whoever made it, and a
               name is the one thing that makes a listener decide before the
