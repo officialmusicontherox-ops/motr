@@ -23,17 +23,37 @@ export async function GET() {
   const d7 = since(7);
   const d30 = since(30);
 
-  const [views, viewers, v1, v7, v30, people1, people7, people30, fromShare, paths, referrers, countries, funnel] =
+  // Every count in one pass. Prisma's `distinct` is applied in the client, so
+  // counting unique visitors that way means loading one row per view into
+  // memory; harmless at a few dozen, wasteful at a few hundred thousand, and
+  // this is a page somebody opens to look at exactly that number growing.
+  const [tot] = await prisma.$queryRaw<
+    {
+      views: bigint; viewers: bigint; from_share: bigint; landed: bigint;
+      v1: bigint; v7: bigint; v30: bigint;
+      p1: bigint; p7: bigint; p30: bigint; first_at: Date | null;
+    }[]
+  >`
+    SELECT COUNT(*)::bigint AS views,
+           COUNT(DISTINCT "visitorId")::bigint AS viewers,
+           COUNT(*) FILTER (WHERE "fromShare")::bigint AS from_share,
+           COUNT(DISTINCT "visitorId") FILTER (WHERE "path" = '/')::bigint AS landed,
+           COUNT(*) FILTER (WHERE "createdAt" >= ${d1})::bigint AS v1,
+           COUNT(*) FILTER (WHERE "createdAt" >= ${d7})::bigint AS v7,
+           COUNT(*) FILTER (WHERE "createdAt" >= ${d30})::bigint AS v30,
+           COUNT(DISTINCT "visitorId") FILTER (WHERE "createdAt" >= ${d1})::bigint AS p1,
+           COUNT(DISTINCT "visitorId") FILTER (WHERE "createdAt" >= ${d7})::bigint AS p7,
+           COUNT(DISTINCT "visitorId") FILTER (WHERE "createdAt" >= ${d30})::bigint AS p30,
+           MIN("createdAt") AS first_at
+    FROM "Visit"
+  `;
+  const n = (v: bigint | null) => Number(v ?? 0);
+
+  const [started, paths, referrers, countries] =
     await Promise.all([
-      prisma.visit.count(),
-      prisma.visit.findMany({ distinct: ["visitorId"], select: { visitorId: true } }).then((r) => r.length),
-      prisma.visit.count({ where: { createdAt: { gte: d1 } } }),
-      prisma.visit.count({ where: { createdAt: { gte: d7 } } }),
-      prisma.visit.count({ where: { createdAt: { gte: d30 } } }),
-      prisma.visit.findMany({ where: { createdAt: { gte: d1 } }, distinct: ["visitorId"], select: { visitorId: true } }).then((r) => r.length),
-      prisma.visit.findMany({ where: { createdAt: { gte: d7 } }, distinct: ["visitorId"], select: { visitorId: true } }).then((r) => r.length),
-      prisma.visit.findMany({ where: { createdAt: { gte: d30 } }, distinct: ["visitorId"], select: { visitorId: true } }).then((r) => r.length),
-      prisma.visit.count({ where: { fromShare: true } }),
+      tot?.first_at
+        ? prisma.fan.count({ where: { createdAt: { gte: tot.first_at } } })
+        : Promise.resolve(0),
 
       prisma.visit.groupBy({
         by: ["path"],
@@ -56,39 +76,18 @@ export async function GET() {
         take: 8,
       }),
 
-      // How many of the people who landed on the front page went on to start
-      // listening. Counting page views could not answer this: the whole swipe
-      // screen lives at "/", so somebody who swiped two hundred times sent
-      // exactly one view and looked identical to somebody who left at once.
-      //
-      // Two aggregates compared over the same window, never a join: Visit is
-      // deliberately not linked to Fan, and it stays that way.
-      Promise.all([
-        prisma.visit
-          .findMany({ where: { path: "/" }, distinct: ["visitorId"], select: { visitorId: true } })
-          .then((r) => r.length),
-        prisma.visit.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
-      ]).then(async ([landed, firstEver]) => {
-        if (!firstEver) return { landed, started: 0 };
-        return {
-          landed,
-          started: await prisma.fan.count({ where: { createdAt: { gte: firstEver.createdAt } } }),
-        };
-      }),
     ]);
 
+  const landed = n(tot?.landed ?? null);
+
   return NextResponse.json({
-    totals: { views, viewers, fromShare },
+    totals: { views: n(tot?.views ?? null), viewers: n(tot?.viewers ?? null), fromShare: n(tot?.from_share ?? null) },
     windows: {
-      day: { views: v1, viewers: people1 },
-      week: { views: v7, viewers: people7 },
-      month: { views: v30, viewers: people30 },
+      day: { views: n(tot?.v1 ?? null), viewers: n(tot?.p1 ?? null) },
+      week: { views: n(tot?.v7 ?? null), viewers: n(tot?.p7 ?? null) },
+      month: { views: n(tot?.v30 ?? null), viewers: n(tot?.p30 ?? null) },
     },
-    funnel: {
-      landed: funnel.landed,
-      started: funnel.started,
-      rate: funnel.landed ? Math.round((funnel.started / funnel.landed) * 100) : null,
-    },
+    funnel: { landed, started, rate: landed ? Math.round((started / landed) * 100) : null },
     paths: paths.map((p) => ({ path: p.path, views: p._count.path })),
     referrers: referrers.map((r) => ({ host: r.referrer, views: r._count.referrer })),
     countries: countries.map((c) => ({ country: c.country, views: c._count.country })),
