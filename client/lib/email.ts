@@ -225,27 +225,6 @@ function shell(heading: string, body: string, cta?: { label: string; url: string
 </div>`;
 }
 
-export function trackBrokeThroughEmail(params: {
-  trackTitle: string;
-  artistName: string;
-  approvals: number;
-  approvalRate: number;
-  trackId: string;
-}) {
-  const { trackTitle, artistName, approvals, approvalRate, trackId } = params;
-  return {
-    subject: `"${trackTitle}" broke through`,
-    html: shell(
-      "Fans pushed your track through",
-      `<p style="margin:0 0 12px"><strong style="color:#fff">${trackTitle}</strong> by ${artistName} won over ${Math.round(approvalRate * 100)}% of the listeners who heard it${approvals > 0 ? ` (${approvals} of them)` : ""}. None of them knew who made it.</p>
-       <p style="margin:0 0 14px">It stays in the feed and keeps climbing. There is nothing to pay and nothing you need to do.</p>
-       <p style="margin:0 0 10px"><strong style="color:#fff">Send your own fans to it.</strong> That is the single thing that moves a track here, and the link below opens straight on your song rather than a random one, so everyone you send lands on it.</p>
-       <p style="margin:0 0 14px;font-size:14px"><a href="${APP_URL}/?track=${trackId}" style="color:#dcb55f;word-break:break-all">${APP_URL.replace(/^https?:\/\//, "")}/?track=${trackId}</a></p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">Tell them to let the full thirty seconds play. A listener who hears it out counts double, so one patient fan is worth two who skip early.</p>`,
-      { label: "Open your track", url: `${APP_URL}/?track=${trackId}` }
-    ),
-  };
-}
 
 /**
  * Tells the operator a track just went into the feed.

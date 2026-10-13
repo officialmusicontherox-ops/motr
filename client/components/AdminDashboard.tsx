@@ -52,6 +52,10 @@ const VIEWS = [
   { key: "artists", label: "Artists" },
   { key: "listeners", label: "Listeners" },
   { key: "charts", label: "Charts" },
+ // Everything that sends mail, in one place. These were spread across the
+ // Artists and Listeners tabs, so pressing a button meant first remembering
+ // which screen it lived on.
+ { key: "email", label: "Email" },
   { key: "system", label: "System" },
 ] as const;
 type View = (typeof VIEWS)[number]["key"];
@@ -203,18 +207,19 @@ export default function AdminDashboard({
  </>
  )}
 
- {view === "artists" && (
- <>
- <AdminArtistShare />
- <AdminArtistUpdates />
- <AdminArtistNudges />
- </>
- )}
+ {view === "artists" && <AdminArtistShare />}
 
  {view === "listeners" && (
  <>
  <AdminTraffic />
  <AdminAudience />
+ </>
+ )}
+
+ {view === "email" && (
+ <>
+ <AdminArtistUpdates />
+ <AdminArtistNudges />
  <AdminNudges />
  <AdminWeeklyChart />
  </>
@@ -308,34 +313,6 @@ export default function AdminDashboard({
  onMore={recordsPage.more}
  onLess={recordsPage.reset}
  />
- )}
- </AdminSection>
- )}
-
-
- {view === "system" && (
- <AdminSection
- title="Recent artist notifications"
- description="Emails sent to artists whose tracks broke through."
- defaultOpen={false}
- >
- {stats.recentNotifications.length === 0 ? (
- <p className="mt-3 text-sm text-muted">None sent yet.</p>
- ) : (
- <ul className="mt-3 space-y-2 text-sm">
- {stats.recentNotifications.map((n) => (
- <li
- key={n.id}
- className="rounded-lg border border-edge bg-surface p-3"
- >
- <span className="font-medium">{n.track.title}</span>{" "}
- <span className="text-muted">by {n.track.artistName}</span>
- <span className="ml-2 text-muted">
- {new Date(n.sentAt).toLocaleString()}
- </span>
- </li>
- ))}
- </ul>
  )}
  </AdminSection>
  )}

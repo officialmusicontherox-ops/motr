@@ -2,7 +2,6 @@ import { Prisma, SwipeDirection } from "@prisma/client";
 import { FULL_LISTEN_MS } from "./economics";
 import type { SwipeGeo } from "./geo";
 import { prisma } from "./prisma";
-import { sendEmail, trackBrokeThroughEmail } from "./email";
 
 export class AlreadySwipedError extends Error {
   constructor() {
@@ -116,11 +115,9 @@ export async function recordFanSwipe(params: {
       },
     });
 
-    if (feeNowRequested && updatedTrack.artistId) {
-      await tx.artistNotification.create({
-        data: { artistId: updatedTrack.artistId, trackId },
-      });
-    }
+    // No notification row either: it recorded the breakthrough email being
+    // sent, and that email is gone. Milestone emails still write their own,
+    // so an artist's history shows only mail they actually received.
 
     // They came back, so the come-back emails start over. Without this a
     // listener who returns after two nudges only ever has one left.
@@ -132,29 +129,9 @@ export async function recordFanSwipe(params: {
     return { track: updatedTrack, feeNowRequested };
   });
 
-  // Emailed outside the transaction: a slow mail call shouldn't hold a DB
-  // lock open, and a failed send shouldn't roll back the fan's swipe.
-  if (result.feeNowRequested && result.track.artistId) {
-    const artist = await prisma.artist.findUnique({
-      where: { id: result.track.artistId },
-      select: { email: true },
-    });
-
-    if (artist?.email) {
-      await sendEmail(
-        artist.email,
-        trackBrokeThroughEmail({
-          trackTitle: result.track.title,
-          artistName: result.track.artistName,
-          approvals: result.track.fanRightSwipes,
-          approvalRate:
-            result.track.fanRightSwipes /
-            Math.max(1, result.track.fanRightSwipes + result.track.fanLeftSwipes),
-          trackId: result.track.id,
-        })
-      );
-    }
-  }
+  // No breakthrough email. It was the paid-vetting model's "your track
+  // cleared, now it goes to curators" moment, and there are no curators and
+  // nothing to clear. The listener still sees the moment on their own screen.
 
   return result;
 }

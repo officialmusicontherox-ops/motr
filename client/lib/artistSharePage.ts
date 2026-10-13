@@ -38,9 +38,17 @@ export type SharePageRecipient = {
   tracks: { id: string; title: string; artworkUrl: string | null }[];
 };
 
+/**
+ * How long after an artist's newest track before they are told about their
+ * page. Someone adding three songs in a sitting should get one email about
+ * all three, not one per song.
+ */
+export const QUIET_MINUTES = 20;
+
 /** Artists who have music in the feed and have not been told about their page. */
 export async function pendingSharePageArtists(): Promise<SharePageRecipient[]> {
-  const due = await prisma.artist.findMany({
+  const settled = new Date(Date.now() - QUIET_MINUTES * 60 * 1000);
+  const rows = await prisma.artist.findMany({
     where: {
       emailOptOut: false,
       sharePageEmailAt: null,
@@ -53,10 +61,13 @@ export async function pendingSharePageArtists(): Promise<SharePageRecipient[]> {
       tracks: {
         where: { status: { not: "REJECTED" } },
         orderBy: { createdAt: "desc" },
-        select: { id: true, title: true, artworkUrl: true },
+        select: { id: true, title: true, artworkUrl: true, createdAt: true },
       },
     },
   });
+
+  // Skip anyone still in the middle of submitting.
+  const due = rows.filter((a) => a.tracks[0] && a.tracks[0].createdAt <= settled);
 
   return due.map((a) => ({ artistId: a.id, name: a.name, email: a.email, tracks: a.tracks }));
 }
