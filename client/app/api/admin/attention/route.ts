@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CHART_START } from "@/lib/weekWindow";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
 
@@ -27,7 +28,10 @@ export async function GET() {
         tracks: { some: { status: { not: "REJECTED" } } },
       },
     }),
-    prisma.chartWinner.count({ where: { writeUpUrl: null } }),
+    // Only weeks the chart actually covers. Counting every row meant a winner
+    // locked in before the chart began kept asking for an article about a week
+    // that never ran.
+    prisma.chartWinner.count({ where: { writeUpUrl: null, weekStart: { gte: CHART_START } } }),
     prisma.track.count({
       where: { status: { in: ["DISCOVERY", "VETTING", "GRADUATED"] }, audioVerdict: "MISMATCH" },
     }),

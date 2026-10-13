@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import AdminSection from "./AdminSection";
+import { CHART_START_LABEL } from "@/lib/weekWindow";
 
 type Preview = {
   /** Set while the start date hasn't arrived; the send refuses regardless. */
@@ -98,6 +99,15 @@ export default function AdminWeeklyChart() {
           >
             {busy ? "Sending..." : `Send to ${preview.recipients}`}
           </button>
+        )}
+
+        {/* A missing button reads as broken. Say why it is missing, in the
+            place the button would have been, rather than in a note below a
+            chart somebody has to scroll past first. */}
+        {preview && notYet && (
+          <span className="border-gold/40 bg-gold/10 text-gold rounded-full border px-5 py-2.5 text-sm font-semibold">
+            Sending opens {CHART_START_LABEL}
+          </span>
         )}
       </div>
 

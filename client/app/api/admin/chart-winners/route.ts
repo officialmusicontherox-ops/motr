@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { CHART_START, CHART_START_LABEL } from "@/lib/weekWindow";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
 import { chartWinnerBoard, lockWeek } from "@/lib/chartWinners";
@@ -22,6 +23,14 @@ export async function POST(req: NextRequest) {
 
   if (action === "LOCK") {
     if (!weekStart) return NextResponse.json({ error: "weekStart is required" }, { status: 400 });
+    // Belt and braces: the board no longer offers these, but a stale tab could
+    // still post one, and that is how the October row got in.
+    if (new Date(weekStart) < CHART_START) {
+      return NextResponse.json(
+        { error: `The chart starts on ${CHART_START_LABEL}. Earlier weeks have no winner.` },
+        { status: 400 }
+      );
+    }
     const winner = await lockWeek(new Date(weekStart));
     if (!winner) {
       return NextResponse.json(

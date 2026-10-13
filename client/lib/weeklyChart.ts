@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { CHART_START } from "./weekWindow";
 import { weeklyLeaders } from "./scoutData";
 import { unsubscribeUrl, artistUnsubscribeUrl } from "./nudges";
 import { sendEmail, weeklyChartEmail } from "./email";
@@ -20,8 +21,8 @@ import { sendEmail, weeklyChartEmail } from "./email";
  * one setting that expectation badly is worse than it arriving later.
  */
 
-/** Nothing goes out before this. */
-export const CHART_EMAIL_START = new Date(Date.UTC(2026, 10, 1)); // 1 November 2026
+/** Nothing goes out before this. Shared, so it cannot drift from the chart. */
+export const CHART_EMAIL_START = CHART_START;
 
 /** Whether the chart email is allowed to send yet, and why not if it isn't. */
 export function chartEmailNotYet(now = new Date()): string | null {
