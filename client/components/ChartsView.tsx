@@ -147,6 +147,12 @@ export default function ChartsView() {
           <div className="space-y-6">
             <section hidden={board !== "songs"}>
               <h2 className="motr-label text-gold mb-3">Top songs</h2>
+              {/* Said out loud, because an artist who has three songs doing
+                  well and sees two will otherwise assume the chart is wrong. */}
+              <p className="text-muted mb-3 text-xs leading-relaxed">
+                Two songs per artist, so one catalogue cannot fill the list. Everything an
+                artist earns still counts in full on Top artists.
+              </p>
               {data.songs.length === 0 ? (
                 <Empty />
               ) : (
@@ -183,6 +189,9 @@ export default function ChartsView() {
 
             <section hidden={board !== "artists"}>
               <h2 className="motr-label text-gold mb-3">Top artists</h2>
+              <p className="text-muted mb-3 text-xs leading-relaxed">
+                Every song an artist has, added together. No cap here.
+              </p>
               {data.artists.length === 0 ? (
                 <Empty />
               ) : (

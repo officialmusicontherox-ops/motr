@@ -252,6 +252,40 @@ export async function weeklyLeaders(days = 7): Promise<{
  * something an artist is told about and screenshots, so it has to mean the
  * same thing to them on Sunday as it did on Friday.
  */
+/** How many songs one artist may hold on the song chart at once. */
+export const SONGS_PER_ARTIST = 2;
+
+/** How many the song chart shows. */
+export const CHART_SIZE = 10;
+
+/**
+ * Keeps one catalogue from becoming the chart.
+ *
+ * A prolific artist could hold most of the top ten on modest saves apiece
+ * while a better single song by someone with one release sat below it. That
+ * makes the list a discography rather than a chart, and it is the one shape
+ * that looks like bought placement from outside even though nothing here can
+ * be bought.
+ *
+ * Grouped by the account that submitted, not the credit on the track, so a
+ * collaboration counts against the artist who entered it rather than slipping
+ * past the cap as a different name. The artist chart is untouched: that one
+ * sums a whole catalogue on purpose, so being prolific still wins there.
+ */
+function capPerArtist<T extends { artistId: string | null; id: string }>(rows: T[]): T[] {
+  const held = new Map<string, number>();
+  const out: T[] = [];
+  for (const r of rows) {
+    if (out.length >= CHART_SIZE) break;
+    const key = r.artistId ?? `track:${r.id}`;
+    const n = held.get(key) ?? 0;
+    if (n >= SONGS_PER_ARTIST) continue;
+    held.set(key, n + 1);
+    out.push(r);
+  }
+  return out;
+}
+
 export async function leadersBetween(
   since: Date,
   until?: Date
@@ -264,13 +298,14 @@ export async function leadersBetween(
         id: string;
         title: string;
         artistName: string;
+        artistId: string | null;
         artworkUrl: string | null;
         saves: bigint;
         score: bigint;
         verdicts: bigint;
       }[]
     >(Prisma.sql`
-      SELECT t."id", t."title", t."artistName", t."artworkUrl",
+      SELECT t."id", t."title", t."artistName", t."artistId", t."artworkUrl",
         COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
         COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
         COUNT(s."id")::bigint AS verdicts
@@ -282,7 +317,9 @@ export async function leadersBetween(
         ${upper}
       GROUP BY t."id"
       ORDER BY score DESC, verdicts DESC
-      LIMIT 10
+      -- Deeper than the ten shown: the per-artist cap below drops rows, and
+      -- the chart still has to come out ten long.
+      LIMIT 60
     `),
     prisma.$queryRaw<
       { artistId: string; name: string; saves: bigint; score: bigint; verdicts: bigint; tracks: bigint }[]
@@ -308,7 +345,7 @@ export async function leadersBetween(
 
   return {
     since: since.toISOString(),
-    songs: songRows.map((r) => ({
+    songs: capPerArtist(songRows).map((r) => ({
       id: r.id,
       title: r.title,
       artistName: r.artistName,
