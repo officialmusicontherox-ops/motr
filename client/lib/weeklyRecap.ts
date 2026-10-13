@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { lastCompleteWeek, CHART_TZ, type Week } from "./weekWindow";
 import { leadersBetween } from "./scoutData";
+import { CHART_START } from "./weekWindow";
 import { sendEmail, weeklyRecapEmail, type Attachment } from "./email";
 import { renderShareCard } from "./shareCard";
 
@@ -17,7 +18,7 @@ import { renderShareCard } from "./shareCard";
  */
 
 /** Nothing before this. The chart needs enough in it to be worth reading. */
-export const RECAP_START = new Date(Date.UTC(2026, 10, 1)); // 1 November 2026
+export const RECAP_START = CHART_START;
 
 /**
  * Position comes from the public chart, never from a second calculation.

@@ -15,6 +15,18 @@
 export const CHART_TZ = "America/Chicago";
 
 /**
+ * The first day the weekly chart counts for anything.
+ *
+ * One constant for the whole app. The write-up board had its own, set a month
+ * earlier, so it offered October weeks to lock in and write about while the
+ * recap emails correctly refused to send for them.
+ */
+export const CHART_START = new Date(Date.UTC(2026, 10, 1)); // 1 November 2026
+
+/** "1 November 2026", for telling someone when it begins. */
+export const CHART_START_LABEL = "1 November 2026";
+
+/**
  * How far ahead of UTC the zone is at a given instant, in milliseconds.
  *
  * Derived from the formatter rather than hard-coded, so daylight saving is

@@ -13,7 +13,8 @@ import { prisma } from "./prisma";
  */
 
 /** Nothing before this counts. The contest starts in October. */
-export const CONTEST_START = new Date(Date.UTC(2026, 9, 1)); // 1 October 2026
+import { CHART_START } from "./weekWindow";
+export { CHART_START };
 
 /** Monday 00:00 UTC of the week containing `d`. */
 export function weekStartOf(d: Date): Date {
@@ -101,7 +102,7 @@ export async function chartWinnerBoard() {
     provisional: WeekResult | null;
   }[] = [];
 
-  for (let w = new Date(thisWeek); w >= CONTEST_START; w.setUTCDate(w.getUTCDate() - 7)) {
+  for (let w = new Date(thisWeek); w >= CHART_START; w.setUTCDate(w.getUTCDate() - 7)) {
     const start = new Date(w);
     if (start.getTime() === thisWeek.getTime()) continue; // still running
     const end = new Date(start);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import AdminSection from "./AdminSection";
+import { CHART_START_LABEL } from "@/lib/weekWindow";
 
 type Recorded = {
   id: string;
@@ -97,10 +98,16 @@ export default function AdminChartWinners() {
       {!weeks && <p className="text-muted text-sm">Loading...</p>}
 
       {weeks && weeks.length === 0 && (
-        <p className="border-edge bg-surface text-muted rounded-xl border p-4 text-sm leading-relaxed">
-          No completed weeks yet. The first one appears here the Monday after the contest starts
-          in October.
-        </p>
+        <div className="border-edge bg-surface rounded-xl border p-4 text-sm leading-relaxed">
+          <p className="text-ink font-semibold">
+            Nothing to write up until {CHART_START_LABEL}.
+          </p>
+          <p className="text-muted mt-1">
+            The chart starts that Sunday. The first week you can lock a winner for is 1 to 7
+            November, and it appears here once that week has finished, on 8 November. Until then
+            there is deliberately no winner to pick: a week that has not run cannot have one.
+          </p>
+        </div>
       )}
 
       {weeks && weeks.length > 0 && (
