@@ -139,10 +139,14 @@ function Dashboard({ me }: { me: Me }) {
         </ul>
       )}
 
-      <div className="border-edge bg-surface mt-6 rounded-xl border border-dashed p-4">
+      <div className="border-edge bg-surface mt-6 space-y-2.5 rounded-xl border border-dashed p-4">
         <p className="text-muted text-xs leading-relaxed">
           A verdict reached after the full 30 seconds counts double, so one patient listener is
           worth two who skip.
+        </p>
+        <p className="text-muted text-xs leading-relaxed">
+          The song chart shows at most two songs per artist, so no one catalogue fills it. Your
+          saves all still count in full on the artist chart, which adds up everything you have.
         </p>
       </div>
 

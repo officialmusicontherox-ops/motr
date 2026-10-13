@@ -386,6 +386,14 @@ export default function ArtistsPage() {
           </p>
         )}
 
+        {/* Said here because this is the moment somebody decides how many to
+            send, and five strong songs earning two chart slots is better
+            learned now than from the chart later. */}
+        <p className="text-muted text-center text-xs leading-relaxed">
+          Send as many as you like. The song chart shows at most two per artist so one catalogue
+          cannot fill it, and everything you earn still counts in full on the artist chart.
+        </p>
+
         <button
           type="submit"
           disabled={!canSubmit}
