@@ -47,7 +47,10 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ fan, alreadyExisted: false }, { status: 201 });
 }
 
-export async function GET() {
-  const fans = await prisma.fan.findMany({ orderBy: { createdAt: "desc" }, take: 50 });
-  return NextResponse.json({ fans });
-}
+// There is deliberately no GET here.
+//
+// It used to list the fifty newest fans with no authentication and no select,
+// which meant whole Fan rows: addresses, Google ids, and the Spotify access
+// and refresh tokens. Nothing in the app ever called it; FanGate uses the POST
+// above. A listing of everyone's accounts is not something this app needs to
+// serve at all, so it is gone rather than guarded.

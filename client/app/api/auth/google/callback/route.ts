@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { CURATOR_SESSION_TTL_MS, signCuratorPayload } from "@/lib/curatorAuth";
 
 /**
- * Google returns here for both fans and curators. We trade the code for an
- * ID token and read the *verified* email out of it.
+ * Google returns here after a listener signs in. We trade the code for an ID
+ * token and read the *verified* email out of it.
  *
- * The two paths differ in a way that matters: a fan account is created on
- * the spot, because there's nothing to vet. A curator account is only ever
- * created by an admin approving an application, so an unrecognised Google
- * account is told to apply rather than quietly becoming a curator.
+ * The account is created on the spot, because there is nothing to vet. An
+ * anonymous session swiped on the same browser is absorbed into it, so
+ * signing in keeps the history rather than starting again.
  */
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -17,12 +15,11 @@ export async function GET(req: NextRequest) {
   const googleError = req.nextUrl.searchParams.get("error");
   const cookieState = req.cookies.get("google_oauth_state")?.value;
 
-  const asFan = req.cookies.get("google_oauth_as")?.value === "fan";
   const mergeFanId = req.cookies.get("google_oauth_merge")?.value;
 
   const back = (params: string) => {
     const res = NextResponse.redirect(
-      new URL(`${asFan ? "/" : "/curate"}?${params}`, req.nextUrl.origin)
+      new URL(`/?${params}`, req.nextUrl.origin)
     );
     for (const c of ["google_oauth_state", "google_oauth_as", "google_oauth_merge"]) {
       res.cookies.set(c, "", { path: "/", maxAge: 0 });
@@ -65,59 +62,15 @@ export async function GET(req: NextRequest) {
   if (!email) return back("auth_error=no_email");
   if (!verified) return back("auth_error=email_unverified");
 
-  if (asFan) {
-    const fan = await signInFan(email, payload.name, mergeFanId);
-    return back(`fan=${fan.id}`);
-  }
-
-  const user = await prisma.user.findFirst({
-    where: { email: { equals: email, mode: "insensitive" } },
-    select: { id: true, status: true },
-  });
-
-  if (user) {
-    // Google proving who they are isn't the same as the account being
-    // allowed in — a suspended curator must not reach their queue or their
-    // payout details.
-    if (user.status === "SUSPENDED" || user.status === "REMOVED") {
-      return back("auth_error=account_inactive");
-    }
-    // Google has proved who they are, so issue the signed session here.
-    // The id still goes in the URL because the client stores it for its own
-    // display, but it is no longer what authorises anything — the cookie is.
-    const res = back(`curator=${user.id}`);
-    const expiresAt = Date.now() + CURATOR_SESSION_TTL_MS;
-    const payload = `${user.id}.${expiresAt}`;
-    res.cookies.set("curator_session", `${payload}.${signCuratorPayload(payload)}`, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: CURATOR_SESSION_TTL_MS / 1000,
-    });
-    return res;
-  }
-
-  // No account: say which situation they're in rather than a dead end.
-  const application = await prisma.curatorApplication.findFirst({
-    where: { email: { equals: email, mode: "insensitive" } },
-    select: { status: true },
-  });
-
-  if (application?.status === "PENDING") return back("auth_error=pending");
-  if (application?.status === "DECLINED") return back("auth_error=declined");
-  return back(`auth_error=no_account&email=${encodeURIComponent(email)}`);
+  // Fan sign-in is the only kind. The curator half of this route issued a
+  // signed curator_session to anyone in the User table, of which seven rows
+  // are still ACTIVE, and it stayed reachable months after the programme
+  // ended. Nothing linked to it and nothing could have used it for anything,
+  // which is exactly why it was worth removing rather than leaving.
+  const fan = await signInFan(email, payload.name, mergeFanId);
+  return back(`fan=${fan.id}`);
 }
 
-/**
- * Finds or creates the fan behind a verified Google email.
- *
- * If they'd been swiping anonymously we fold that history into the account
- * rather than stranding it — the whole reason to sign in is not losing your
- * saves, so losing them at the moment of signing in would be perverse.
- * Swipes the fan already has on the same track win, since a unique
- * constraint covers (fanId, trackId).
- */
 async function signInFan(email: string, name: string | undefined, mergeFanId?: string) {
   const existing = await prisma.fan.findFirst({
     where: { email: { equals: email, mode: "insensitive" } },
