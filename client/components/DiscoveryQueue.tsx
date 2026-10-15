@@ -63,6 +63,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [track, setTrack] = useState<Track | null | undefined>(undefined);
   const [pending, setPending] = useState(false);
   const [breakout, setBreakout] = useState<string | null>(null);
+  /** The track just kept, named while the next one loads. */
+  const [justSaved, setJustSaved] = useState<{ title: string; artistName: string } | null>(null);
   const [savedCount, setSavedCount] = useState(0);
   // Asked after the first save, never before, and never twice.
   const [askEmail, setAskEmail] = useState(false);
@@ -140,6 +142,10 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
   async function handleSwipe(direction: "LEFT" | "RIGHT", listenMs: number) {
     if (!track) return;
+    // Set before the request, not after it. The gap this fills is the request
+    // itself, and a reveal that waits for the server to answer would arrive
+    // after the thing it was meant to fill.
+    setJustSaved(direction === "RIGHT" ? { title: track.title, artistName: track.artistName } : null);
     setPending(true);
 
     const res = await fetch("/api/discover/swipe", {
@@ -237,8 +243,20 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       )}
 
       {track === undefined && (
-        <div className="flex flex-1 items-center justify-center">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
           <Equalizer className="text-gold/30 h-10 w-10 " />
+          {/* Uses time that was already being spent. Fetching the next track
+              leaves a gap no matter what, and a name read in that gap costs
+              nothing, where a screen that paused the feed to show the same
+              name would cost a swipe every time. */}
+          {justSaved && (
+            <p className="text-sm">
+              <span className="text-muted">You kept </span>
+              <span className="font-semibold">{justSaved.title}</span>
+              <span className="text-muted"> by </span>
+              <span className="text-gold font-semibold">{justSaved.artistName}</span>
+            </p>
+          )}
         </div>
       )}
 

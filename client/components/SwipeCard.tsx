@@ -275,7 +275,16 @@ export default function SwipeCard({
               reads as a bug. This also tells them what saving gets them,
               which is the one thing that makes a right swipe worth more than
               a shrug. */}
-          <p className="text-muted mt-0.5 truncate text-sm">Artist revealed when you save it</p>
+          {/* The payoff, on the way out. A save is the moment the promise
+              above comes due, so the name takes the same line the promise
+              was on rather than appearing somewhere new. Nothing waits on
+              it: the card is already leaving and the next one is already
+              being fetched. */}
+          {exiting === "RIGHT" ? (
+            <p className="text-gold mt-0.5 truncate text-sm font-semibold">{track.artistName}</p>
+          ) : (
+            <p className="text-muted mt-0.5 truncate text-sm">Artist revealed when you save it</p>
+          )}
 
           {track.genre && (
             <div className="mt-2 flex flex-wrap gap-2">
