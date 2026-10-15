@@ -33,7 +33,7 @@ const MUTED = "#8b8b8b";
 
 /** Anton is the app's display face; the card falls back rather than fails. */
 let antonCache: ArrayBuffer | null | undefined;
-async function anton(): Promise<ArrayBuffer | null> {
+export async function anton(): Promise<ArrayBuffer | null> {
   if (antonCache !== undefined) return antonCache;
   try {
     // An old user-agent makes Google serve TrueType rather than woff2, which

@@ -11,6 +11,7 @@ import Equalizer from "./Equalizer";
 import type { Fan, Track } from "@/lib/types";
 import { bumpSavedCount, savedTotal } from "@/lib/savedCount";
 import { saveMoment } from "@/lib/saveMoment";
+import { newlyEarned } from "@/lib/badgeNotices";
 
 const AI_KEY = "motr_allow_ai";
 const GENRE_KEY = "motr:genre";
@@ -70,6 +71,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     artistName: string;
     /** Filled in once the server says where they landed. */
     note?: string | null;
+    /** A badge that this save just earned, announced once. */
+    unlocked?: string | null;
   } | null>(null);
   const [savedCount, setSavedCount] = useState(0);
   // Asked after the first save, never before, and never twice.
@@ -174,6 +177,21 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           savedTotal: savedTotal(),
         });
         setJustSaved((prev) => (prev ? { ...prev, note } : prev));
+
+        // Deliberately not awaited. It runs alongside the fetch for the next
+        // track, so the notice lands inside a gap that already exists rather
+        // than adding one, and a failure here never holds up a swipe.
+        void fetch(`/api/fans/achievements?fanId=${fan.id}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((a) => {
+            if (!a?.badges) return;
+            const earned = a.badges.filter((b: { earned: boolean }) => b.earned);
+            const fresh = newlyEarned(earned.map((b: { id: string }) => b.id));
+            if (!fresh.length) return;
+            const name = earned.find((b: { id: string }) => b.id === fresh[0])?.name;
+            if (name) setJustSaved((prev) => (prev ? { ...prev, unlocked: name } : prev));
+          })
+          .catch(() => {});
         setSavedCount((c) => {
           const next = c + 1;
           // The moment they have something worth keeping. Not on arrival,
@@ -273,8 +291,15 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
                 <span className="text-muted"> by </span>
                 <span className="text-gold font-semibold">{justSaved.artistName}</span>
               </p>
-              {justSaved.note && (
-                <p className="text-muted text-xs">{justSaved.note}</p>
+              {justSaved.unlocked ? (
+                /* Takes the line the save message would have used. Both at
+                   once is two things to read in a gap sized for one, and the
+                   badge is the rarer event so it wins. */
+                <p className="text-gold text-sm font-semibold">
+                  Badge unlocked: {justSaved.unlocked}
+                </p>
+              ) : (
+                justSaved.note && <p className="text-muted text-xs">{justSaved.note}</p>
               )}
             </div>
           )}
