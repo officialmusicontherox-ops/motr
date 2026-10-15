@@ -14,7 +14,8 @@ type Point = {
   tracksAdded: number;
   submissions: number;
   payments: number;
-  revenueCents: number;
+  visitors: number;
+  pageViews: number;
 };
 
 type Report = {
@@ -41,7 +42,7 @@ const PERIODS = [
  */
 const METRICS = [
   { key: "swipes", label: "Swipes", format: (n: number) => n.toLocaleString() },
-  { key: "newFans", label: "Arrived", format: (n: number) => n.toLocaleString() },
+  { key: "newFans", label: "Started listening", format: (n: number) => n.toLocaleString() },
   { key: "activeFans", label: "Swiped at least once", format: (n: number) => n.toLocaleString() },
   {
     key: "approvalRate",
@@ -54,17 +55,12 @@ const METRICS = [
     format: (n: number) => `${(n / 1000).toFixed(1)}s`,
   },
   { key: "submissions", label: "Artist submissions", format: (n: number) => n.toLocaleString() },
-  {
-    key: "revenueCents",
-    label: "Revenue",
-    format: (n: number) => `$${(n / 100).toFixed(2)}`,
-  },
+  { key: "visitors", label: "Visitors", format: (n: number) => n.toLocaleString() },
+  { key: "pageViews", label: "Page views", format: (n: number) => n.toLocaleString() },
 ] as const;
 
 type MetricKey = (typeof METRICS)[number]["key"];
 
-const money = (cents: number) =>
-  (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 function bucketLabel(iso: string, period: string) {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -175,7 +171,7 @@ export default function AdminReports() {
             />
             <Tile label="Tracks added" value={report.totals.tracksAdded.toLocaleString()} />
             <Tile label="Submissions" value={report.totals.submissions.toLocaleString()} />
-            <Tile label="Revenue" value={money(report.totals.revenueCents)} gold />
+            <Tile label="Visitors" value={report.totals.visitors.toLocaleString()} gold />
           </div>
 
           <p className="text-muted/70 mt-2 text-xs">
@@ -224,7 +220,7 @@ export default function AdminReports() {
                   <th className="p-2.5">Approval</th>
                   <th className="p-2.5">Avg listen</th>
                   <th className="p-2.5">Subs</th>
-                  <th className="p-2.5">Revenue</th>
+                  <th className="p-2.5">Visitors</th>
                 </tr>
               </thead>
               <tbody>
@@ -244,7 +240,7 @@ export default function AdminReports() {
                     </td>
                     <td className="p-2.5 tabular-nums">{p.submissions}</td>
                     <td className="p-2.5 tabular-nums">
-                      {p.revenueCents ? money(p.revenueCents) : "—"}
+                      {p.visitors ? p.visitors.toLocaleString() : "—"}
                     </td>
                   </tr>
                 ))}

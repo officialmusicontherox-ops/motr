@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   const trunc = Prisma.raw(`'${unit}'`);
 
-  const [fans, activeFans, swipes, rightSwipes, listens, tracks, submissions, revenue] =
+  const [fans, activeFans, swipes, rightSwipes, listens, tracks, submissions, traffic] =
     await Promise.all([
       prisma.$queryRaw<Row[]>`
         SELECT date_trunc(${trunc}, "createdAt") AS bucket, COUNT(*)::bigint AS n
@@ -75,11 +75,12 @@ export async function GET(req: NextRequest) {
         SELECT date_trunc(${trunc}, "createdAt") AS bucket, COUNT(*)::bigint AS n
         FROM "Track" WHERE "createdAt" >= ${since} AND "artistId" IS NOT NULL
         GROUP BY 1 ORDER BY 1`,
-      prisma.$queryRaw<Array<{ bucket: Date; n: bigint; cents: bigint | null }>>`
-        SELECT date_trunc(${trunc}, "createdAt") AS bucket, COUNT(*)::bigint AS n,
-               SUM("amountCents")::bigint AS cents
-        FROM "Payment" WHERE "createdAt" >= ${since} AND "status" = 'PAID'
-        GROUP BY 1 ORDER BY 1`,
+      // The same Visit rows the Traffic panel reads, so the two agree.
+      prisma.$queryRaw<Array<{ bucket: Date; views: bigint; people: bigint }>>`
+        SELECT date_trunc(${trunc}, "createdAt") AS bucket,
+               COUNT(*)::bigint AS views,
+               COUNT(DISTINCT "visitorId")::bigint AS people
+        FROM "Visit" WHERE "createdAt" >= ${since} GROUP BY 1 ORDER BY 1`,
     ]);
 
   const at = <T extends { bucket: Date }>(rows: T[], iso: string): T | undefined =>
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest) {
   const series = labels.map((iso) => {
     const total = Number(at(swipes, iso)?.n ?? 0);
     const right = Number(at(rightSwipes, iso)?.n ?? 0);
-    const pay = at(revenue, iso);
+    const vis = at(traffic, iso);
     return {
       bucket: iso,
       newFans: Number(at(fans, iso)?.n ?? 0),
@@ -112,8 +113,8 @@ export async function GET(req: NextRequest) {
       avgListenMs: Math.round(at(listens, iso)?.avg ?? 0) || null,
       tracksAdded: Number(at(tracks, iso)?.n ?? 0),
       submissions: Number(at(submissions, iso)?.n ?? 0),
-      payments: Number(pay?.n ?? 0),
-      revenueCents: Number(pay?.cents ?? 0),
+      visitors: Number(vis?.people ?? 0),
+      pageViews: Number(vis?.views ?? 0),
     };
   });
 
@@ -129,7 +130,7 @@ export async function GET(req: NextRequest) {
   const current = periodWindow(unit, new Date());
   const inWindow = { gte: current.start, lt: current.end };
 
-  const [nowFans, nowActive, nowSwipes, nowRight, nowListen, nowTracks, nowSubs, nowRevenue] =
+  const [nowFans, nowActive, nowSwipes, nowRight, nowListen, nowTracks, nowSubs, nowTraffic] =
     await Promise.all([
       prisma.fan.count({ where: { createdAt: inWindow } }),
       prisma.fan.count({
@@ -143,11 +144,9 @@ export async function GET(req: NextRequest) {
       }),
       prisma.track.count({ where: { createdAt: inWindow } }),
       prisma.track.count({ where: { createdAt: inWindow, artistId: { not: null } } }),
-      prisma.payment.aggregate({
-        where: { createdAt: inWindow, status: "PAID" },
-        _sum: { amountCents: true },
-        _count: { _all: true },
-      }),
+      prisma.$queryRaw<Array<{ views: bigint; people: bigint }>>`
+        SELECT COUNT(*)::bigint AS views, COUNT(DISTINCT "visitorId")::bigint AS people
+        FROM "Visit" WHERE "createdAt" >= ${inWindow.gte} AND "createdAt" < ${inWindow.lt}`,
     ]);
 
   return NextResponse.json({
@@ -166,8 +165,8 @@ export async function GET(req: NextRequest) {
       avgListenMs: nowListen._avg.listenMs !== null ? Math.round(nowListen._avg.listenMs) : null,
       tracksAdded: nowTracks,
       submissions: nowSubs,
-      payments: nowRevenue._count._all,
-      revenueCents: nowRevenue._sum.amountCents ?? 0,
+      visitors: Number(nowTraffic[0]?.people ?? 0),
+      pageViews: Number(nowTraffic[0]?.views ?? 0),
     },
     generatedAt: new Date().toISOString(),
   });

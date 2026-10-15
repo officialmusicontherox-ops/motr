@@ -44,11 +44,27 @@ export async function POST(req: NextRequest) {
   const existing = req.cookies.get(COOKIE)?.value;
   const visitorId = existing && existing.length <= 64 ? existing : randomUUID();
 
-  const country =
-    req.headers.get("x-nf-client-connection-country") ??
-    req.headers.get("x-vercel-ip-country") ??
-    req.headers.get("cf-ipcountry") ??
-    null;
+  // Netlify sends x-country, and x-nf-geo as base64 JSON. The first three
+  // header names this originally tried do not exist here, which is why every
+  // visit recorded a null country until it was checked against a real request.
+  const country = (() => {
+    const direct =
+      req.headers.get("x-country") ??
+      req.headers.get("x-vercel-ip-country") ??
+      req.headers.get("cf-ipcountry");
+    if (direct && direct.length === 2) return direct;
+
+    const geo = req.headers.get("x-nf-geo");
+    if (geo) {
+      try {
+        const code = JSON.parse(Buffer.from(geo, "base64").toString("utf8"))?.country?.code;
+        if (typeof code === "string" && code.length === 2) return code;
+      } catch {
+        // A header we cannot parse is not worth failing a page view over.
+      }
+    }
+    return null;
+  })();
 
   await prisma.visit
     .create({
