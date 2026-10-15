@@ -53,6 +53,11 @@ function write(key: string, n: number): void {
   }
 }
 
+/** Everything this person has kept, as best we know it. */
+export function savedTotal(): number {
+  return read(TOTAL);
+}
+
 /** Saves made since Saved was last opened. */
 export function unseenSaves(): number {
   return Math.max(0, read(TOTAL) - read(SEEN));

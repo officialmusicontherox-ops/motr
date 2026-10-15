@@ -9,7 +9,8 @@ import GenrePicker from "./GenrePicker";
 import { Disc, Note } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan, Track } from "@/lib/types";
-import { bumpSavedCount } from "@/lib/savedCount";
+import { bumpSavedCount, savedTotal } from "@/lib/savedCount";
+import { saveMoment } from "@/lib/saveMoment";
 
 const AI_KEY = "motr_allow_ai";
 const GENRE_KEY = "motr:genre";
@@ -64,7 +65,12 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [pending, setPending] = useState(false);
   const [breakout, setBreakout] = useState<string | null>(null);
   /** The track just kept, named while the next one loads. */
-  const [justSaved, setJustSaved] = useState<{ title: string; artistName: string } | null>(null);
+  const [justSaved, setJustSaved] = useState<{
+    title: string;
+    artistName: string;
+    /** Filled in once the server says where they landed. */
+    note?: string | null;
+  } | null>(null);
   const [savedCount, setSavedCount] = useState(0);
   // Asked after the first save, never before, and never twice.
   const [askEmail, setAskEmail] = useState(false);
@@ -158,6 +164,16 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       const data = await res.json();
       if (direction === "RIGHT") {
         bumpSavedCount();
+        // Arrives a beat after the name, during the fetch for the next
+        // track, so it reads as the result of the save settling rather
+        // than as something the feed was waiting on.
+        const note = saveMoment({
+          position: data.track?.fanRightSwipes ?? 0,
+          listenMs,
+          createdAt: data.track?.createdAt ?? null,
+          savedTotal: savedTotal(),
+        });
+        setJustSaved((prev) => (prev ? { ...prev, note } : prev));
         setSavedCount((c) => {
           const next = c + 1;
           // The moment they have something worth keeping. Not on arrival,
@@ -250,12 +266,17 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
               nothing, where a screen that paused the feed to show the same
               name would cost a swipe every time. */}
           {justSaved && (
-            <p className="text-sm">
-              <span className="text-muted">You kept </span>
-              <span className="font-semibold">{justSaved.title}</span>
-              <span className="text-muted"> by </span>
-              <span className="text-gold font-semibold">{justSaved.artistName}</span>
-            </p>
+            <div className="space-y-1.5">
+              <p className="text-sm">
+                <span className="text-muted">You kept </span>
+                <span className="font-semibold">{justSaved.title}</span>
+                <span className="text-muted"> by </span>
+                <span className="text-gold font-semibold">{justSaved.artistName}</span>
+              </p>
+              {justSaved.note && (
+                <p className="text-muted text-xs">{justSaved.note}</p>
+              )}
+            </div>
           )}
         </div>
       )}
