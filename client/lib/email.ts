@@ -14,6 +14,47 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 const FROM = process.env.EMAIL_FROM ?? "MOTR <onboarding@resend.dev>";
 const REPLY_TO = process.env.EMAIL_REPLY_TO;
+
+/**
+ * Every address this module sends from, or asks people to reply to, has to be
+ * a mailbox that actually exists.
+ *
+ * `hello@musicontherox.com` sat in EMAIL_FROM for two months and sent
+ * perfectly the whole time: Resend authenticates the domain, not the local
+ * part, so an invented address never fails at send. The cost only appeared
+ * when artists hit Reply and their replies bounced off a mailbox that was
+ * never created. Nothing in the pipeline could notice, because every send
+ * returned success.
+ *
+ * Refusing to send is the point. A configuration mistake here is silent and
+ * unrecoverable once the mail is in someone's inbox, so it has to fail at the
+ * first send rather than after a campaign.
+ */
+const REAL_MAILBOXES = new Set([
+  "info@musicontherox.com",
+  "officialmusicontherox@gmail.com",
+  // Resend's sandbox sender, so a dev machine with no domain still works.
+  "onboarding@resend.dev",
+]);
+
+/** Pulls the address out of either `a@b.com` or `Name <a@b.com>`. */
+function mailbox(value: string): string {
+  const angled = value.match(/<([^>]+)>/);
+  return (angled ? angled[1] : value).trim().toLowerCase();
+}
+
+/** Describes what is misconfigured, or null when the addresses are real. */
+export function senderProblem(): string | null {
+  const from = mailbox(FROM);
+  if (!REAL_MAILBOXES.has(from)) {
+    return `EMAIL_FROM is "${from}", which is not a mailbox that exists`;
+  }
+  if (REPLY_TO && !REAL_MAILBOXES.has(mailbox(REPLY_TO))) {
+    return `EMAIL_REPLY_TO is "${mailbox(REPLY_TO)}", which is not a mailbox that exists`;
+  }
+  return null;
+}
+
 /**
  * Where the links in these emails point.
  *
@@ -84,6 +125,15 @@ async function send(
   if (!resend) {
     console.log(`[email skipped — no RESEND_API_KEY] to=${to} subject="${subject}"`);
     return { ok: false, error: "RESEND_API_KEY not set" };
+  }
+
+  // Checked per send rather than at import: the value comes from the
+  // environment, and a module that threw on load would take the whole app
+  // down instead of the one feature that is misconfigured.
+  const problem = senderProblem();
+  if (problem) {
+    console.error(`[email refused] ${problem}. to=${to} subject="${subject}"`);
+    return { ok: false, error: problem };
   }
 
   try {
