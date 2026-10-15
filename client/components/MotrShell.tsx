@@ -10,7 +10,7 @@ import InstallApp from "./InstallApp";
 import { Bookmark, Disc, Menu, Waveform } from "./icons";
 import PullToRefresh from "./PullToRefresh";
 import SideRail from "./SideRail";
-import { useSavedCount } from "@/lib/savedCount";
+import { useUnseenSaves } from "@/lib/savedCount";
 
 /**
  * Ad slots for the desktop gutters.
@@ -87,7 +87,7 @@ export default function MotrShell({
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const savedCount = useSavedCount();
+  const savedCount = useUnseenSaves();
   const pct = clip
     ? Math.min(100, (clip.currentTime / (clip.duration || 30)) * 100)
     : 0;

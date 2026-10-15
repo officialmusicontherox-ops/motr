@@ -1,21 +1,27 @@
 /**
- * How many tracks this person has kept, shared between the swipe feed and the
- * navigation badge.
+ * The unread badge on the Saved tab.
  *
- * Deliberately not a fetch. The badge sits in the app shell, which renders on
- * every page, and a count request on every navigation would cost more than the
- * number is worth. The feed already knows when a save succeeds and the saved
- * list already knows the true total, so the number can be maintained from both
- * without asking the server anything extra.
+ * It counts saves the person has not looked at yet, not how many they have.
+ * An outstanding number that never clears stops being information and starts
+ * being nagging, so opening Saved takes it back to nothing and only a new save
+ * brings it back.
  *
- * localStorage is the right home for it despite being per-device: the badge is
- * a nudge, not a record. The record is in the database, and the saved list
- * reconciles this value against it every time it loads.
+ * Two values make that work: the best known total, and the total as it stood
+ * the last time Saved was opened. The badge is the difference. Storing the
+ * difference alone would be wrong, because the saved list only ever learns the
+ * total, and would have nothing to subtract from.
+ *
+ * Deliberately not a fetch. The badge renders in the app shell on every page,
+ * and a count request per navigation would cost more than the number is worth.
+ * The feed knows when a save succeeds and the saved list knows the real total,
+ * which between them is enough. localStorage is per-device, which is the right
+ * trade for a nudge; the record itself lives in the database.
  */
 
 import { useSyncExternalStore } from "react";
 
-const KEY = "motr_saved_count";
+const TOTAL = "motr_saved_count";
+const SEEN = "motr_saved_seen";
 const EVENT = "motr:saved-count";
 
 const listeners = new Set<() => void>();
@@ -25,33 +31,31 @@ function announce(): void {
   try {
     window.dispatchEvent(new Event(EVENT));
   } catch {
-    // Nothing else is listening in a context without a window.
+    // Nothing is listening without a window.
   }
 }
 
-export function readSavedCount(): number {
+function read(key: string): number {
   if (typeof window === "undefined") return 0;
   try {
-    const n = Number(localStorage.getItem(KEY));
+    const n = Number(localStorage.getItem(key));
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
   } catch {
     return 0;
   }
 }
 
-function write(n: number): void {
+function write(key: string, n: number): void {
   try {
-    localStorage.setItem(KEY, String(Math.max(0, Math.floor(n))));
+    localStorage.setItem(key, String(Math.max(0, Math.floor(n))));
   } catch {
-    // Private windows refuse storage; the badge simply stays at zero.
+    // Private windows refuse storage; the badge just stays empty.
   }
-  announce();
 }
 
-/** The server's number, once the saved list has actually loaded it. */
-export function publishSavedCount(n: number): void {
-  if (n === readSavedCount()) return;
-  write(n);
+/** Saves made since Saved was last opened. */
+export function unseenSaves(): number {
+  return Math.max(0, read(TOTAL) - read(SEEN));
 }
 
 /**
@@ -61,13 +65,27 @@ export function publishSavedCount(n: number): void {
  * never counts something the server rejected.
  */
 export function bumpSavedCount(): void {
-  write(readSavedCount() + 1);
+  write(TOTAL, read(TOTAL) + 1);
+  announce();
+}
+
+/**
+ * Called when the saved list is on screen: everything up to now has been seen.
+ *
+ * `total` is the server's count when the list loaded. Without it the current
+ * total is used, so a failed request still clears the badge rather than
+ * leaving a number the person has already been shown the list for.
+ */
+export function markSavesSeen(total?: number): void {
+  const n = typeof total === "number" && Number.isFinite(total) ? Math.max(0, Math.floor(total)) : read(TOTAL);
+  write(TOTAL, n);
+  write(SEEN, n);
+  announce();
 }
 
 function subscribe(fn: () => void): () => void {
   listeners.add(fn);
-  // Also follow the native storage event, which fires when the same person
-  // has MOTR open in another tab.
+  // The native storage event covers MOTR being open in a second tab.
   window.addEventListener("storage", fn);
   window.addEventListener(EVENT, fn);
   return () => {
@@ -78,10 +96,10 @@ function subscribe(fn: () => void): () => void {
 }
 
 /**
- * Server-rendered markup has no localStorage, so the badge is absent in the
+ * Server-rendered markup has no localStorage, so the badge is absent from the
  * HTML and appears on hydration. That is the correct trade: a number baked
  * into the server response would be wrong for everyone it was not rendered for.
  */
-export function useSavedCount(): number {
-  return useSyncExternalStore(subscribe, readSavedCount, () => 0);
+export function useUnseenSaves(): number {
+  return useSyncExternalStore(subscribe, unseenSaves, () => 0);
 }

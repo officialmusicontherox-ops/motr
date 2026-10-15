@@ -7,7 +7,7 @@ import { Bookmark, Disc, Pause, Play, Share } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
-import { publishSavedCount } from "@/lib/savedCount";
+import { markSavesSeen } from "@/lib/savedCount";
 
 type SavedTrack = {
   id: string;
@@ -34,11 +34,15 @@ export default function SavedList({ fan }: { fan: Fan }) {
       .then((d) => {
         const list = d.saved ?? [];
         setSaved(list);
-        // The badge is maintained optimistically while swiping; this is the
-        // one place the real total is known, so it corrects any drift.
-        publishSavedCount(list.length);
+        // Being on this screen is what clears the badge, and the length is
+        // the real total, so it also corrects any drift from optimistic bumps.
+        markSavesSeen(list.length);
       })
-      .catch(() => setSaved([]));
+      .catch(() => {
+        setSaved([]);
+        // They came to look, so the badge clears even if the list did not load.
+        markSavesSeen();
+      });
   }, [fan.id]);
 
   useRefreshOnReturn(() => {
@@ -47,7 +51,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
       .then((d) => {
         const list = d.saved ?? [];
         setSaved(list);
-        publishSavedCount(list.length);
+        markSavesSeen(list.length);
       })
       .catch(() => {});
   });
