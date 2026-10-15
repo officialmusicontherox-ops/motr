@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
-import { Bookmark, Disc, Pause, Play, Share } from "./icons";
+import { Bookmark, Cross, Disc, Pause, Play, Share } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
@@ -27,6 +27,8 @@ export default function SavedList({ fan }: { fan: Fan }) {
   const [saved, setSaved] = useState<SavedTrack[] | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const [shared, setShared] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/fans/saved?fanId=${fan.id}`)
@@ -55,6 +57,39 @@ export default function SavedList({ fan }: { fan: Fan }) {
       })
       .catch(() => {});
   });
+
+  /**
+   * Takes a track off this list, or empties it.
+   *
+   * The swipe itself is kept server-side: the verdict is already counted on
+   * the track and already reported to the artist. This is a library, and
+   * clearing a library is not the same as changing your mind.
+   */
+  async function remove(trackId?: string) {
+    const body = trackId ? { fanId: fan.id, trackId } : { fanId: fan.id, all: true };
+    setRemoving(trackId ?? "all");
+    // Stop any clip that is playing from outliving the row it belongs to.
+    document.querySelectorAll("audio").forEach((a) => (a as HTMLAudioElement).pause());
+    setPlaying(null);
+    try {
+      const res = await fetch("/api/fans/saved", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) return;
+      setSaved((prev) => {
+        const next = trackId ? (prev ?? []).filter((t) => t.id !== trackId) : [];
+        markSavesSeen(next.length);
+        return next;
+      });
+    } catch {
+      // Offline or refused. The row stays, which is the honest outcome.
+    } finally {
+      setRemoving(null);
+      setConfirmClear(false);
+    }
+  }
 
   function toggle(t: SavedTrack) {
     const el = document.getElementById(`a-${t.id}`) as HTMLAudioElement | null;
@@ -98,7 +133,38 @@ export default function SavedList({ fan }: { fan: Fan }) {
             </Link>
           </div>
         ) : (
-          <ul className="mt-6 space-y-3">
+          <>
+          <div className="mt-6 flex justify-end">
+            {confirmClear ? (
+              <span className="flex items-center gap-2 text-xs">
+                <span className="text-muted">Remove all {saved.length}?</span>
+                <button
+                  onClick={() => remove()}
+                  disabled={removing !== null}
+                  className="border-nope text-nope hover:bg-nope/10 rounded-full border px-3 py-1 font-semibold transition disabled:opacity-40"
+                >
+                  {removing === "all" ? "Removing" : "Yes, clear"}
+                </button>
+                <button
+                  onClick={() => setConfirmClear(false)}
+                  className="border-edge text-muted hover:text-ink rounded-full border px-3 py-1 transition"
+                >
+                  Keep them
+                </button>
+              </span>
+            ) : (
+              /* Two steps rather than one. Emptying a list someone spent
+                 weeks building should not be a single stray tap. */
+              <button
+                onClick={() => setConfirmClear(true)}
+                className="text-muted hover:text-nope text-xs underline underline-offset-4 transition"
+              >
+                Clear list
+              </button>
+            )}
+          </div>
+
+          <ul className="mt-3 space-y-3">
             {saved.map((t) => {
               // REJECTED is not DISCOVERY either, so the old check crowned a
               // pulled track as "Broke through" — the opposite of the truth.
@@ -135,6 +201,16 @@ export default function SavedList({ fan }: { fan: Fan }) {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{t.title}</p>
                   <p className="text-gold truncate text-sm">{t.artistName}</p>
+                  {/* Numeric and short on purpose: it sits under two lines
+                      that matter more, and a listener scanning for when they
+                      found something wants a date, not a sentence. */}
+                  <p className="text-muted mt-0.5 text-xs tabular-nums">
+                    {new Date(t.savedAt).toLocaleDateString("en-US", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "numeric",
+                    })}
+                  </p>
                   {brokeThrough && (
                     <span className="text-hot mt-1 inline-flex items-center gap-1 text-[0.65rem] font-semibold uppercase tracking-widest">
                       <Disc className="h-2.5 w-2.5" /> Broke through
@@ -183,6 +259,19 @@ export default function SavedList({ fan }: { fan: Fan }) {
                   <Share className="h-4 w-4" />
                 </button>
 
+                {/* Removes it from this list only. The swipe stays counted,
+                    so the artist does not lose a save because someone tidied
+                    up months later. */}
+                <button
+                  onClick={() => remove(t.id)}
+                  disabled={removing !== null}
+                  aria-label={`Remove ${t.title} from your saved list`}
+                  title="Remove from your list"
+                  className="border-edge text-muted hover:border-nope hover:text-nope flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition disabled:opacity-40"
+                >
+                  <Cross className="h-3.5 w-3.5" />
+                </button>
+
                 <a
                   href={t.spotifyUrl}
                   target="_blank"
@@ -204,6 +293,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
               );
             })}
           </ul>
+          </>
         )}
       </div>
     </MotrShell>

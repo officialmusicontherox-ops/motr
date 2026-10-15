@@ -517,6 +517,14 @@ model FanSwipe {
   // can be audited or retuned from history instead of being lost.
   weight Int @default(1)
 
+  // Set when the listener removes this from their own saved list. The row is
+  // kept rather than deleted: the verdict is already counted on the track, has
+  // already been reported to the artist, and may already sit in a locked
+  // chart. Hiding changes what they see and nothing else, and because the row
+  // survives, the unique constraint below still stops the track coming back
+  // round to be swiped a second time.
+  hiddenAt DateTime?
+
   // Set once the fan pushes this save into their own Spotify library, so the
   // UI can show it's already there across devices and reloads.
   savedToSpotifyAt DateTime?
