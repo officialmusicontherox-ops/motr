@@ -266,6 +266,17 @@ export default function ArtistsPage() {
           <span className="text-muted mb-2 mt-1 block text-xs">
             Asked once. Every song you add below goes under this address.
           </span>
+          {/* Artists come back months later and type a different address,
+              which starts them a second, empty account that none of their
+              earlier songs belong to. Said at the field rather than in the
+              confirmation, which is too late to act on. */}
+          <span className="text-muted mb-2 block text-xs">
+            Submitted before? Use the same address, or{" "}
+            <a href="/contact" className="text-gold underline underline-offset-2">
+              contact us
+            </a>{" "}
+            to change it.
+          </span>
           <input
             type="email"
             value={artistEmail}

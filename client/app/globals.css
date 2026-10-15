@@ -257,3 +257,24 @@ body {
 html {
   overscroll-behavior-y: none;
 }
+
+/* ---------------------------------------------------------------------------
+   The gold notes that lift away from a save.
+   Pure decoration, so it is hidden from assistive tech and never takes a
+   pointer event. Reduced motion is already handled globally above, which
+   collapses the duration and makes this effectively invisible rather than
+   needing a separate rule. */
+@keyframes motr-note-rise {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0) scale(0.55) rotate(var(--motr-note-spin, 0deg));
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--motr-note-drift, 0px), -84px, 0) scale(1.05)
+      rotate(var(--motr-note-spin, 0deg));
+  }
+}

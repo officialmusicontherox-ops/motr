@@ -77,11 +77,11 @@ export async function POST(req: NextRequest) {
     const problem = describeSpotifyLink(String(body.spotifyUrl));
     const reason =
       problem === "album"
-        ? "That's a link to an album. We need a link to one track, so open the song itself and share that."
+        ? "That's an album link. We need one song. In Spotify, open the album, tap the song you want, then Share and Copy link. The link should say /track/ in it, not /album/."
         : problem === "artist"
-          ? "That's a link to your artist page. We need a link to one track, so open the song itself and share that."
+          ? "That's your artist page. We need one song. In Spotify, tap the song you want, then Share and Copy link. The link should say /track/ in it."
           : problem === "playlist"
-            ? "That's a link to a playlist. We need a link to one track."
+            ? "That's a playlist link. We need one song. Open the playlist, tap the song you want, then Share and Copy link. The link should say /track/ in it."
             : problem === "episode"
               ? "That's a podcast episode rather than a song."
               : problem === "short"

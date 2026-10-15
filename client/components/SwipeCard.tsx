@@ -12,6 +12,21 @@ const EXIT_DISTANCE = 600;
 /** Every track is a 30-second clip, no matter how long the source file is. */
 const CLIP_SECONDS = 30;
 
+/**
+ * The notes that lift off a save.
+ *
+ * Fixed rather than random: a burst that is different every time reads as
+ * noise, and the same shape each time becomes something you recognise. Spread,
+ * delay and spin are hand-set so they fan out instead of marching.
+ */
+const SAVE_NOTES = [
+  { left: "38%", drift: "-26px", delay: "0ms", spin: "-14deg", size: "h-4 w-4" },
+  { left: "50%", drift: "2px", delay: "55ms", spin: "6deg", size: "h-5 w-5" },
+  { left: "62%", drift: "24px", delay: "30ms", spin: "16deg", size: "h-4 w-4" },
+  { left: "44%", drift: "-12px", delay: "100ms", spin: "-6deg", size: "h-3 w-3" },
+  { left: "57%", drift: "16px", delay: "130ms", spin: "11deg", size: "h-3 w-3" },
+];
+
 export default function SwipeCard({
   track,
   onSwipe,
@@ -173,6 +188,30 @@ export default function SwipeCard({
       {/* The stack layers live in their own positioning context so they can't
           spill over the action buttons below. */}
       <div className="relative flex min-h-0 flex-1 flex-col md:max-h-[26rem] md:flex-none">
+        {/* Anchored to the stack, not to the card: the card is already
+            translating off screen when this plays, and notes riding along
+            with it would leave with it. */}
+        {exiting === "RIGHT" && (
+          <div aria-hidden className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
+            {SAVE_NOTES.map((n, i) => (
+              <span
+                key={i}
+                className="absolute bottom-10"
+                style={{
+                  left: n.left,
+                  animation: "motr-note-rise 900ms ease-out forwards",
+                  animationDelay: n.delay,
+                  opacity: 0,
+                  ["--motr-note-drift" as string]: n.drift,
+                  ["--motr-note-spin" as string]: n.spin,
+                }}
+              >
+                <Note className={`text-gold ${n.size}`} />
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="bg-surface/40 absolute inset-x-6 -bottom-2 top-5 -rotate-2 rounded-[28px]" />
         <div className="bg-surface/70 absolute inset-x-3 -bottom-1 top-2.5 rotate-1 rounded-[28px]" />
 
