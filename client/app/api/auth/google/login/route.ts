@@ -1,3 +1,4 @@
+import { APP_URL } from "@/lib/appUrl";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     return NextResponse.redirect(
-      new URL(`/?auth_error=not_configured`, req.nextUrl.origin)
+      new URL(`/?auth_error=not_configured`, APP_URL)
     );
   }
 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
   url.searchParams.set("response_type", "code");
   url.searchParams.set(
     "redirect_uri",
-    process.env.GOOGLE_REDIRECT_URI ?? `${req.nextUrl.origin}/api/auth/google/callback`
+    process.env.GOOGLE_REDIRECT_URI ?? `${APP_URL}/api/auth/google/callback`
   );
   url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("state", state);

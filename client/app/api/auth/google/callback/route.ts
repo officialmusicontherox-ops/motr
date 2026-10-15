@@ -1,3 +1,4 @@
+import { APP_URL } from "@/lib/appUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   const back = (params: string) => {
     const res = NextResponse.redirect(
-      new URL(`/?${params}`, req.nextUrl.origin)
+      new URL(`/?${params}`, APP_URL)
     );
     for (const c of ["google_oauth_state", "google_oauth_as", "google_oauth_merge"]) {
       res.cookies.set(c, "", { path: "/", maxAge: 0 });
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
       client_secret: clientSecret,
       grant_type: "authorization_code",
       redirect_uri:
-        process.env.GOOGLE_REDIRECT_URI ?? `${req.nextUrl.origin}/api/auth/google/callback`,
+        process.env.GOOGLE_REDIRECT_URI ?? `${APP_URL}/api/auth/google/callback`,
     }),
   });
   if (!tokenRes.ok) return back("auth_error=token_exchange_failed");

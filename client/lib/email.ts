@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { CARD_VERSION } from "./shareCard";
+import { APP_URL as CANONICAL_APP_URL } from "./appUrl";
 
 /**
  * Transactional email. Two moments in the product depend on it: telling an
@@ -64,13 +65,7 @@ export function senderProblem(): string | null {
  * APP_URL in the dashboard degrades to the real domain rather than to a link
  * that opens nothing on the recipient's machine.
  */
-const APP_URL =
-  process.env.APP_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : process.env.NODE_ENV === "production"
-      ? "https://app.musicontherox.com"
-      : "http://localhost:3000");
+const APP_URL = CANONICAL_APP_URL;
 
 export type SendResult = { ok: boolean; id?: string; error?: string };
 
