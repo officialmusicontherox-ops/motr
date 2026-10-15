@@ -205,12 +205,36 @@ export async function POST(req: NextRequest) {
   // resolve (or create) one whenever we're given an email for the track.
   let artistId: string | null = null;
   if (artistEmail) {
-    const artist = await prisma.artist.upsert({
-      where: { email: artistEmail },
-      update: {},
-      create: { email: artistEmail, name: normalized.artistName },
+    // Looked up case-insensitively, and deliberately not an upsert.
+    //
+    // upsert matched on `email` exactly, but the table also carries a unique
+    // index on lower(email). An artist stored as Name@gmail.com who then
+    // submitted as name@gmail.com missed the lookup, fell through to the
+    // create, and broke that index: a 500 on every attempt, with no way for
+    // them to get in. Five of the artists on record have an uppercase letter
+    // in their stored address.
+    const found = await prisma.artist.findFirst({
+      where: { email: { equals: artistEmail, mode: "insensitive" } },
+      select: { id: true },
     });
-    artistId = artist.id;
+
+    if (found) {
+      artistId = found.id;
+    } else {
+      artistId = await prisma.artist
+        .create({ data: { email: artistEmail, name: normalized.artistName }, select: { id: true } })
+        .then((a) => a.id)
+        .catch(async () => {
+          // Two submissions in the same moment can both miss the lookup and
+          // both try to create. The loser reads back the winner's row rather
+          // than failing a submission over a race.
+          const raced = await prisma.artist.findFirst({
+            where: { email: { equals: artistEmail, mode: "insensitive" } },
+            select: { id: true },
+          });
+          return raced?.id ?? null;
+        });
+    }
   }
 
   // The unique constraint only catches the same Spotify link twice. A single
