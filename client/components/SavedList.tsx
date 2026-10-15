@@ -7,6 +7,7 @@ import { Bookmark, Disc, Pause, Play, Share } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
+import { publishSavedCount } from "@/lib/savedCount";
 
 type SavedTrack = {
   id: string;
@@ -30,14 +31,24 @@ export default function SavedList({ fan }: { fan: Fan }) {
   useEffect(() => {
     fetch(`/api/fans/saved?fanId=${fan.id}`)
       .then((r) => r.json())
-      .then((d) => setSaved(d.saved ?? []))
+      .then((d) => {
+        const list = d.saved ?? [];
+        setSaved(list);
+        // The badge is maintained optimistically while swiping; this is the
+        // one place the real total is known, so it corrects any drift.
+        publishSavedCount(list.length);
+      })
       .catch(() => setSaved([]));
   }, [fan.id]);
 
   useRefreshOnReturn(() => {
     fetch(`/api/fans/saved?fanId=${fan.id}`)
       .then((r) => r.json())
-      .then((d) => setSaved(d.saved ?? []))
+      .then((d) => {
+        const list = d.saved ?? [];
+        setSaved(list);
+        publishSavedCount(list.length);
+      })
       .catch(() => {});
   });
 

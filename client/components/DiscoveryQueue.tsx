@@ -9,6 +9,7 @@ import GenrePicker from "./GenrePicker";
 import { Disc, Note } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan, Track } from "@/lib/types";
+import { bumpSavedCount } from "@/lib/savedCount";
 
 const AI_KEY = "motr_allow_ai";
 const GENRE_KEY = "motr:genre";
@@ -150,6 +151,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     if (res.ok) {
       const data = await res.json();
       if (direction === "RIGHT") {
+        bumpSavedCount();
         setSavedCount((c) => {
           const next = c + 1;
           // The moment they have something worth keeping. Not on arrival,

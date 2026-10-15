@@ -4,12 +4,13 @@ import Image from "next/image";
 import { FULL_LISTEN_MS } from "@/lib/economics";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
 import { Bookmark, Disc, Menu, Waveform } from "./icons";
 import PullToRefresh from "./PullToRefresh";
 import SideRail from "./SideRail";
+import { useSavedCount } from "@/lib/savedCount";
 
 /**
  * Ad slots for the desktop gutters.
@@ -29,6 +30,41 @@ const TABS = [
   { href: "/saved", label: "Saved", Icon: Bookmark },
   { href: "/charts", label: "Charts", Icon: Waveform },
 ];
+
+/**
+ * The running total, sitting on the Saved tab the way an unread count sits on
+ * a mail icon.
+ *
+ * It is the only place in the feed loop that shows someone what they have
+ * built up, and it animates on change so a save registers as having gone
+ * somewhere rather than the card merely disappearing.
+ */
+function SavedBadge({ count }: { count: number }) {
+  const [bumped, setBumped] = useState(false);
+  const previous = useRef(count);
+
+  useEffect(() => {
+    if (count > previous.current) {
+      setBumped(true);
+      const t = setTimeout(() => setBumped(false), 420);
+      previous.current = count;
+      return () => clearTimeout(t);
+    }
+    previous.current = count;
+  }, [count]);
+
+  if (count < 1) return null;
+  return (
+    <span
+      aria-hidden
+      className={`bg-gold text-bg pointer-events-none absolute -top-1.5 -right-2.5 min-w-[1.05rem] rounded-full px-1 text-center text-[0.6rem] font-bold leading-[1.05rem] tabular-nums transition-transform duration-200 ${
+        bumped ? "scale-125" : "scale-100"
+      }`}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 /**
  * App chrome: brand header, an optional clip scrubber, and a fixed bottom
@@ -51,6 +87,7 @@ export default function MotrShell({
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const savedCount = useSavedCount();
   const pct = clip
     ? Math.min(100, (clip.currentTime / (clip.duration || 30)) * 100)
     : 0;
@@ -120,7 +157,10 @@ export default function MotrShell({
                   active ? "bg-surface-2 text-gold" : "text-muted hover:text-ink"
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <span className="relative flex items-center">
+                  <Icon className="h-4 w-4" />
+                  {href === "/saved" && <SavedBadge count={savedCount} />}
+                </span>
                 {label}
               </Link>
             );
@@ -224,7 +264,10 @@ export default function MotrShell({
                     active ? "text-gold" : "text-muted hover:text-ink"
                   }`}
                 >
-                  <Icon className="h-[18px] w-[18px]" />
+                  <span className="relative flex items-center">
+                    <Icon className="h-[18px] w-[18px]" />
+                    {href === "/saved" && <SavedBadge count={savedCount} />}
+                  </span>
                   {label}
                   <span
                     className={`bg-gold h-0.5 w-6 rounded-full transition-opacity ${

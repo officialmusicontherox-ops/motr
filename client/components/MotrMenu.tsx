@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowOut, Note } from "./icons";
 import InstallApp from "./InstallApp";
+import { canVibrate, feedbackEnabled, setFeedbackEnabled, swipeFeedback } from "@/lib/feedback";
 
 const LINKS = [
   { href: "/artists", label: "Submit your song", note: "Free. Paste a Spotify link" },
@@ -28,9 +29,28 @@ export default function MotrMenu({
   // Read from the document rather than from storage: the inline script in
   // layout.tsx has already applied the saved theme by now, so the DOM is the
   // one source that can't disagree with what's on screen.
+  const [cues, setCues] = useState(true);
+  const [buzzes, setBuzzes] = useState(false);
+
   useEffect(() => {
     setLight(document.documentElement.getAttribute("data-theme") !== "dark");
   }, []);
+
+  // Read once on mount for the same reason the theme is: the stored value is
+  // not available during the server render.
+  useEffect(() => {
+    setCues(feedbackEnabled());
+    setBuzzes(canVibrate());
+  }, []);
+
+  function toggleCues() {
+    const next = !cues;
+    setCues(next);
+    setFeedbackEnabled(next);
+    // Play the thing being switched on, so the label is not the only way to
+    // find out what it does.
+    if (next) swipeFeedback("RIGHT");
+  }
 
   function toggleTheme() {
     const next = !light;
@@ -150,6 +170,35 @@ export default function MotrMenu({
               <span
                 className={`bg-bg absolute top-1 h-4 w-4 rounded-full shadow transition-all ${
                   light ? "left-6" : "left-1"
+                }`}
+              />
+            </span>
+          </button>
+
+          {/* The cue fires on every swipe, which is the most frequent thing
+              anyone does here, so it needs a way off that is easy to find. */}
+          <button
+            type="button"
+            onClick={toggleCues}
+            className="border-edge hover:border-gold mt-3 flex w-full items-center justify-between rounded-xl border px-3 py-3 transition"
+          >
+            <span className="flex flex-col items-start">
+              <span className="font-semibold">
+                {buzzes ? "Swipe sound and vibration" : "Swipe sound"}
+              </span>
+              <span className="text-muted mt-0.5 text-xs">
+                {cues ? "Playing on every swipe" : "Off"}
+              </span>
+            </span>
+            <span
+              aria-hidden
+              className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                cues ? "bg-gold" : "bg-surface-2"
+              }`}
+            >
+              <span
+                className={`bg-bg absolute top-1 h-4 w-4 rounded-full shadow transition-all ${
+                  cues ? "left-6" : "left-1"
                 }`}
               />
             </span>

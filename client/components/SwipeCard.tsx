@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Track } from "@/lib/types";
 import { Cross, Disc, Heart, Note, Pause, Play } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
+import { swipeFeedback } from "@/lib/feedback";
 
 const SWIPE_THRESHOLD = 100;
 const EXIT_DISTANCE = 600;
@@ -114,6 +115,10 @@ export default function SwipeCard({
 
   function commitSwipe(direction: "LEFT" | "RIGHT") {
     if (exiting || disabled) return;
+    // Here rather than in the queue's success handler: the cue has to land on
+    // the gesture itself. A round trip later and it feels like the app is
+    // reacting to the network instead of to them.
+    swipeFeedback(direction);
     setExiting(direction);
     setDx(direction === "RIGHT" ? EXIT_DISTANCE : -EXIT_DISTANCE);
     const listenDurationMs = Math.round(currentTime * 1000);
