@@ -281,8 +281,15 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           aria-hidden
           className="pointer-events-none fixed inset-0 z-30"
           style={{
-            animation: "motr-unlock-edge 2200ms ease-out forwards",
-            boxShadow: "inset 0 0 0 3px var(--color-gold), inset 0 0 60px -10px var(--color-gold)",
+            // Deep enough to be seen rather than noticed afterwards. The
+            // first version was a 3px ring with a 60px glow, which on a phone
+            // is a hairline: it read as a rendering artefact, not an event.
+            animation: "motr-unlock-edge 3400ms ease-out forwards",
+            boxShadow: [
+              "inset 0 0 0 7px var(--color-gold)",
+              "inset 0 0 44px 2px var(--color-gold)",
+              "inset 0 0 190px -28px var(--color-gold)",
+            ].join(", "),
           }}
         />
       )}

@@ -286,7 +286,9 @@ html {
    would decorate the next track instead, which earned nothing. */
 @keyframes motr-unlock-edge {
   0%   { opacity: 0; }
-  12%  { opacity: 1; }
-  70%  { opacity: 1; }
+  7%   { opacity: 1; }
+  26%  { opacity: 0.45; }
+  40%  { opacity: 1; }
+  78%  { opacity: 0.92; }
   100% { opacity: 0; }
 }
