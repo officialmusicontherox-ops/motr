@@ -26,6 +26,8 @@ export type Fan = {
   hasSpotify?: boolean;
   /** Whether we can reach them at all. Never the address itself. */
   hasEmail?: boolean;
+  /** Masked address, so a listener can see which account they are on. */
+  emailHint?: string | null;
 };
 
 export type User = {

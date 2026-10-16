@@ -278,3 +278,15 @@ html {
       rotate(var(--motr-note-spin, 0deg));
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The gold edge that marks a badge being earned.
+   Around the viewport rather than around the card: by the time a badge
+   resolves the card that earned it has already left, so glowing "the card"
+   would decorate the next track instead, which earned nothing. */
+@keyframes motr-unlock-edge {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}

@@ -6,7 +6,7 @@ import SwipeCard from "./SwipeCard";
 import SponsoredCard from "./SponsoredCard";
 import SaveEmailPrompt, { savePromptDismissed } from "./SaveEmailPrompt";
 import GenrePicker from "./GenrePicker";
-import { Disc, Note } from "./icons";
+import { Crown, Disc, Note } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan, Track } from "@/lib/types";
 import { bumpSavedCount, savedTotal } from "@/lib/savedCount";
@@ -66,6 +66,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [pending, setPending] = useState(false);
   const [breakout, setBreakout] = useState<string | null>(null);
   /** The track just kept, named while the next one loads. */
+  /** A badge just earned, shown on its own timer rather than inside the gap. */
+  const [unlocked, setUnlocked] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState<{
     title: string;
     artistName: string;
@@ -143,6 +145,15 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       .catch(() => {});
   }, [fan.id, refreshKey]);
 
+  // Held long enough to read, and independent of whether the next track has
+  // arrived. Tying it to the loading gap meant it was a race against the feed,
+  // and the feed won every time.
+  useEffect(() => {
+    if (!unlocked) return;
+    const t = setTimeout(() => setUnlocked(null), 3600);
+    return () => clearTimeout(t);
+  }, [unlocked]);
+
   useEffect(() => {
     if (!breakout) return;
     const t = setTimeout(() => setBreakout(null), 4000);
@@ -189,7 +200,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
             const fresh = newlyEarned(earned.map((b: { id: string }) => b.id));
             if (!fresh.length) return;
             const name = earned.find((b: { id: string }) => b.id === fresh[0])?.name;
-            if (name) setJustSaved((prev) => (prev ? { ...prev, unlocked: name } : prev));
+            if (name) setUnlocked(name);
           })
           .catch(() => {});
         setSavedCount((c) => {
@@ -264,6 +275,33 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
       {/* A track clearing the fan vote is the whole point of the app —
           give it a moment rather than a quiet toast. */}
+      {/* The whole screen edge, for the moment it happens. */}
+      {unlocked && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-30"
+          style={{
+            animation: "motr-unlock-edge 2200ms ease-out forwards",
+            boxShadow: "inset 0 0 0 3px var(--color-gold), inset 0 0 60px -10px var(--color-gold)",
+          }}
+        />
+      )}
+
+      {/* Over the feed, not inside it, so it survives the next card arriving. */}
+      {unlocked && (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-5 pt-4">
+          <div className="border-gold bg-surface flex items-center gap-3 rounded-2xl border px-5 py-3 shadow-2xl">
+            <span className="bg-gold/15 text-gold flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+              <Crown className="h-5 w-5" />
+            </span>
+            <p className="text-sm">
+              <span className="motr-label text-gold block">Badge unlocked</span>
+              <span className="font-semibold">{unlocked}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
       {breakout && (
         <div className="fixed inset-x-0 top-0 z-30 flex justify-center px-5 pt-4">
           <div className="border-gold/40 bg-surface flex items-center gap-3 rounded-2xl border px-5 py-3 shadow-2xl">
@@ -291,16 +329,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
                 <span className="text-muted"> by </span>
                 <span className="text-gold font-semibold">{justSaved.artistName}</span>
               </p>
-              {justSaved.unlocked ? (
-                /* Takes the line the save message would have used. Both at
-                   once is two things to read in a gap sized for one, and the
-                   badge is the rarer event so it wins. */
-                <p className="text-gold text-sm font-semibold">
-                  Badge unlocked: {justSaved.unlocked}
-                </p>
-              ) : (
-                justSaved.note && <p className="text-muted text-xs">{justSaved.note}</p>
-              )}
+              {justSaved.note && <p className="text-muted text-xs">{justSaved.note}</p>}
             </div>
           )}
         </div>

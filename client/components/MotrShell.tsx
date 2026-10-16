@@ -11,6 +11,7 @@ import { Bookmark, Crown, Disc, Menu, Waveform } from "./icons";
 import PullToRefresh from "./PullToRefresh";
 import SideRail from "./SideRail";
 import { useUnseenSaves } from "@/lib/savedCount";
+import { useUnseenBadges } from "@/lib/badgeNotices";
 
 /**
  * Ad slots for the desktop gutters.
@@ -89,6 +90,7 @@ export default function MotrShell({
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const savedCount = useUnseenSaves();
+  const badgeCount = useUnseenBadges();
   const pct = clip
     ? Math.min(100, (clip.currentTime / (clip.duration || 30)) * 100)
     : 0;
@@ -161,6 +163,7 @@ export default function MotrShell({
                 <span className="relative flex items-center">
                   <Icon className="h-4 w-4" />
                   {href === "/saved" && <SavedBadge count={savedCount} />}
+                  {href === "/badges" && <SavedBadge count={badgeCount} />}
                 </span>
                 {label}
               </Link>

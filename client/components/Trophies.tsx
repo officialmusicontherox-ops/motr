@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import { Crown, Check, Share } from "./icons";
 import type { Fan } from "@/lib/types";
+import { markBadgesSeen } from "@/lib/badgeNotices";
 
 type Badge = {
   id: string;
@@ -36,7 +37,11 @@ export default function Trophies({ fan }: { fan: Fan }) {
   useEffect(() => {
     fetch(`/api/fans/achievements?fanId=${fan.id}`)
       .then((r) => r.json())
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        // Being on this page is what clears the dot on the tab.
+        markBadgesSeen();
+      })
       .catch(() => setData(null));
   }, [fan.id]);
 
@@ -44,31 +49,26 @@ export default function Trophies({ fan }: { fan: Fan }) {
   const locked = data?.badges.filter((b) => !b.earned) ?? [];
 
   /**
-   * Shares the rendered card as a file where the device supports it, and
-   * falls back to the link. The blob is fetched before the share call rather
-   * than inside it: awaiting a fetch in the handler loses the user gesture on
-   * iOS and the sheet never opens.
+   * Copies the badge's link. That is the whole job.
+   *
+   * The link carries its own picture and wording: pasted into a post it opens
+   * out into the graphic, the badge name and a line telling a stranger what
+   * MOTR is. Nothing to save, attach or upload.
    */
-  async function share() {
-    const url = `${window.location.origin}/api/achievement-card/${fan.id}?v=1`;
-    const text = `${earned.length} ${earned.length === 1 ? "badge" : "badges"} earned on MOTR. Find new artists, thirty seconds at a time.`;
-    const page = "https://app.musicontherox.com";
+  async function copyLink(badge: Badge) {
+    const url = `${window.location.origin}/b/${fan.id}/${badge.id}`;
     try {
-      const blob = await fetch(url).then((r) => (r.ok ? r.blob() : null));
-      const file = blob ? new File([blob], "motr-badges.png", { type: "image/png" }) : null;
-      if (file && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], text, title: "MOTR" });
-        return;
-      }
-      if (navigator.share) {
-        await navigator.share({ text, url: page, title: "MOTR" });
-        return;
-      }
-      await navigator.clipboard?.writeText(`${text} ${page}`);
-      setShared("copied");
-      window.setTimeout(() => setShared(null), 1800);
+      await navigator.clipboard.writeText(url);
+      setShared(badge.id);
+      window.setTimeout(() => setShared(null), 2200);
     } catch {
-      // Cancelling the sheet lands here too, which is not a failure.
+      // Clipboard refused, usually an insecure context. The share sheet is
+      // the next best thing, and failing that the link is on screen anyway.
+      try {
+        await navigator.share?.({ url, title: `Badge unlocked on MOTR: ${badge.name}` });
+      } catch {
+        // Cancelled, which is not a failure.
+      }
     }
   }
 
@@ -78,7 +78,8 @@ export default function Trophies({ fan }: { fan: Fan }) {
         <h1 className="font-display text-3xl uppercase tracking-wide">Badges</h1>
         <p className="text-muted mt-1 text-sm">
           Earned by listening, not by saving everything. They count your whole history, including
-          everything from before this page existed.
+          everything from before this page existed. Copy a badge's link and paste it anywhere: it
+          opens out into its own graphic.
         </p>
 
         {data === null ? (
@@ -122,16 +123,6 @@ export default function Trophies({ fan }: { fan: Fan }) {
               </div>
             )}
 
-            {earned.length > 0 && (
-              <button
-                onClick={share}
-                className="border-gold/50 text-gold hover:bg-gold/10 mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border py-3 text-sm font-semibold transition"
-              >
-                <Share className="h-4 w-4" />
-                {shared === "copied" ? "Link copied" : "Share your badges"}
-              </button>
-            )}
-
             <ul className="mt-6 space-y-3">
               {earned.map((b) => (
                 <li key={b.id} className="border-gold/30 bg-surface flex items-center gap-3 rounded-2xl border p-3">
@@ -142,6 +133,21 @@ export default function Trophies({ fan }: { fan: Fan }) {
                     <p className="truncate font-semibold">{b.name}</p>
                     <p className="text-muted truncate text-sm">{b.note}</p>
                   </div>
+                  {/* Each badge shares its own graphic. One image per badge,
+                      because nobody posts a summary of themselves. */}
+                  <button
+                    onClick={() => copyLink(b)}
+                    aria-label={`Copy the link for ${b.name}`}
+                    title="Copy link to share"
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wider transition ${
+                      shared === b.id
+                        ? "border-gold bg-gold/10 text-gold"
+                        : "border-gold/40 text-gold hover:bg-gold/10"
+                    }`}
+                  >
+                    <Share className="h-3.5 w-3.5" />
+                    {shared === b.id ? "Copied" : "Copy link"}
+                  </button>
                   <div className="flex shrink-0 flex-col items-end gap-0.5">
                     <Check className="text-gold h-5 w-5" />
                     {b.heldBy !== null && b.heldBy > 0 && (

@@ -12,7 +12,43 @@
  * an honest pass is the whole basis of the chart.
  */
 
+import { clipPlayer } from "./clipPlayer";
+
 const KEY = "motr_feedback";
+
+/**
+ * Drops the clip's volume for a moment so the cue can be heard.
+ *
+ * Raising the cue's gain alone does not work: it is competing with a track at
+ * full volume through the same speaker, and anything loud enough to win that
+ * fight is too loud to hear fifty times in a session. Ducking the music by
+ * two thirds for a fifth of a second is the trick broadcast has always used,
+ * and it is over before anyone registers the dip.
+ */
+function duck(): void {
+  const a = clipPlayer();
+  if (!a || a.paused) return;
+  const original = a.volume;
+  try {
+    a.volume = Math.max(0, original * 0.3);
+    window.setTimeout(() => {
+      // Back up in steps, so the music returns rather than snapping back.
+      let v = a.volume;
+      const step = (original - v) / 5;
+      const id = window.setInterval(() => {
+        v = Math.min(original, v + step);
+        try { a.volume = v; } catch { window.clearInterval(id); }
+        if (v >= original - 0.001) {
+          try { a.volume = original; } catch {}
+          window.clearInterval(id);
+        }
+      }, 40);
+    }, 190);
+  } catch {
+    // Some browsers refuse volume changes on a media element; the cue still
+    // plays, just against the music.
+  }
+}
 
 /** Shared across every swipe. Created on the first gesture, never before. */
 let ctx: AudioContext | null = null;
@@ -117,18 +153,23 @@ function buzz(pattern: number | number[]): void {
 /** Fired the instant a swipe is committed, before the network call. */
 export function swipeFeedback(direction: "LEFT" | "RIGHT"): void {
   if (!feedbackEnabled()) return;
+  duck();
   const c = audio();
   const now = c?.currentTime ?? 0;
 
   if (direction === "RIGHT") {
     // Up a fifth: the interval everything from a doorbell to a level-up uses
     // to say yes. Second note slightly louder so it reads as arriving.
-    note(now, 587.33, 0.1, 0.05);
-    note(now + 0.075, 880.0, 0.16, 0.07);
-    buzz([12, 28, 20]);
+    // Three notes rather than two, rising, and loud enough to be heard over
+    // a track that is already playing. The first version sat at a gain of
+    // 0.05 next to music at full volume, which made it a rumour.
+    note(now, 587.33, 0.1, 0.20);
+    note(now + 0.07, 880.0, 0.12, 0.26);
+    note(now + 0.15, 1174.66, 0.2, 0.22);
+    buzz([45, 55, 70]);
   } else {
     // Low, short, and over. Acknowledges the input without judging it.
-    note(now, 174.61, 0.11, 0.045, "triangle");
-    buzz(14);
+    note(now, 196.0, 0.13, 0.15, "triangle");
+    buzz(45);
   }
 }

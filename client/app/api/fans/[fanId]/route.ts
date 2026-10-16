@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
+/** je•••t@gmail.com — recognisable to its owner, useless to anyone else. */
+function mask(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "•••";
+  const head = local.slice(0, 2);
+  const tail = local.length > 3 ? local.slice(-1) : "";
+  return `${head}${"•".repeat(3)}${tail}@${domain}`;
+}
+
 // Look up a single fan by id. The list endpoint only returns recent fans, so
 // a returning listener wouldn't be found there once the app has any volume.
 export async function GET(
@@ -26,8 +35,11 @@ export async function GET(
       username: fan.username,
       displayName: fan.displayName,
       hasSpotify: Boolean(fan.spotifyId),
-      // Whether, not what. The address itself never goes to the client.
+      // Whether, not what. The full address never goes to the client.
       hasEmail: Boolean(fan.email),
+      // Enough to recognise your own account, not enough to be worth
+      // harvesting if somebody else ever got hold of the id.
+      emailHint: fan.email ? mask(fan.email) : null,
     },
   });
 }

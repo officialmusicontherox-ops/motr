@@ -10,7 +10,63 @@
  * fourteen things, which is both false and worthless.
  */
 
+import { useSyncExternalStore } from "react";
+
 const KEY = "motr_badges_seen";
+/** Badges earned but not yet looked at, for the dot on the tab. */
+const UNSEEN = "motr_badges_unseen";
+const EVENT = "motr:badges";
+
+const listeners = new Set<() => void>();
+
+function announce(): void {
+  for (const l of listeners) l();
+  try {
+    window.dispatchEvent(new Event(EVENT));
+  } catch {
+    // No window, nothing listening.
+  }
+}
+
+function readCount(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const n = Number(localStorage.getItem(UNSEEN));
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeCount(n: number): void {
+  try {
+    localStorage.setItem(UNSEEN, String(Math.max(0, Math.floor(n))));
+  } catch {
+    // Private windows refuse storage; the dot simply never shows.
+  }
+  announce();
+}
+
+/** Called when the badges page is open: everything has now been looked at. */
+export function markBadgesSeen(): void {
+  if (readCount() !== 0) writeCount(0);
+}
+
+function subscribe(fn: () => void): () => void {
+  listeners.add(fn);
+  window.addEventListener("storage", fn);
+  window.addEventListener(EVENT, fn);
+  return () => {
+    listeners.delete(fn);
+    window.removeEventListener("storage", fn);
+    window.removeEventListener(EVENT, fn);
+  };
+}
+
+/** Server markup has no localStorage, so the dot appears on hydration. */
+export function useUnseenBadges(): number {
+  return useSyncExternalStore(subscribe, readCount, () => 0);
+}
 
 function read(): string[] | null {
   if (typeof window === "undefined") return null;
@@ -43,5 +99,7 @@ export function newlyEarned(earnedIds: string[]): string[] {
   write(earnedIds);
   if (seen === null) return [];
   const before = new Set(seen);
-  return earnedIds.filter((id) => !before.has(id));
+  const fresh = earnedIds.filter((id) => !before.has(id));
+  if (fresh.length) writeCount(readCount() + fresh.length);
+  return fresh;
 }

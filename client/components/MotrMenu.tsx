@@ -30,6 +30,7 @@ export default function MotrMenu({
   // layout.tsx has already applied the saved theme by now, so the DOM is the
   // one source that can't disagree with what's on screen.
   const [cues, setCues] = useState(true);
+  const [who, setWho] = useState<string | null>(null);
   const [buzzes, setBuzzes] = useState(false);
 
   useEffect(() => {
@@ -41,7 +42,19 @@ export default function MotrMenu({
   useEffect(() => {
     setCues(feedbackEnabled());
     setBuzzes(canVibrate());
-  }, []);
+    // "Sign in" with no sign of whether you already are is the same screen
+    // either way, which is why it was impossible to tell.
+    try {
+      const id = localStorage.getItem("md_fan_id");
+      if (!id) return;
+      void fetch(`/api/fans/${id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setWho(d?.fan?.emailHint ?? null))
+        .catch(() => {});
+    } catch {
+      // Storage refused; the menu just won't name the account.
+    }
+  }, [open]);
 
   function toggleCues() {
     const next = !cues;
@@ -188,6 +201,7 @@ export default function MotrMenu({
               </span>
               <span className="text-muted mt-0.5 text-xs">
                 {cues ? "Playing on every swipe" : "Off"}
+                {!buzzes && " · this device has no vibration"}
               </span>
             </span>
             <span
@@ -230,6 +244,13 @@ export default function MotrMenu({
         {/* Nothing sits in the very bottom corner — that's where the
             dev-tools indicator overlaps and swallows clicks. */}
         <div className="border-edge shrink-0 border-t px-3 py-3 pb-6">
+          {/* Which account, above the button that ends it. Without this the
+              menu looked identical signed in and signed out. */}
+          {who && (
+            <p className="text-muted mb-2 px-1 text-xs">
+              Signed in as <span className="text-ink font-medium">{who}</span>
+            </p>
+          )}
           <button
             onClick={signOut}
             disabled={signingOut}

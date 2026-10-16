@@ -204,6 +204,14 @@ export type Badge = {
 };
 
 /**
+ * Thresholds are set by rarity, not by how long a badge takes.
+ *
+ * Measured across the 158 listeners who have ever swiped: roughly a third
+ * hold the first rung of a ladder, a tenth the second, a twenty-fifth the
+ * third, and the last sits above anything anyone has reached. Only two
+ * badges are deliberately easy — the first save and two full listens — and
+ * they exist so the system proves it is real inside the first session.
+ *
  * Calibrated against what listeners actually do, not what sounds impressive.
  * The heaviest listener on record has eighteen minutes and sixty-four saves,
  * and the median is seven swipes, so the first rungs are deliberately small:
@@ -212,26 +220,26 @@ export type Badge = {
 export const BADGES: Badge[] = [
   // The first-minute win. Everything else depends on this one landing early.
   { id: "first-save", name: "First Keep", note: "Saved your first track", stat: "saves", need: 1 },
-  { id: "five-saves", name: "Picking Favourites", note: "Saved five tracks", stat: "saves", need: 5 },
+  { id: "five-saves", name: "Picking Favourites", note: "Saved eighteen tracks", stat: "saves", need: 18 },
   // The save ladder stops here on purpose. Saves are what the chart ranks and
   // what the A&R data is worth, and a badge for fifty of them would be paying
   // people to swipe right without listening.
 
-  { id: "heard-out", name: "Heard It Out", note: "Listened to one clip all the way through", stat: "fullListens", need: 1 },
-  { id: "full-five", name: "Patient Ear", note: "Five full listens", stat: "fullListens", need: 5 },
-  { id: "full-fifteen", name: "Nothing Skipped", note: "Fifteen full listens", stat: "fullListens", need: 15 },
+  { id: "heard-out", name: "Heard It Out", note: "Heard two clips all the way through", stat: "fullListens", need: 2 },
+  { id: "full-five", name: "Patient Ear", note: "Eight full listens", stat: "fullListens", need: 8 },
+  { id: "full-fifteen", name: "Nothing Skipped", note: "Twenty-five full listens", stat: "fullListens", need: 25 },
 
   // Earned only on a full listen, so being early still means having heard it.
   { id: "first-find", name: "Found It First", note: "First person to hear a track out and keep it", stat: "firstFinds", need: 1 },
-  { id: "find-five", name: "Early Ear", note: "First to find five tracks", stat: "firstFinds", need: 5 },
-  { id: "find-fifteen", name: "Tastemaker", note: "First to find fifteen tracks", stat: "firstFinds", need: 15 },
+  { id: "find-five", name: "Early Ear", note: "First to find three tracks", stat: "firstFinds", need: 3 },
+  { id: "find-fifteen", name: "Tastemaker", note: "First to find eight tracks", stat: "firstFinds", need: 8 },
 
-  { id: "genres-three", name: "Open Minded", note: "Saved from three genres", stat: "genres", need: 3 },
-  { id: "genres-six", name: "Wide Ears", note: "Saved from six genres", stat: "genres", need: 6 },
-  { id: "genres-ten", name: "No Lane", note: "Saved from ten genres", stat: "genres", need: 10 },
+  { id: "genres-three", name: "Open Minded", note: "Saved from seven genres", stat: "genres", need: 7 },
+  { id: "genres-six", name: "Wide Ears", note: "Saved from ten genres", stat: "genres", need: 10 },
+  { id: "genres-ten", name: "No Lane", note: "Saved from fifteen genres", stat: "genres", need: 15 },
 
-  { id: "minutes-five", name: "Five Minutes In", note: "Five minutes of listening", stat: "listenMinutes", need: 5 },
-  { id: "minutes-fifteen", name: "Quarter Hour", note: "Fifteen minutes of listening", stat: "listenMinutes", need: 15 },
+  { id: "minutes-five", name: "Seven Minutes In", note: "Seven minutes of listening", stat: "listenMinutes", need: 7 },
+  { id: "minutes-fifteen", name: "Quarter Hour", note: "Twelve minutes of listening", stat: "listenMinutes", need: 12 },
 
   // The only rungs that ask for a second visit, which is the real leak: four
   // listeners in five swipe on one day and never come back. Nine people have
@@ -241,22 +249,22 @@ export const BADGES: Badge[] = [
   { id: "streak-three", name: "Three in a Row", note: "Three days running", stat: "streak", need: 3 },
   { id: "streak-five", name: "Five in a Row", note: "Five days running", stat: "streak", need: 5 },
 
-  { id: "artists-five", name: "Five Names", note: "Kept something by five different artists", stat: "artists", need: 5 },
+  { id: "artists-five", name: "Eight Names", note: "Kept something by eight different artists", stat: "artists", need: 8 },
   { id: "artists-fifteen", name: "Fifteen Names", note: "Kept something by fifteen different artists", stat: "artists", need: 15 },
   { id: "artists-thirty", name: "Thirty Names", note: "Kept something by thirty different artists", stat: "artists", need: 30 },
 
-  { id: "day-one", name: "Day One", note: "Kept a track within a day of it landing", stat: "dayOne", need: 1 },
-  { id: "day-one-five", name: "On the Door", note: "Five tracks kept on their first day", stat: "dayOne", need: 5 },
-  { id: "day-one-twelve", name: "Always Early", note: "Twelve tracks kept on their first day", stat: "dayOne", need: 12 },
+  { id: "day-one", name: "Day One", note: "Kept five tracks on their first day", stat: "dayOne", need: 5 },
+  { id: "day-one-five", name: "On the Door", note: "Ten tracks kept on their first day", stat: "dayOne", need: 10 },
+  { id: "day-one-twelve", name: "Always Early", note: "Twenty tracks kept on their first day", stat: "dayOne", need: 20 },
 
   // Passing honestly is half of what makes the chart mean anything, and it is
   // the only half nothing else here rewards.
-  { id: "passes-25", name: "Fair Hearing", note: "Turned down twenty-five tracks", stat: "passes", need: 25 },
-  { id: "passes-100", name: "Hard to Please", note: "Turned down a hundred tracks", stat: "passes", need: 100 },
+  { id: "passes-25", name: "Fair Hearing", note: "Turned down fifty tracks", stat: "passes", need: 50 },
+  { id: "passes-100", name: "Hard to Please", note: "Turned down a hundred and fifty tracks", stat: "passes", need: 150 },
 
-  { id: "day-25", name: "Good Session", note: "Twenty-five swipes in one day", stat: "bestDay", need: 25 },
-  { id: "day-50", name: "Long Session", note: "Fifty swipes in one day", stat: "bestDay", need: 50 },
-  { id: "day-100", name: "Marathon", note: "A hundred swipes in one day", stat: "bestDay", need: 100 },
+  { id: "day-25", name: "Good Session", note: "Sixty-eight swipes in one day", stat: "bestDay", need: 68 },
+  { id: "day-50", name: "Long Session", note: "A hundred swipes in one day", stat: "bestDay", need: 100 },
+  { id: "day-100", name: "Marathon", note: "Two hundred swipes in one day", stat: "bestDay", need: 200 },
 
   // The one that can only arrive later. Nothing else here depends on what the
   // rest of the room does afterwards.
