@@ -8,20 +8,33 @@
 
 type IconProps = { className?: string };
 
-export function Crown({ className = "h-4 w-4" }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 18" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M1.6 4.2c.9 0 1.6.8 1.6 1.7 0 .5-.2 1-.6 1.3l2.2 4.1 3.5-6.1a1.7 1.7 0 0 1-.7-1.4c0-1 .7-1.8 1.6-1.8s1.6.8 1.6 1.8c0 .5-.2 1-.6 1.3L12 8l1.8-2.9a1.7 1.7 0 0 1-.6-1.3c0-1 .7-1.8 1.6-1.8s1.6.8 1.6 1.8c0 .6-.3 1.1-.7 1.4l3.5 6.1 2.2-4.1a1.7 1.7 0 0 1-.6-1.3c0-.9.7-1.7 1.6-1.7s1.6.8 1.6 1.7-.6 1.6-1.4 1.7L21 17H3L1.4 7.6C.6 7.5 0 6.9 0 6c0-1 .7-1.8 1.6-1.8Z" />
-    </svg>
-  );
-}
-
 /**
  * Vinyl record — the app's mark wherever an icon stands for MOTR itself.
  *
  * Replaced a crown, which said nothing about music and read as a badge or a
  * ranking. A record is unmistakable at any size and doesn't imply hierarchy.
  */
+/**
+ * The badge mark.
+ *
+ * A struck seal rather than a crown. A crown says someone was awarded
+ * something by somebody above them, which is the opposite of what these are:
+ * they are earned by listening, and nobody hands them out.
+ */
+export function Seal({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 2.4 20.3 7.2v9.6L12 21.6 3.7 16.8V7.2L12 2.4Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3.1" fill="currentColor" />
+    </svg>
+  );
+}
+
 export function Disc({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">

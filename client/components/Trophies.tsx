@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
-import { Crown, Check, Share } from "./icons";
+import { Check, Seal, Share } from "./icons";
 import type { Fan } from "@/lib/types";
 import { markBadgesSeen } from "@/lib/badgeNotices";
 
@@ -127,7 +127,7 @@ export default function Trophies({ fan }: { fan: Fan }) {
               {earned.map((b) => (
                 <li key={b.id} className="border-gold/30 bg-surface flex items-center gap-3 rounded-2xl border p-3">
                   <span className="bg-gold/15 text-gold flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-                    <Crown className="h-5 w-5" />
+                    <Seal className="h-5 w-5" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{b.name}</p>
@@ -160,7 +160,7 @@ export default function Trophies({ fan }: { fan: Fan }) {
               {locked.map((b) => (
                 <li key={b.id} className="border-edge bg-surface flex items-center gap-3 rounded-2xl border p-3 opacity-55">
                   <span className="bg-surface-2 text-muted flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
-                    <Crown className="h-5 w-5" />
+                    <Seal className="h-5 w-5" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{b.name}</p>

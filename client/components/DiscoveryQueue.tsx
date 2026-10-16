@@ -6,7 +6,7 @@ import SwipeCard from "./SwipeCard";
 import SponsoredCard from "./SponsoredCard";
 import SaveEmailPrompt, { savePromptDismissed } from "./SaveEmailPrompt";
 import GenrePicker from "./GenrePicker";
-import { Crown, Disc, Note } from "./icons";
+import { Disc, Note, Seal } from "./icons";
 import Equalizer from "./Equalizer";
 import type { Fan, Track } from "@/lib/types";
 import { bumpSavedCount, savedTotal } from "@/lib/savedCount";
@@ -292,7 +292,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
         <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-5 pt-4">
           <div className="border-gold bg-surface flex items-center gap-3 rounded-2xl border px-5 py-3 shadow-2xl">
             <span className="bg-gold/15 text-gold flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
-              <Crown className="h-5 w-5" />
+              <Seal className="h-5 w-5" />
             </span>
             <p className="text-sm">
               <span className="motr-label text-gold block">Badge unlocked</span>

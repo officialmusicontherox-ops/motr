@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
-import { Bookmark, Crown, Disc, Menu, Waveform } from "./icons";
+import { Bookmark, Disc, Menu, Seal, Waveform } from "./icons";
 import PullToRefresh from "./PullToRefresh";
 import SideRail from "./SideRail";
 import { useUnseenSaves } from "@/lib/savedCount";
@@ -30,7 +30,7 @@ const TABS = [
   { href: "/", label: "Discover", Icon: Disc },
   { href: "/saved", label: "Saved", Icon: Bookmark },
   { href: "/charts", label: "Charts", Icon: Waveform },
-  { href: "/badges", label: "Badges", Icon: Crown },
+  { href: "/badges", label: "Badges", Icon: Seal },
 ];
 
 /**
