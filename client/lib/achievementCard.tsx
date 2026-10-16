@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
 import { anton } from "./shareCard";
+import { APP_URL } from "./appUrl";
 import type { Badge } from "./achievements";
 
 /**
@@ -18,7 +19,7 @@ import type { Badge } from "./achievements";
  * anyone intends, so there is no name and no address, only what was earned.
  */
 
-export const ACHIEVEMENT_CARD_VERSION = "3";
+export const ACHIEVEMENT_CARD_VERSION = "4";
 
 const INK = "#09090a";
 const GOLD = "#dcb55f";
@@ -75,9 +76,17 @@ export async function renderAchievementCard(params: {
           fontFamily: display,
         }}
       >
-        <div style={{ display: "flex", color: GOLD, fontSize: og ? 24 : 32, letterSpacing: 10 }}>
-          MUSIC ON THE ROX
-        </div>
+        {/* The real mark, not the words. Its glow is baked into the pixels
+            rather than carried on an alpha channel, which is why it can only
+            go on something this dark — and this card is. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`${APP_URL}/motr-logo.png`}
+          width={og ? 240 : 400}
+          height={og ? 131 : 218}
+          alt="MOTR"
+          style={{ display: "block" }}
+        />
 
         <div
           style={{

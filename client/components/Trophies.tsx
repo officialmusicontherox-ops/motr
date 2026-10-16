@@ -148,14 +148,12 @@ export default function Trophies({ fan }: { fan: Fan }) {
                       is more than a phone row holds without truncating the
                       thing the badge is actually called. */}
                   <div className="mt-3 flex gap-2">
-                    {/* Opens the image and nothing else. A download
-                        attribute looks helpful and is not: on iOS it hands
-                        the picture to the Files app, which is not where
-                        anyone keeps a photo. Shown on screen, it can be held
-                        and saved or screenshotted, the way every other image
-                        on a phone works. */}
+                    {/* Opens the graphic on a black screen. Not the PNG
+                        itself: a phone is taller than 9:16, so the browser
+                        centres a bare image and shows white underneath, which
+                        lands in the screenshot. */}
                     <a
-                      href={`/api/achievement-card/${b.id}?shape=story&v=3`}
+                      href={`/b/${b.id}/photo`}
                       target="_blank"
                       rel="noreferrer"
                       aria-label={`Open the badge graphic for ${b.name}`}

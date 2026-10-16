@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
   const title = `Badge unlocked on MOTR: ${badge.name}`;
   const description = `${badge.note}. MOTR plays you thirty seconds of a track with the artist hidden. Keep it and you find out who made it.`;
-  const image = `${APP_URL}/api/achievement-card/${badge.id}?shape=og&v=3`;
+  const image = `${APP_URL}/api/achievement-card/${badge.id}?shape=og&v=4`;
 
   return {
     title,
