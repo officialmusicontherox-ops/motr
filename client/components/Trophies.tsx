@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
-import { Check, Download, Seal, Share } from "./icons";
+import { ArrowOut, Check, Seal, Share } from "./icons";
 import type { Fan } from "@/lib/types";
 import { markBadgesSeen } from "@/lib/badgeNotices";
 
@@ -80,8 +80,8 @@ export default function Trophies({ fan }: { fan: Fan }) {
         <h1 className="font-display text-3xl uppercase tracking-wide">Badges</h1>
         <p className="text-muted mt-1 text-sm">
           Earned by listening, not by saving everything. They count your whole history, including
-          everything from before this page existed. Save a badge's photo for your story, or copy its
-          link to paste anywhere.
+          everything from before this page existed. Open a badge to save or screenshot it for your
+          story, or copy its link to paste anywhere.
         </p>
 
         {data === null ? (
@@ -148,21 +148,21 @@ export default function Trophies({ fan }: { fan: Fan }) {
                       is more than a phone row holds without truncating the
                       thing the badge is actually called. */}
                   <div className="mt-3 flex gap-2">
-                    {/* A plain link rather than a script. The browser's own
-                        save is the one that works everywhere: Android and
-                        desktop download it, and iOS opens the image so it can
-                        be held and saved, which is what people do there
-                        anyway. The story shape is the one worth keeping. */}
+                    {/* Opens the image and nothing else. A download
+                        attribute looks helpful and is not: on iOS it hands
+                        the picture to the Files app, which is not where
+                        anyone keeps a photo. Shown on screen, it can be held
+                        and saved or screenshotted, the way every other image
+                        on a phone works. */}
                     <a
                       href={`/api/achievement-card/${b.id}?shape=story&v=3`}
-                      download={`motr-${b.id}.png`}
                       target="_blank"
                       rel="noreferrer"
-                      aria-label={`Save the photo for ${b.name}`}
+                      aria-label={`Open the badge graphic for ${b.name}`}
                       className="border-gold bg-gold/10 text-gold hover:bg-gold/20 flex flex-1 items-center justify-center gap-1.5 rounded-full border px-3 py-2 text-[0.65rem] font-semibold uppercase tracking-wider transition"
                     >
-                      <Download className="h-3.5 w-3.5" />
-                      Save photo
+                      <ArrowOut className="h-3.5 w-3.5" />
+                      Open badge
                     </a>
                     <button
                       onClick={() => copyLink(b)}
