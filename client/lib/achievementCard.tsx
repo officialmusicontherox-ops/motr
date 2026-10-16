@@ -138,6 +138,20 @@ export async function renderAchievementCard(params: {
         </div>
       </div>
     ),
-    { width: og ? 1200 : 1080, height: og ? 630 : 1920, fonts: font ? [{ name: "Anton", data: font, style: "normal", weight: 400 }] : [] }
+    {
+      width: og ? 1200 : 1080,
+      height: og ? 630 : 1920,
+      fonts: font ? [{ name: "Anton", data: font, style: "normal", weight: 400 }] : [],
+      headers: {
+        // Without this every scrape, preview refresh and view re-ran a
+        // database query, a font download and a PNG encode.
+        "cache-control": "public, max-age=3600, s-maxage=86400",
+        // Netlify keys its cache on the path plus a named list of query
+        // parameters, and nothing else. All three have to be here: leave out
+        // "badge" and the first badge anyone renders is served for every
+        // other badge from then on.
+        "netlify-vary": "query=badge|shape|v",
+      },
+    }
   );
 }
