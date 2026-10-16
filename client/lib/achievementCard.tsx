@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
 import { anton } from "./shareCard";
-import type { EarnedBadge } from "./achievements";
+import type { Badge } from "./achievements";
 
 /**
  * The graphic a listener posts when they earn something.
@@ -18,7 +18,7 @@ import type { EarnedBadge } from "./achievements";
  * anyone intends, so there is no name and no address, only what was earned.
  */
 
-export const ACHIEVEMENT_CARD_VERSION = "2";
+export const ACHIEVEMENT_CARD_VERSION = "3";
 
 const INK = "#09090a";
 const GOLD = "#dcb55f";
@@ -29,9 +29,7 @@ const SAFE_TOP = 270;
 const SAFE_BOTTOM = 384;
 
 export async function renderAchievementCard(params: {
-  badge: EarnedBadge;
-  /** Share of listeners holding it, for the line that makes it worth posting. */
-  heldBy?: number | null;
+  badge: Badge;
   /**
    * "story" is 1080x1920 for posting. "og" is 1200x630, the shape every
    * platform crops a pasted link to; a 9:16 image in that slot loses its
@@ -54,12 +52,6 @@ export async function renderAchievementCard(params: {
     ? name.length > 22 ? 56 : name.length > 15 ? 70 : 86
     : name.length > 22 ? 92 : name.length > 15 ? 116 : 142;
 
-  const rarity =
-    typeof params.heldBy === "number" && params.heldBy > 0
-      ? params.heldBy < 0.01
-        ? "EARNED BY THE TOP 1% OF LISTENERS"
-        : `EARNED BY ${Math.round(params.heldBy * 100)}% OF LISTENERS`
-      : null;
 
   return new ImageResponse(
     (
@@ -120,11 +112,6 @@ export async function renderAchievementCard(params: {
             {badge.note}
           </div>
 
-          {rarity && (
-            <div style={{ display: "flex", color: GOLD, fontSize: og ? 22 : 28, letterSpacing: 5, marginTop: og ? 20 : 40 }}>
-              {rarity}
-            </div>
-          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: og ? 20 : 28 }}>
@@ -147,10 +134,9 @@ export async function renderAchievementCard(params: {
         // database query, a font download and a PNG encode.
         "cache-control": "public, max-age=3600, s-maxage=86400",
         // Netlify keys its cache on the path plus a named list of query
-        // parameters, and nothing else. All three have to be here: leave out
-        // "badge" and the first badge anyone renders is served for every
-        // other badge from then on.
-        "netlify-vary": "query=badge|shape|v",
+        // parameters. The badge is part of the path now, so only the shape
+        // and the version need naming here.
+        "netlify-vary": "query=shape|v",
       },
     }
   );

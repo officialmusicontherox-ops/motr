@@ -56,7 +56,9 @@ export default function Trophies({ fan }: { fan: Fan }) {
    * MOTR is. Nothing to save, attach or upload.
    */
   async function copyLink(badge: Badge) {
-    const url = `${window.location.origin}/b/${fan.id}/${badge.id}`;
+    // No listener id in it. The link names the badge and nothing else, so
+    // posting one does not publish anything about the person posting it.
+    const url = `${window.location.origin}/b/${badge.id}`;
     try {
       await navigator.clipboard.writeText(url);
       setShared(badge.id);
