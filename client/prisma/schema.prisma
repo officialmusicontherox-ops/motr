@@ -622,6 +622,11 @@ model ErrorLog {
   firstSeen DateTime @default(now())
   lastSeen  DateTime @default(now())
 
+  /// When an email was last sent about this fault. Null means nobody has been
+  /// told. Repeats of something already reported do not send again, so one bad
+  /// afternoon cannot bury the next genuine problem.
+  alertedAt DateTime?
+
   @@index([resolved, lastSeen(sort: Desc)])
 }
 

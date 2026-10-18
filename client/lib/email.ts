@@ -998,6 +998,62 @@ export function submitMoreMusicEmail(params: {
   };
 }
 
+/**
+ * Tells the operator something broke, while it is breaking.
+ *
+ * Plain and short on purpose. This arrives on a phone, possibly at night,
+ * and the only questions that matter are what failed, where, and whether it
+ * is still happening. Everything else is a link away.
+ */
+export function errorAlertEmail(params: {
+  message: string;
+  source: string;
+  path?: string | null;
+  method?: string | null;
+  stack?: string | null;
+  count: number;
+  returning: boolean;
+}) {
+  const { message, source, path, method, count, returning } = params;
+  const where = path ? `${method ? `${method} ` : ""}${path}` : source;
+  const subject = returning
+    ? `MOTR error returned: ${message.slice(0, 80)}`
+    : `MOTR error: ${message.slice(0, 90)}`;
+
+  const stack = params.stack
+    ? `<pre style="margin:0;padding:12px;background:#f4f4f5;border-radius:8px;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;color:#333">${params.stack
+        .split("\n")
+        .slice(0, 6)
+        .join("\n")
+        .replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] as string)}</pre>`
+    : "";
+
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1f1f1f;max-width:560px">
+<p style="margin:0 0 6px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#b8860b">${
+    returning ? "Returned after being resolved" : "New error"
+  }</p>
+<p style="margin:0 0 16px;font-size:17px;font-weight:700">${message.slice(0, 300)}</p>
+<p style="margin:0 0 6px"><strong>Where:</strong> ${where}</p>
+<p style="margin:0 0 16px"><strong>Seen:</strong> ${count} ${count === 1 ? "time" : "times"}</p>
+${stack}
+<p style="margin:18px 0 0"><a href="${APP_URL}/admin" style="color:#b8860b;font-weight:700">Open the admin error log</a></p>
+<p style="margin:22px 0 0;font-size:12px;color:#777">One email per distinct fault. Repeats of something already reported do not send again.</p>
+</div>`;
+
+  const text = `${returning ? "RETURNED AFTER BEING RESOLVED" : "NEW ERROR"}
+
+${message.slice(0, 300)}
+
+Where: ${where}
+Seen:  ${count} ${count === 1 ? "time" : "times"}
+${params.stack ? `\n${params.stack.split("\n").slice(0, 6).join("\n")}\n` : ""}
+${APP_URL}/admin
+
+One email per distinct fault. Repeats of something already reported do not send again.`;
+
+  return { subject, html, text };
+}
+
 export async function sendEmail(
   to: string,
   template: { subject: string; html: string; attachments?: Attachment[] }

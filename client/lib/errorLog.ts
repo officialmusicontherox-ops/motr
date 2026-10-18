@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { prisma } from "./prisma";
+import { errorAlertEmail, sendEmail } from "./email";
 
 /**
  * Recording what went wrong, for the admin dashboard.
@@ -38,11 +39,77 @@ function fingerprintOf(r: ErrorReport): string {
   return crypto.createHash("sha1").update(stable).digest("hex");
 }
 
+/** Where alerts go. */
+const ALERT_TO = process.env.ALERT_EMAIL ?? process.env.EMAIL_REPLY_TO ?? null;
+
+/**
+ * No more than this many alert emails in an hour.
+ *
+ * A single bad deploy can produce a dozen distinct faults at once. The cap is
+ * the difference between being told and being buried, and anything held back
+ * is still sitting in the admin log.
+ */
+const MAX_ALERTS_PER_HOUR = 4;
+
+/**
+ * Emails the operator, but only about something they have not been told.
+ *
+ * Three rules, each there for a reason:
+ *  - A fault that has already sent an email does not send again, however many
+ *    times it recurs. One scanner hitting three paths six times each would
+ *    otherwise be eighteen emails.
+ *  - A fault marked resolved that comes back does send again, because that is
+ *    new information: the fix did not hold.
+ *  - Four an hour, at most.
+ *
+ * Failure here is swallowed like everything else in this file. An alert that
+ * cannot be sent must not take down the request that was already failing.
+ */
+async function maybeAlert(row: {
+  id: string;
+  message: string;
+  source: string;
+  path: string | null;
+  method: string | null;
+  stack: string | null;
+  count: number;
+  alertedAt: Date | null;
+}, returning: boolean): Promise<void> {
+  if (!ALERT_TO) return;
+  if (row.alertedAt && !returning) return;
+
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recent = await prisma.errorLog.count({ where: { alertedAt: { gte: hourAgo } } });
+  if (recent >= MAX_ALERTS_PER_HOUR) return;
+
+  const mail = errorAlertEmail({
+    message: row.message,
+    source: row.source,
+    path: row.path,
+    method: row.method,
+    stack: row.stack,
+    count: row.count,
+    returning,
+  });
+
+  // Stamped before sending, not after. If the send throws, a retry storm of
+  // alerts about a failing mailer is the last thing a broken app needs.
+  await prisma.errorLog.update({ where: { id: row.id }, data: { alertedAt: new Date() } });
+  await sendEmail(ALERT_TO, mail);
+}
+
 export async function logError(report: ErrorReport): Promise<void> {
   try {
     const fingerprint = fingerprintOf(report);
 
-    await prisma.errorLog.upsert({
+    // Read first, so we can tell a new fault from a repeat, and a repeat from
+    // something that was fixed and has come back. upsert alone cannot say.
+    const before = await prisma.errorLog.findUnique({
+      where: { fingerprint },
+      select: { id: true, resolved: true, alertedAt: true },
+    });
+
+    const row = await prisma.errorLog.upsert({
       where: { fingerprint },
       create: {
         fingerprint,
@@ -61,6 +128,16 @@ export async function logError(report: ErrorReport): Promise<void> {
         resolved: false,
       },
     });
+
+    // A fault nobody has been told about, or one that was fixed and is back.
+    const isNew = !before;
+    const returned = Boolean(before?.resolved);
+    if (isNew || returned) {
+      await maybeAlert(
+        { ...row, alertedAt: returned ? null : row.alertedAt },
+        returned
+      ).catch(() => {});
+    }
   } catch {
     // Deliberately silent — see the note at the top of this file.
   }
