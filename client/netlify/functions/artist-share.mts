@@ -19,4 +19,15 @@ export default async () => {
   console.log(`artist share pages: ${res.status} ${await res.text()}`);
 };
 
-export const config: Config = { schedule: "*/20 * * * *" };
+// Hourly, not every twenty minutes.
+//
+// Neon suspends the database when it is idle and bills for the time it is
+// awake, so what costs money is how often something wakes it, not how much
+// work it then does. A thousand runs had sent ninety-four cards, about eleven
+// runs for each one.
+//
+// The minute is shared with the other schedules on purpose: three crons on
+// the same minute wake the database once between them, where three on
+// different minutes wake it three times. The cost of this is that a card can
+// now take up to an hour instead of twenty minutes.
+export const config: Config = { schedule: "7 * * * *" };

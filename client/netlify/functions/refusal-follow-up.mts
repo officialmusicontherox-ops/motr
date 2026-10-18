@@ -22,4 +22,14 @@ export default async () => {
   console.log(`refusal follow-up: ${res.status} ${await res.text()}`);
 };
 
-export const config: Config = { schedule: "*/5 * * * *" };
+// Every three hours, not every five minutes.
+//
+// This had run 21,312 times to deal with 68 refusals, roughly 313 runs for
+// each one, and at one run every five minutes it alone kept the database
+// awake around the clock: Neon suspends after five minutes idle, so nothing
+// on a five-minute schedule ever lets it sleep.
+//
+// Refusals arrive about once a day. Help arriving within a few hours rather
+// than within five minutes is a fair trade for a database that is asleep most
+// of the time, and the minute matches artist-share so they share a wake.
+export const config: Config = { schedule: "7 */3 * * *" };

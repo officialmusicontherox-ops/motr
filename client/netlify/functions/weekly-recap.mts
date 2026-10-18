@@ -21,4 +21,6 @@ export default async () => {
   console.log(`weekly recap: ${res.status} ${await res.text()}`);
 };
 
-export const config: Config = { schedule: "0 * * * 0" };
+// Still hourly on Sundays, but on the same minute as the other schedules so
+// it wakes the database alongside them rather than on its own.
+export const config: Config = { schedule: "7 * * * 0" };
