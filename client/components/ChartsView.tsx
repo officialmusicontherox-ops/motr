@@ -28,7 +28,7 @@ type Charts = {
 type Range = "week" | "month";
 type Board = "songs" | "artists";
 
-/** Often enough to feel live, rarely enough not to matter on the bill. */
+/** Often enough to feel live, and only while someone is watching. */
 const POLL_MS = 60_000;
 
 /**
@@ -64,10 +64,39 @@ export default function ChartsView() {
     }
   }, [range]);
 
+  /**
+   * Polls only while the page is actually being looked at.
+   *
+   * The interval used to run whatever the tab was doing, so one chart left
+   * open in a background tab queried the database every minute for as long as
+   * the tab existed. Neon suspends after five minutes idle and bills for the
+   * time it is awake, which made a forgotten tab a standing charge.
+   *
+   * Nothing is lost by stopping: useRefreshOnReturn below already refetches
+   * when the app comes back after a real absence, which is the moment the
+   * numbers matter again.
+   */
   useEffect(() => {
     load();
-    const timer = setInterval(load, POLL_MS);
-    return () => clearInterval(timer);
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (!timer) timer = setInterval(load, POLL_MS);
+    };
+    const stop = () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+    const onVisibility = () =>
+      document.visibilityState === "visible" ? start() : stop();
+
+    onVisibility();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [load]);
 
   useRefreshOnReturn(load);
