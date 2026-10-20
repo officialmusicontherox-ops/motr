@@ -33,9 +33,14 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Everything except the API, Next's own assets and the files at the root
-  // that crawlers ask for. The API is excluded because that is where every
-  // real POST in this app goes.
+  // that crawlers ask for.
+  //
+  // "api/" with the slash, not "api". Excluding the bare word also excluded
+  // the path "/api", which is not a route at all: Next rendered a 404 page
+  // for it and threw rendering that, which is the error this file exists to
+  // stop. "/api/..." still passes straight through, because that is where
+  // every real POST in this app goes.
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.webmanifest).*)",
+    "/((?!api/|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.webmanifest).*)",
   ],
 };
