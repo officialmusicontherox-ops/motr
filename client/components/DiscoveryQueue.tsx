@@ -68,6 +68,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   /** The track just kept, named while the next one loads. */
   /** A badge just earned, shown on its own timer rather than inside the gap. */
   const [unlocked, setUnlocked] = useState<string | null>(null);
+  /** Set when a swipe did not reach the server, so the card can be tried again. */
+  const [swipeFailed, setSwipeFailed] = useState(false);
   const [justSaved, setJustSaved] = useState<{
     title: string;
     artistName: string;
@@ -162,57 +164,78 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
   async function handleSwipe(direction: "LEFT" | "RIGHT", listenMs: number) {
     if (!track) return;
+    setSwipeFailed(false);
     // Set before the request, not after it. The gap this fills is the request
     // itself, and a reveal that waits for the server to answer would arrive
     // after the thing it was meant to fill.
     setJustSaved(direction === "RIGHT" ? { title: track.title, artistName: track.artistName } : null);
     setPending(true);
 
-    const res = await fetch("/api/discover/swipe", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ fanId: fan.id, trackId: track.id, direction, listenMs }),
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (direction === "RIGHT") {
-        bumpSavedCount();
-        // Arrives a beat after the name, during the fetch for the next
-        // track, so it reads as the result of the save settling rather
-        // than as something the feed was waiting on.
-        const note = saveMoment({
-          position: data.track?.fanRightSwipes ?? 0,
-          listenMs,
-          createdAt: data.track?.createdAt ?? null,
-          savedTotal: savedTotal(),
-        });
-        setJustSaved((prev) => (prev ? { ...prev, note } : prev));
-
-        // Deliberately not awaited. It runs alongside the fetch for the next
-        // track, so the notice lands inside a gap that already exists rather
-        // than adding one, and a failure here never holds up a swipe.
-        void fetch(`/api/fans/achievements?fanId=${fan.id}`)
-          .then((r) => (r.ok ? r.json() : null))
-          .then((a) => {
-            if (!a?.badges) return;
-            const earned = a.badges.filter((b: { earned: boolean }) => b.earned);
-            const fresh = newlyEarned(earned.map((b: { id: string }) => b.id));
-            if (!fresh.length) return;
-            const name = earned.find((b: { id: string }) => b.id === fresh[0])?.name;
-            if (name) setUnlocked(name);
-          })
-          .catch(() => {});
-        setSavedCount((c) => {
-          const next = c + 1;
-          // The moment they have something worth keeping. Not on arrival,
-          // when they have heard nothing and owe us no address.
-          if (next === 1 && !fan.hasEmail && !savePromptDismissed()) setAskEmail(true);
-          return next;
-        });
-      }
-      if (data.feeNowRequested) setBreakout(track.title);
+    /**
+     * A swipe that does not reach the server must not advance the feed.
+     *
+     * fetch rejects outright when the connection drops mid-request, which on
+     * a phone is ordinary. The throw used to escape this function, so
+     * setPending(false) never ran and the card stayed on screen disabled for
+     * ever: the feed looked frozen and reloading was the only way out. A
+     * server error was quieter and worse — the feed moved on and the verdict
+     * was lost without anyone knowing.
+     *
+     * Either way the track was not recorded, so the card stays and they can
+     * swipe it again.
+     */
+    let data: { track?: { fanRightSwipes?: number; createdAt?: string }; feeNowRequested?: boolean } | null = null;
+    try {
+      const res = await fetch("/api/discover/swipe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ fanId: fan.id, trackId: track.id, direction, listenMs }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      data = await res.json();
+    } catch {
+      setJustSaved(null);
+      setPending(false);
+      setSwipeFailed(true);
+      return;
     }
+
+    if (direction === "RIGHT") {
+      bumpSavedCount();
+      // Arrives a beat after the name, during the fetch for the next
+      // track, so it reads as the result of the save settling rather
+      // than as something the feed was waiting on.
+      const note = saveMoment({
+        position: data?.track?.fanRightSwipes ?? 0,
+        listenMs,
+        createdAt: data?.track?.createdAt ?? null,
+        savedTotal: savedTotal(),
+      });
+      setJustSaved((prev) => (prev ? { ...prev, note } : prev));
+
+      // Deliberately not awaited. It runs alongside the fetch for the next
+      // track, so the notice lands inside a gap that already exists rather
+      // than adding one, and a failure here never holds up a swipe.
+      void fetch(`/api/fans/achievements?fanId=${fan.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((a) => {
+          if (!a?.badges) return;
+          const earned = a.badges.filter((b: { earned: boolean }) => b.earned);
+          const fresh = newlyEarned(earned.map((b: { id: string }) => b.id));
+          if (!fresh.length) return;
+          const name = earned.find((b: { id: string }) => b.id === fresh[0])?.name;
+          if (name) setUnlocked(name);
+        })
+        .catch(() => {});
+      setSavedCount((c) => {
+        const next = c + 1;
+        // The moment they have something worth keeping. Not on arrival,
+        // when they have heard nothing and owe us no address.
+        if (next === 1 && !fan.hasEmail && !savePromptDismissed()) setAskEmail(true);
+        return next;
+      });
+    }
+    if (data?.feeNowRequested) setBreakout(track.title);
 
     swipesSinceAd.current += 1;
     const adDue =
@@ -275,6 +298,20 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
       {/* A track clearing the fan vote is the whole point of the app —
           give it a moment rather than a quiet toast. */}
+      {/* Says the verdict did not save, because the card staying put looks
+          identical to the card being stuck. Not a toast: it has to still be
+          there when they look down, not three seconds later. */}
+      {swipeFailed && (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-5 pt-4">
+          <div className="border-nope/50 bg-surface flex items-center gap-3 rounded-2xl border px-5 py-3 shadow-2xl">
+            <p className="text-sm">
+              <span className="motr-label text-nope block">Not saved</span>
+              <span className="text-muted">That didn&apos;t reach us. Swipe it again.</span>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* The whole screen edge, for the moment it happens. */}
       {unlocked && (
         <div
