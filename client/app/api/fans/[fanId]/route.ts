@@ -22,17 +22,37 @@ export async function GET(
 
   const fan = await prisma.fan.findUnique({
     where: { id: fanId },
-    select: { id: true, username: true, displayName: true, spotifyId: true, email: true },
+    select: {
+      id: true, username: true, displayName: true, spotifyId: true, email: true,
+      sessionBoundAt: true,
+    },
   });
 
   if (!fan) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Issued here as well as on creation, so the listeners who already had an
-  // id in localStorage before this existed keep their saves. It is the last
-  // place an id is accepted from the client; everything else reads the cookie.
-  await createFanSession(fan.id);
+  /**
+   * The one place an id is still accepted from a client, and only once.
+   *
+   * Listeners who had an id in localStorage before sessions existed have to
+   * be able to get back to their saves, so the first time an id is presented
+   * it is exchanged for a cookie. After that the exchange is closed: the same
+   * id offered again gets the fan's public details and no session, so knowing
+   * an id is no longer enough to read anybody's listening history.
+   *
+   * The owner wins this race in practice. Their next visit binds them, and
+   * ids are no longer emitted anywhere an attacker could read one.
+   */
+  if (!fan.sessionBoundAt) {
+    // Bound first. If two requests arrive together only one can be the first
+    // to clear this, and the loser gets no session.
+    const claimed = await prisma.fan.updateMany({
+      where: { id: fan.id, sessionBoundAt: null },
+      data: { sessionBoundAt: new Date() },
+    });
+    if (claimed.count === 1) await createFanSession(fan.id);
+  }
 
   // Don't leak tokens to the client — only whether they're connected.
   return NextResponse.json({

@@ -494,6 +494,11 @@ model Fan {
   lastNudgeAt DateTime?
   nudgeCount  Int       @default(0)
 
+  /// When this id was exchanged for a session cookie. The exchange happens
+  /// once: the owner's next visit binds them, and the same id offered after
+  /// that gets nothing, so knowing an id stops being enough.
+  sessionBoundAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
