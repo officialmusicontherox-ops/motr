@@ -90,7 +90,6 @@ export default function FanGate({
       window.history.replaceState({}, "", window.location.pathname);
     }
 
-    // Coming back from the Spotify callback with our id.
 
     // Both providers now say only that it worked. The id comes from the session
     // rather than the address bar, so it never lands in browser history.
