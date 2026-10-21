@@ -31,8 +31,30 @@ export type ThrottleResult =
  * carries the original and its first entry is the client.
  */
 export function clientIp(req: NextRequest): string {
+  /**
+   * The last entry, not the first.
+   *
+   * x-forwarded-for is built left to right as a request crosses proxies, so
+   * the leftmost value is whatever the caller put there and the rightmost is
+   * what our own edge appended. Reading the first entry meant anyone could
+   * name their own address: a forged header was recorded verbatim, which
+   * made every limit keyed on it meaningless. The fan-creation gate is the
+   * one that mattered, because it exists to stop listeners being
+   * manufactured to inflate saves.
+   *
+   * Taking the last entry is right whether the edge appends to the header or
+   * replaces it, which is why it is preferred over trusting a platform
+   * header name from memory.
+   */
+  const nf = req.headers.get("x-nf-client-connection-ip");
+  if (nf) return nf.trim();
+
   const fwd = req.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
+  if (fwd) {
+    const hops = fwd.split(",").map((h) => h.trim()).filter(Boolean);
+    if (hops.length) return hops[hops.length - 1];
+  }
+
   return req.headers.get("x-real-ip") ?? "unknown";
 }
 
