@@ -34,6 +34,7 @@ async function fetchNextTrack(
   if (!allowAi) q.set("ai", "0");
   if (startWith) q.set("track", startWith);
   const res = await fetch(`/api/discover/next?${q}`);
+  if (!res.ok) throw new Error(String(res.status));
   return res.json();
 }
 
@@ -70,6 +71,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [unlocked, setUnlocked] = useState<string | null>(null);
   /** Set when a swipe did not reach the server, so the card can be tried again. */
   const [swipeFailed, setSwipeFailed] = useState(false);
+  /** Set when the next track could not be loaded, so the spinner is not forever. */
+  const [loadFailed, setLoadFailed] = useState(false);
   const [justSaved, setJustSaved] = useState<{
     title: string;
     artistName: string;
@@ -126,13 +129,22 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     const startWith = sharedRef.current;
     sharedRef.current = null;
 
-    fetchNextTrack(fan.id, genre, allowAi, startWith).then((res) => {
-      if (ignore) return;
-      setTrack(res.track);
-      setExhausted(
-        res.genreExhausted ? { othersAvailable: res.othersAvailable ?? 0 } : null
-      );
-    });
+    setLoadFailed(false);
+    fetchNextTrack(fan.id, genre, allowAi, startWith)
+      .then((res) => {
+        if (ignore) return;
+        setTrack(res.track);
+        setExhausted(
+          res.genreExhausted ? { othersAvailable: res.othersAvailable ?? 0 } : null
+        );
+      })
+      // Without this a dropped connection left the rejection unhandled and,
+      // worse, setTrack was never called: track stayed undefined and the
+      // spinner ran for ever. The feed looked like it was still loading when
+      // nothing was coming.
+      .catch(() => {
+        if (!ignore) setLoadFailed(true);
+      });
     return () => {
       ignore = true;
     };
@@ -358,7 +370,24 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
         </div>
       )}
 
-      {track === undefined && (
+      {/* A way out of a failed load. The spinner alone said "still coming"
+          when nothing was, and the only escape was reloading the app. */}
+      {loadFailed && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+          <p className="font-semibold">That didn&apos;t load</p>
+          <p className="text-muted max-w-xs text-sm">
+            Check your connection and try again. Nothing you have saved is lost.
+          </p>
+          <button
+            onClick={() => setRefreshKey((k) => k + 1)}
+            className="border-gold text-gold hover:bg-gold/10 rounded-full border px-6 py-2.5 text-sm font-semibold uppercase tracking-wider transition"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loadFailed && track === undefined && (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
           <Equalizer className="text-gold/30 h-10 w-10 " />
           {/* Uses time that was already being spent. Fetching the next track

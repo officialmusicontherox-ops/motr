@@ -66,7 +66,12 @@ function audio(): AudioContext | null {
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
     ctx ??= new Ctor();
-    if (ctx.state === "suspended") void ctx.resume();
+    // resume() returns a promise, and a rejected promise is not caught by
+    // the try/catch around it: that only sees synchronous throws. Chrome
+    // rejects this when it refuses to start the context, which surfaced as
+    // "Unhandled rejection: undefined" from a listener swiping on desktop.
+    // Nothing useful can be done about a refusal, but it must not escape.
+    if (ctx.state === "suspended") void ctx.resume().catch(() => {});
     return ctx;
   } catch {
     return null;
