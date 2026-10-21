@@ -9,7 +9,6 @@ import crypto from "crypto";
  *
  */
 export async function GET(req: NextRequest) {
-  const mergeFanId = req.nextUrl.searchParams.get("merge") ?? "";
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     return NextResponse.redirect(
@@ -39,7 +38,6 @@ export async function GET(req: NextRequest) {
     path: "/",
     maxAge: 600,
   };
-    if (mergeFanId) res.cookies.set("google_oauth_merge", mergeFanId, cookieOpts);
   res.cookies.set("google_oauth_state", state, {
     httpOnly: true,
     sameSite: "lax",

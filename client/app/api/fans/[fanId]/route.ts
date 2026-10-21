@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createFanSession } from "@/lib/fanAuth";
+import { createFanSession, getFanSession } from "@/lib/fanAuth";
 import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 /** je•••t@gmail.com — recognisable to its owner, useless to anyone else. */
@@ -87,7 +87,20 @@ export async function PATCH(
     return tooManyRequests(gate.retryAfterSeconds, "Too many attempts. Try again shortly.");
   }
 
-  const { fanId } = await params;
+  /**
+   * The listener this attaches to is the one holding the session, never the
+   * one named in the path.
+   *
+   * Taking it from the URL was an account takeover: attach your own address
+   * to somebody else's listener id, then sign in with Google, which resolves
+   * an account by email, and their saves and badges are yours. Knowing an id
+   * was enough to do it.
+   */
+  const fanId = await getFanSession();
+  if (!fanId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 

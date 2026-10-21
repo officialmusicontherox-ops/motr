@@ -195,7 +195,8 @@ export default function FanGate({
             where someone opts into it for library saves and a failure is
             explained rather than fatal. */}
         <a
-          href={`/api/auth/google/login?as=fan${anonId ? `&merge=${anonId}` : ""}`}
+          // No merge parameter: the server reads the anonymous session itself.
+          href="/api/auth/google/login?as=fan"
           className="flex items-center justify-center gap-2.5 rounded-full bg-white px-5 py-3.5 font-bold text-neutral-900 transition hover:brightness-95"
         >
           <GoogleMark className="h-5 w-5" />

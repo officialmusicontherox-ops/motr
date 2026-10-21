@@ -1,7 +1,7 @@
 import { APP_URL } from "@/lib/appUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { fanSessionCookie } from "@/lib/fanAuth";
+import { fanSessionCookie, getFanSession } from "@/lib/fanAuth";
 
 /**
  * Google returns here after a listener signs in. We trade the code for an ID
@@ -17,13 +17,24 @@ export async function GET(req: NextRequest) {
   const googleError = req.nextUrl.searchParams.get("error");
   const cookieState = req.cookies.get("google_oauth_state")?.value;
 
-  const mergeFanId = req.cookies.get("google_oauth_merge")?.value;
+  /**
+   * Whose anonymous history to absorb: the session this browser already
+   * holds, never a value handed in.
+   *
+   * It used to come from ?merge= on the sign-in link, round-tripped through
+   * a cookie. Anyone who knew an anonymous listener's id could name it,
+   * sign in as themselves, and walk off with that listener's entire swipe
+   * history. The account was then deleted, so there was nothing to go back
+   * to, and the listeners it applied to are exactly the ones with no email
+   * and no way to recover.
+   */
+  const mergeFanId = (await getFanSession()) ?? undefined;
 
   const back = (params: string) => {
     const res = NextResponse.redirect(
       new URL(`/?${params}`, APP_URL)
     );
-    for (const c of ["google_oauth_state", "google_oauth_as", "google_oauth_merge"]) {
+    for (const c of ["google_oauth_state", "google_oauth_as"]) {
       res.cookies.set(c, "", { path: "/", maxAge: 0 });
     }
     return res;

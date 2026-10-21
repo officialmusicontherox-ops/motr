@@ -70,16 +70,11 @@ export function fanSessionCookie(fanId: string): {
 }
 
 export async function createFanSession(fanId: string): Promise<void> {
-  const expiresAt = Date.now() + SESSION_TTL_MS;
-  const payload = `${fanId}.${expiresAt}`;
+  // Built in one place, so the two ways of issuing this cannot drift into
+  // signing differently or expiring differently.
+  const { name, value, options } = fanSessionCookie(fanId);
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, `${payload}.${sign(payload)}`, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_TTL_MS / 1000,
-  });
+  cookieStore.set(name, value, options);
 }
 
 export async function clearFanSession(): Promise<void> {
