@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { leadersBetween, weeklyLeaders } from "@/lib/scoutData";
-import { weekOf } from "@/lib/weekWindow";
+import { selectableWeeks, weekFromKey, weekKey } from "@/lib/weekWindow";
 
 /**
  * The public charts: what listeners backed hardest, over a week or a month.
@@ -26,7 +26,13 @@ export async function GET(req: NextRequest) {
   // The month stays rolling: a calendar month would be nearly empty on the
   // 1st, and nobody is being told their monthly position.
   const month = req.nextUrl.searchParams.get("range") === "month";
-  const week = weekOf();
+
+  // Any past week can be asked for by its Sunday. Nothing is stored for it:
+  // a week's standings are the swipes inside that window, so looking back is
+  // the same query with different dates. An unknown or future key falls back
+  // to the week in progress rather than erroring, because a stale bookmark
+  // should still show a chart.
+  const week = weekFromKey(req.nextUrl.searchParams.get("week"));
   const weekly = month ? await weeklyLeaders(30) : await leadersBetween(week.start, week.end);
 
   return NextResponse.json(
@@ -51,6 +57,9 @@ export async function GET(req: NextRequest) {
       // What the heading should say above the list.
       label: month ? "Last 30 days" : week.label,
       range: month ? "month" : "week",
+      week: weekKey(week),
+      // Offered to the picker, newest first, so a reader can look back.
+      weeks: month ? [] : selectableWeeks(),
     },
     { headers: { "cache-control": "no-store" } }
   );

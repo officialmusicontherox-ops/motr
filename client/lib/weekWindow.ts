@@ -126,6 +126,47 @@ export function weekOf(at: Date = new Date()): Week {
 }
 
 /** The most recent week that has finished. */
+/**
+ * The first week the archive offers.
+ *
+ * The chart itself begins on 1 November, but the weeks before it still have
+ * real standings and are worth being able to look back at. Fixed rather than
+ * rolling, so the list grows by one each Sunday instead of a week quietly
+ * dropping off the end.
+ */
+export const ARCHIVE_START = new Date(Date.UTC(2026, 9, 18)); // Sunday 18 October 2026
+
+/**
+ * Every week from the archive's start up to the one in progress, newest
+ * first. The key is the Sunday as YYYY-MM-DD, which is what a request names.
+ */
+export function selectableWeeks(at: Date = new Date()): { key: string; label: string; shortLabel: string }[] {
+  const out: { key: string; label: string; shortLabel: string }[] = [];
+  let w = weekOf(at);
+  // Guarded rather than while(true): a bad clock should not spin forever.
+  for (let i = 0; i < 520 && w.start >= ARCHIVE_START; i++) {
+    out.push({ key: weekKey(w), label: w.label, shortLabel: w.shortLabel });
+    w = weekOf(new Date(w.start.getTime() - 1));
+  }
+  return out;
+}
+
+/** The Sunday of a week, as YYYY-MM-DD in the chart's own zone. */
+export function weekKey(w: Week): string {
+  const { year, month, day } = localDate(w.start);
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+/** The week a key names, or the current one if it names nothing valid. */
+export function weekFromKey(key: string | null, at: Date = new Date()): Week {
+  if (!key || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return weekOf(at);
+  const [y, m, d] = key.split("-").map(Number);
+  const asked = weekOf(zonedMidnight(y, m, d));
+  // Nothing before the archive and nothing in the future.
+  if (asked.start < ARCHIVE_START || asked.start > weekOf(at).start) return weekOf(at);
+  return asked;
+}
+
 export function lastCompleteWeek(at: Date = new Date()): Week {
   const current = weekOf(at);
   return weekOf(new Date(current.start.getTime() - 1));

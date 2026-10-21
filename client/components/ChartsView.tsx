@@ -23,6 +23,10 @@ type Charts = {
   /** "October 4 - October 10", or "Last 30 days". */
   label: string;
   range: Range;
+  /** The Sunday of the week being shown, as YYYY-MM-DD. */
+  week?: string;
+  /** Weeks that can be looked back at, newest first. */
+  weeks?: { key: string; label: string; shortLabel: string }[];
 };
 
 type Range = "week" | "month";
@@ -45,12 +49,17 @@ const POLL_MS = 60_000;
 export default function ChartsView() {
   const [data, setData] = useState<Charts | null>(null);
   const [range, setRange] = useState<Range>("week");
+  /** Which week is being looked at. Empty means the one in progress. */
+  const [week, setWeek] = useState<string>("");
   const [board, setBoard] = useState<Board>("songs");
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/charts?range=${range}`, { cache: "no-store" });
+      const res = await fetch(
+        `/api/charts?range=${range}${range === "week" && week ? `&week=${week}` : ""}`,
+        { cache: "no-store" }
+      );
       if (!res.ok) throw new Error();
       setData(await res.json());
       setFailed(false);
@@ -62,7 +71,7 @@ export default function ChartsView() {
         return current;
       });
     }
-  }, [range]);
+  }, [range, week]);
 
   /**
    * Polls only while the page is actually being looked at.
@@ -88,8 +97,9 @@ export default function ChartsView() {
         timer = null;
       }
     };
+    const live = range === "month" || !week || week === data?.week;
     const onVisibility = () =>
-      document.visibilityState === "visible" ? start() : stop();
+      document.visibilityState === "visible" && live ? start() : stop();
 
     onVisibility();
     document.addEventListener("visibilitychange", onVisibility);
@@ -97,7 +107,7 @@ export default function ChartsView() {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [load]);
+  }, [load, range, week, data?.week]);
 
   useRefreshOnReturn(load);
 
@@ -111,6 +121,32 @@ export default function ChartsView() {
           </p>
         </header>
 
+        {/* Which week. Only on the weekly view, since "last 30 days" has no
+            weeks to pick between. Shown even while there is one, so it is
+            visibly there and fills up as the weeks pass. */}
+        {range === "week" && (data?.weeks?.length ?? 0) > 0 && (
+          <div className="mb-3 flex justify-center">
+            <label className="sr-only" htmlFor="chart-week">
+              Which week
+            </label>
+            <select
+              id="chart-week"
+              value={week || data?.week || ""}
+              onChange={(e) => {
+                setWeek(e.target.value);
+                setData(null);
+              }}
+              className="border-edge bg-surface text-ink focus:border-gold rounded-full border px-4 py-1.5 text-sm font-semibold outline-none transition"
+            >
+              {(data?.weeks ?? []).map((w, i) => (
+                <option key={w.key} value={w.key}>
+                  {i === 0 ? `This week (${w.label})` : w.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="mb-3 flex justify-center gap-2">
           {(
             [
@@ -120,7 +156,10 @@ export default function ChartsView() {
           ).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setRange(key)}
+              onClick={() => {
+                setRange(key);
+                if (key === "month") setWeek("");
+              }}
               className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition ${
                 range === key
                   ? "border-gold bg-gold/10 text-gold"
