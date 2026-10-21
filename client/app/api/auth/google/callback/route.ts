@@ -71,7 +71,10 @@ export async function GET(req: NextRequest) {
   // which is exactly why it was worth removing rather than leaving.
   const fan = await signInFan(email, payload.name, mergeFanId);
   await createFanSession(fan.id);
-  return back(`fan=${fan.id}`);
+  // Deliberately not `fan=<id>`. That put the id in browser history and in
+  // the referrer of everything the page went on to load. The session is in
+  // the cookie; the page asks /api/fans/me who it is.
+  return back("signedin=1");
 }
 
 async function signInFan(email: string, name: string | undefined, mergeFanId?: string) {

@@ -97,14 +97,24 @@ export default function FanGate({
       window.history.replaceState({}, "", window.location.pathname);
     }
 
-    // The callback sends fans back with ?fan= for Google too.
-    const fromGoogle = params.get("fan");
-    if (fromGoogle) {
-      localStorage.setItem(STORAGE_KEY, fromGoogle);
+    // Google sign-in says only that it worked. The id comes from the session
+    // rather than the address bar, so it never lands in browser history.
+    if (params.get("signedin")) {
       window.history.replaceState({}, "", window.location.pathname);
+      fetch("/api/fans/me")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!data?.fan) return;
+          localStorage.setItem(STORAGE_KEY, data.fan.id);
+          setAnonId(data.fan.id);
+          setFan(data.fan);
+        })
+        .catch(() => {})
+        .finally(() => setChecked(true));
+      return;
     }
 
-    const savedId = fromSpotify ?? fromGoogle ?? localStorage.getItem(STORAGE_KEY);
+    const savedId = fromSpotify ?? localStorage.getItem(STORAGE_KEY);
     if (!savedId) {
       // Arriving from an artist's share link means they've already chosen to
       // listen. Making them pick an account first is friction at the worst
