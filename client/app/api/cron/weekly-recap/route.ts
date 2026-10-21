@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cronSecretOk } from "@/lib/cronAuth";
 import { sendWeeklyRecaps } from "@/lib/weeklyRecap";
 
 /**
@@ -12,7 +13,7 @@ import { sendWeeklyRecaps } from "@/lib/weeklyRecap";
 export async function POST(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return NextResponse.json({ error: "CRON_SECRET is not set" }, { status: 503 });
-  if (req.headers.get("x-cron-secret") !== secret) {
+  if (!cronSecretOk(req.headers.get("x-cron-secret"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

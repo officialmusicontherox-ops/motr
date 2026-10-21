@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cronSecretOk } from "@/lib/cronAuth";
 import { sendRefusalFollowUps } from "@/lib/refusalFollowUp";
 
 /**
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (!secret) {
     return NextResponse.json({ error: "CRON_SECRET is not set" }, { status: 503 });
   }
-  if (req.headers.get("x-cron-secret") !== secret) {
+  if (!cronSecretOk(req.headers.get("x-cron-secret"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
