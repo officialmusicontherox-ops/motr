@@ -34,6 +34,41 @@ function sign(payload: string): string {
   return crypto.createHmac("sha256", `fan:${secret()}`).update(payload).digest("hex");
 }
 
+/**
+ * The cookie as a value, for callers that build their own response.
+ *
+ * A redirect route constructs its own NextResponse, and the OAuth routes
+ * here have always set their cookies on that object rather than through
+ * next/headers. Rather than bet that a cookies() mutation carries onto a
+ * separately built response, the sign-in callbacks set this directly, the
+ * same way they already set their state cookies.
+ */
+export function fanSessionCookie(fanId: string): {
+  name: string;
+  value: string;
+  options: {
+    httpOnly: boolean;
+    sameSite: "lax";
+    secure: boolean;
+    path: string;
+    maxAge: number;
+  };
+} {
+  const expiresAt = Date.now() + SESSION_TTL_MS;
+  const payload = `${fanId}.${expiresAt}`;
+  return {
+    name: COOKIE_NAME,
+    value: `${payload}.${sign(payload)}`,
+    options: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: SESSION_TTL_MS / 1000,
+    },
+  };
+}
+
 export async function createFanSession(fanId: string): Promise<void> {
   const expiresAt = Date.now() + SESSION_TTL_MS;
   const payload = `${fanId}.${expiresAt}`;

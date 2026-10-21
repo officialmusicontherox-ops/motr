@@ -1,7 +1,7 @@
 import { APP_URL } from "@/lib/appUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createFanSession } from "@/lib/fanAuth";
+import { fanSessionCookie } from "@/lib/fanAuth";
 
 /**
  * Google returns here after a listener signs in. We trade the code for an ID
@@ -70,11 +70,16 @@ export async function GET(req: NextRequest) {
   // ended. Nothing linked to it and nothing could have used it for anything,
   // which is exactly why it was worth removing rather than leaving.
   const fan = await signInFan(email, payload.name, mergeFanId);
-  await createFanSession(fan.id);
   // Deliberately not `fan=<id>`. That put the id in browser history and in
   // the referrer of everything the page went on to load. The session is in
   // the cookie; the page asks /api/fans/me who it is.
-  return back("signedin=1");
+  // Set on the response itself, like the state cookies above it. A redirect
+  // builds its own response, and that is the pattern these routes already
+  // rely on.
+  const res = back("signedin=1");
+  const session = fanSessionCookie(fan.id);
+  res.cookies.set(session.name, session.value, session.options);
+  return res;
 }
 
 async function signInFan(email: string, name: string | undefined, mergeFanId?: string) {
