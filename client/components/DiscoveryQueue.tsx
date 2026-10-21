@@ -24,12 +24,12 @@ type FeedResponse = {
 };
 
 async function fetchNextTrack(
-  fanId: string,
   genre: string | null,
   allowAi: boolean,
   startWith?: string | null
 ): Promise<FeedResponse> {
-  const q = new URLSearchParams({ fanId });
+  // No fan id: the server reads the session cookie.
+  const q = new URLSearchParams();
   if (genre) q.set("genre", genre);
   if (!allowAi) q.set("ai", "0");
   if (startWith) q.set("track", startWith);
@@ -130,7 +130,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     sharedRef.current = null;
 
     setLoadFailed(false);
-    fetchNextTrack(fan.id, genre, allowAi, startWith)
+    fetchNextTrack(genre, allowAi, startWith)
       .then((res) => {
         if (ignore) return;
         setTrack(res.track);
@@ -153,7 +153,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   // Refreshed alongside the feed so the per-genre counts stay honest as the
   // fan swipes through them.
   useEffect(() => {
-    fetch(`/api/discover/genres?fanId=${fan.id}`)
+    fetch(`/api/discover/genres`)
       .then((r) => r.json())
       .then((d) => setGenreCounts(d.counts))
       .catch(() => {});
@@ -201,7 +201,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       const res = await fetch("/api/discover/swipe", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fanId: fan.id, trackId: track.id, direction, listenMs }),
+        body: JSON.stringify({ trackId: track.id, direction, listenMs }),
       });
       if (!res.ok) throw new Error(String(res.status));
       data = await res.json();

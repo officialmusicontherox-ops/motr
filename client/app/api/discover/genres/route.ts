@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getFanSession } from "@/lib/fanAuth";
 
 /**
  * How many unheard tracks this fan has left in each genre.
@@ -10,7 +11,8 @@ import { prisma } from "@/lib/prisma";
  * empty feed.
  */
 export async function GET(req: NextRequest) {
-  const fanId = req.nextUrl.searchParams.get("fanId");
+  // From the session, so the feed cannot be asked about somebody else.
+  const fanId = await getFanSession();
   if (!fanId) {
     return NextResponse.json({ error: "fanId query param is required" }, { status: 400 });
   }

@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AlreadySwipedError, recordFanSwipe } from "@/lib/discovery";
 import { readGeo } from "@/lib/geo";
+import { getFanSession } from "@/lib/fanAuth";
 
 export async function POST(req: NextRequest) {
-  const { fanId, trackId, direction, listenMs } = await req.json();
+  // The swiper is whoever holds the session, not whoever the body names.
+  // Being told meant a verdict could be recorded against another listener,
+  // which lands in their history and in the chart.
+  const fanId = await getFanSession();
+  if (!fanId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const { trackId, direction, listenMs } = await req.json();
 
   if (!fanId || !trackId || (direction !== "LEFT" && direction !== "RIGHT")) {
     return NextResponse.json(
