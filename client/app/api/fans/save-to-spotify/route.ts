@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SpotifyUserError, saveTrackToSpotify } from "@/lib/spotifyUser";
+import { getFanSession } from "@/lib/fanAuth";
 
 export async function POST(req: NextRequest) {
-  const { fanId, trackId } = await req.json().catch(() => ({}));
-  if (!fanId || !trackId) {
-    return NextResponse.json({ error: "fanId and trackId are required" }, { status: 400 });
+  // From the cookie. This writes into the listener's own Spotify library
+  // using their stored tokens, so being told whose library to write to was
+  // the wrong shape entirely.
+  const fanId = await getFanSession();
+  if (!fanId) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+
+  const { trackId } = await req.json().catch(() => ({}));
+  if (!trackId) {
+    return NextResponse.json({ error: "trackId is required" }, { status: 400 });
   }
 
   try {

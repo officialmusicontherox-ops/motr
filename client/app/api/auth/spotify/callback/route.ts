@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createFanSession } from "@/lib/fanAuth";
 import { prisma } from "@/lib/prisma";
 import { canonicalOrigin, spotifyRedirectUri } from "@/lib/spotifyAuth";
 
@@ -110,9 +111,11 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Hand the id to the client, which stores it the same way the anonymous
-  // path does. (Real session cookies are the follow-up here.)
-  const res = NextResponse.redirect(new URL(`/?fan=${fan.id}`, canonicalOrigin(req)));
+  // The session goes in a cookie and the id stays out of the address. It
+  // used to be handed back as /?fan=<id>, which put it in browser history
+  // and in the referrer of everything the page then loaded.
+  await createFanSession(fan.id);
+  const res = NextResponse.redirect(new URL(`/?signedin=1`, canonicalOrigin(req)));
   res.cookies.delete("spotify_oauth_state");
   return res;
 }
