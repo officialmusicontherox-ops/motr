@@ -91,8 +91,11 @@ export default function MotrMenu({
     };
   }, [open, onClose]);
 
-  function signOut() {
+  async function signOut() {
     setSigningOut(true);
+    // The session is an httpOnly cookie, so only the server can end it.
+    // Clearing localStorage alone left it alive for whoever came next.
+    await fetch("/api/fans/signout", { method: "POST" }).catch(() => {});
     localStorage.removeItem("md_fan_id");
     localStorage.removeItem("md_curator_id");
     // A full document load, and to a *different* URL than the one we may

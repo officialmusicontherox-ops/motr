@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       if (taken) continue;
       const fan = await prisma.fan.create({ data: { username } });
       await createFanSession(fan.id);
-    return NextResponse.json({ fan, alreadyExisted: false }, { status: 201 });
+      return NextResponse.json({ fan, alreadyExisted: false }, { status: 201 });
     }
     return NextResponse.json({ error: "Could not start a session" }, { status: 500 });
   }
