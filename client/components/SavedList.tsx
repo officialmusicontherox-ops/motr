@@ -31,7 +31,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
   const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/fans/saved?fanId=${fan.id}`)
+    fetch(`/api/fans/saved`)
       .then((r) => r.json())
       .then((d) => {
         const list = d.saved ?? [];
@@ -48,7 +48,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
   }, [fan.id]);
 
   useRefreshOnReturn(() => {
-    fetch(`/api/fans/saved?fanId=${fan.id}`)
+    fetch(`/api/fans/saved`)
       .then((r) => r.json())
       .then((d) => {
         const list = d.saved ?? [];
@@ -66,7 +66,8 @@ export default function SavedList({ fan }: { fan: Fan }) {
    * clearing a library is not the same as changing your mind.
    */
   async function remove(trackId?: string) {
-    const body = trackId ? { fanId: fan.id, trackId } : { fanId: fan.id, all: true };
+    // No fan id: the server reads it from the session cookie.
+    const body = trackId ? { trackId } : { all: true };
     setRemoving(trackId ?? "all");
     // Stop any clip that is playing from outliving the row it belongs to.
     document.querySelectorAll("audio").forEach((a) => (a as HTMLAudioElement).pause());

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createFanSession } from "@/lib/fanAuth";
 import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 /** je•••t@gmail.com — recognisable to its owner, useless to anyone else. */
@@ -27,6 +28,11 @@ export async function GET(
   if (!fan) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  // Issued here as well as on creation, so the listeners who already had an
+  // id in localStorage before this existed keep their saves. It is the last
+  // place an id is accepted from the client; everything else reads the cookie.
+  await createFanSession(fan.id);
 
   // Don't leak tokens to the client — only whether they're connected.
   return NextResponse.json({

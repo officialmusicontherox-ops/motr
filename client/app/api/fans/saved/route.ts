@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { spotifyLinkFor } from "@/lib/spotifyLink";
+import { getFanSession } from "@/lib/fanAuth";
 
 // Everything a fan swiped right on and has not removed, newest first.
-export async function GET(req: NextRequest) {
-  const fanId = req.nextUrl.searchParams.get("fanId");
+export async function GET() {
+  // From the cookie, never from the query string. A fan id is not a secret:
+  // it has travelled in sign-in redirects, in browser history and in logs.
+  // Reading it from the caller meant anyone who had seen one could read that
+  // person's listening history.
+  const fanId = await getFanSession();
   if (!fanId) {
-    return NextResponse.json({ error: "fanId query param is required" }, { status: 400 });
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
   const swipes = await prisma.fanSwipe.findMany({
@@ -52,11 +57,12 @@ export async function GET(req: NextRequest) {
  * a removed track does not come back round in the feed to be swiped twice.
  */
 export async function PATCH(req: NextRequest) {
-  const { fanId, trackId, all } = await req.json().catch(() => ({}) as Record<string, unknown>);
-
-  if (typeof fanId !== "string" || !fanId) {
-    return NextResponse.json({ error: "fanId is required" }, { status: 400 });
+  const fanId = await getFanSession();
+  if (!fanId) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
+  const { trackId, all } = await req.json().catch(() => ({}) as Record<string, unknown>);
+
   if (all !== true && (typeof trackId !== "string" || !trackId)) {
     return NextResponse.json({ error: "trackId is required unless all is true" }, { status: 400 });
   }

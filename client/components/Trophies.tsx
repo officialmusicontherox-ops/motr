@@ -35,7 +35,7 @@ export default function Trophies({ fan }: { fan: Fan }) {
   const [shared, setShared] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/fans/achievements?fanId=${fan.id}`)
+    fetch(`/api/fans/achievements`)
       .then((r) => r.json())
       .then((d) => {
         setData(d);

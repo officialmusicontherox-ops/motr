@@ -1,6 +1,7 @@
 import { APP_URL } from "@/lib/appUrl";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createFanSession } from "@/lib/fanAuth";
 
 /**
  * Google returns here after a listener signs in. We trade the code for an ID
@@ -69,6 +70,7 @@ export async function GET(req: NextRequest) {
   // ended. Nothing linked to it and nothing could have used it for anything,
   // which is exactly why it was worth removing rather than leaving.
   const fan = await signInFan(email, payload.name, mergeFanId);
+  await createFanSession(fan.id);
   return back(`fan=${fan.id}`);
 }
 

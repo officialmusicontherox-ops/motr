@@ -228,7 +228,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       // Deliberately not awaited. It runs alongside the fetch for the next
       // track, so the notice lands inside a gap that already exists rather
       // than adding one, and a failure here never holds up a swipe.
-      void fetch(`/api/fans/achievements?fanId=${fan.id}`)
+      void fetch(`/api/fans/achievements`)
         .then((r) => (r.ok ? r.json() : null))
         .then((a) => {
           if (!a?.badges) return;

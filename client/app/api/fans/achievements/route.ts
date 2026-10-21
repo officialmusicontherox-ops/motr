@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { badgeRarity, evaluate, fanStats } from "@/lib/achievements";
+import { getFanSession } from "@/lib/fanAuth";
 
 /**
  * What a listener has earned, and what they are closest to.
@@ -8,10 +9,11 @@ import { badgeRarity, evaluate, fanStats } from "@/lib/achievements";
  * retuned threshold takes effect immediately and nothing can drift out of
  * step with the swipes it was derived from.
  */
-export async function GET(req: NextRequest) {
-  const fanId = req.nextUrl.searchParams.get("fanId");
+export async function GET() {
+  // The cookie, not the caller. See the note in /api/fans/saved.
+  const fanId = await getFanSession();
   if (!fanId) {
-    return NextResponse.json({ error: "fanId query param is required" }, { status: 400 });
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
 
   const [stats, rarity] = await Promise.all([fanStats(fanId), badgeRarity()]);

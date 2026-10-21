@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { createFanSession } from "@/lib/fanAuth";
 import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 
 // Lightweight fan identity — username only, no password. Fans need an
@@ -28,7 +29,8 @@ export async function POST(req: NextRequest) {
       const taken = await prisma.fan.findUnique({ where: { username } });
       if (taken) continue;
       const fan = await prisma.fan.create({ data: { username } });
-      return NextResponse.json({ fan, alreadyExisted: false }, { status: 201 });
+      await createFanSession(fan.id);
+    return NextResponse.json({ fan, alreadyExisted: false }, { status: 201 });
     }
     return NextResponse.json({ error: "Could not start a session" }, { status: 500 });
   }
@@ -44,7 +46,8 @@ export async function POST(req: NextRequest) {
   }
 
   const fan = await prisma.fan.create({ data: { username } });
-  return NextResponse.json({ fan, alreadyExisted: false }, { status: 201 });
+  await createFanSession(fan.id);
+    return NextResponse.json({ fan, alreadyExisted: false }, { status: 201 });
 }
 
 // There is deliberately no GET here.
