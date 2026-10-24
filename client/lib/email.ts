@@ -916,9 +916,11 @@ export function whatMotrIsEmail(params: { unsubscribeUrl: string }) {
 export function weeklyChartEmail(params: {
   songs: { title: string; artistName: string }[];
   artists: { name: string }[];
+  /** "October 18 - October 24", so a forwarded copy still says which week. */
+  weekLabel: string;
   unsubscribeUrl: string;
 }) {
-  const { songs, artists, unsubscribeUrl } = params;
+  const { songs, artists, weekLabel, unsubscribeUrl } = params;
 
   const rows = (items: string[]) =>
     items
@@ -936,7 +938,8 @@ export function weeklyChartEmail(params: {
     html:
       shell(
         "This week's charts",
-        `<p style="margin:0 0 16px">Here's where the last seven days landed. Every position was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
+        `<p style="margin:0 0 4px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${weekLabel.toUpperCase()}</p>
+         <p style="margin:0 0 16px">Here's where this week landed. Every position was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
          ${
            artists.length > 0
              ? `<p style="margin:0 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP ARTISTS</p>${rows(artists.map((a) => a.name))}`
@@ -950,6 +953,9 @@ export function weeklyChartEmail(params: {
          <p style="margin:18px 0 0"><strong style="color:#fff">Want your favorite higher next week?</strong> Play their track and swipe right. That is the only thing that moves this list, and a listener who hears the full thirty seconds counts double.</p>`,
         { label: "Open the charts", url: `${APP_URL}/charts` }
       ) +
+      `<p style="max-width:520px;margin:14px auto 0;text-align:center">
+         <a href="${APP_URL}" style="color:#dcb55f;font-weight:700;text-decoration:none">app.musicontherox.com</a>
+       </p>` +
       `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
          <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> from these weekly emails.
        </p>`,

@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { CHART_START } from "./weekWindow";
 import { weeklyLeaders } from "./scoutData";
+import { weekOf } from "./weekWindow";
 import { unsubscribeUrl, artistUnsubscribeUrl } from "./nudges";
 import { sendEmail, weeklyChartEmail } from "./email";
 
@@ -132,6 +133,7 @@ export async function sendWeeklyChart(appUrl: string): Promise<WeeklyChartResult
       weeklyChartEmail({
         songs,
         artists,
+        weekLabel: weekOf().label,
         unsubscribeUrl: person.unsubscribe,
       })
     );
