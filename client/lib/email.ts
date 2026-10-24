@@ -940,7 +940,7 @@ export function weeklyChartEmail(params: {
       shell(
         "This week's charts",
         `<p style="margin:0 0 4px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${weekLabel.toUpperCase()}</p>
-         <p style="margin:0 0 16px">Here's where this week landed. Every position was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
+         <p style="margin:0 0 16px">Here's where we are at for the week so far. The week runs through Saturday at 11:59 pm, so these positions can still move. Every one of them was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
          ${
            artists.length > 0
              ? `<p style="margin:0 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP ARTISTS</p>${rows(artists.map((a) => a.name))}`
@@ -951,7 +951,7 @@ export function weeklyChartEmail(params: {
              ? `<p style="margin:16px 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP SONGS</p>${rows(songs.map((t) => `${t.title} <span style="color:#8b8b8b">${t.artistName}</span>`))}`
              : ""
          }
-         <p style="margin:18px 0 0"><strong style="color:#fff">Want your favorite higher next week?</strong> Play their track and swipe right. That is the only thing that moves this list, and a listener who hears the full thirty seconds counts double.</p>`,
+         <p style="margin:18px 0 0"><strong style="color:#fff">Want your favorite higher before Saturday?</strong> Play their track and swipe right. That is the only thing that moves this list, and a listener who hears the full thirty seconds counts double.</p>`,
         { label: "Open the charts", url: `${APP_URL}/charts` }
       ) +
       `<p style="max-width:520px;margin:14px auto 0;text-align:center">

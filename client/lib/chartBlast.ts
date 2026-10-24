@@ -31,15 +31,33 @@ export async function sentToday() {
   return prisma.chartBlastSend.findUnique({ where: { sentOn: today() } });
 }
 
-export type ChartBlastResult = {
-  recipients: number;
+export type ChartBlastProgress = {
+  /** Addresses in the snapshot. Fixed once the send starts. */
+  total: number;
+  /** How many have been reached, successes and failures together. */
+  cursor: number;
   sent: number;
   failed: number;
+  done: boolean;
+  /** Set when nothing was sent and nothing will be, with the reason. */
   skipped?: string;
   weekLabel: string;
   songs: number;
   artists: number;
 };
+
+/**
+ * How much one request does.
+ *
+ * The function that serves this has about ten seconds before Netlify kills
+ * it, so a mailing of any size cannot be made in one. The browser asks
+ * repeatedly instead, and each request stops on whichever of these comes
+ * first, leaving the rest for the next one.
+ */
+const BATCH_MAX = 10;
+const BATCH_BUDGET_MS = 4500;
+/** Under Resend's two-a-second ceiling, the same as every other batch here. */
+const PACE_MS = 550;
 
 type Recipient = { email: string; name: string; unsubscribe: string };
 
@@ -95,6 +113,22 @@ async function thisWeek() {
   };
 }
 
+/** What a day's claim carries, so each batch mails exactly what the first one would have. */
+type Queue = {
+  songs: { title: string; artistName: string }[];
+  artists: { name: string }[];
+  people: Recipient[];
+};
+
+function clockTime(at: Date) {
+  return at.toLocaleString("en-US", {
+    timeZone: CHART_TZ,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 /** Who it would reach and what it would say. Sends nothing. */
 export async function previewChartBlast(appUrl: string) {
   const [{ week, songs, artists }, people, already] = await Promise.all([
@@ -108,83 +142,171 @@ export async function previewChartBlast(appUrl: string) {
     songs,
     artists,
     // So the button can say so before it is pressed, rather than after.
-    alreadySentToday: already
-      ? already.sentAt.toLocaleString("en-US", { timeZone: CHART_TZ, hour: "numeric", minute: "2-digit", hour12: true })
-      : null,
+    alreadySentToday: already?.doneAt ? clockTime(already.doneAt) : null,
+    // A send that stopped partway, so the button can offer to finish it
+    // instead of looking like the day is spent.
+    unfinished:
+      already && !already.doneAt
+        ? { cursor: already.cursor, total: already.recipients, sent: already.sent }
+        : null,
   };
 }
 
-export async function sendChartBlast(appUrl: string): Promise<ChartBlastResult> {
+/**
+ * Send one batch of this week's charts, and say how far along the send is.
+ *
+ * Called repeatedly by the dashboard until `done`. The first call claims the
+ * day and snapshots what is being sent; each later one picks up at the cursor
+ * the last one left. Nothing is sent twice: the cursor advances past an
+ * address whether its send succeeded or failed, because a second attempt at
+ * a bad address is worth less than the risk of a duplicate at a good one.
+ */
+export async function sendChartBlast(appUrl: string): Promise<ChartBlastProgress> {
+  const day = today();
+  let row = await prisma.chartBlastSend.findUnique({ where: { sentOn: day } });
+
+  if (row?.doneAt) {
+    return {
+      total: row.recipients,
+      cursor: row.cursor,
+      sent: row.sent,
+      failed: row.failed,
+      done: true,
+      skipped: `This week's charts already went out today at ${clockTime(row.doneAt)}. One batch a day.`,
+      weekLabel: row.weekLabel,
+      songs: 0,
+      artists: 0,
+    };
+  }
+
   const { week, songs, artists } = await thisWeek();
 
-  /**
-   * One batch a day, and the day is claimed before anything is sent.
-   *
-   * A unique row per day rather than a check on the clock: two presses
-   * arriving together would both pass a read-then-write, and the second
-   * mailing cannot be recalled. Whoever inserts the row sends; the other is
-   * told it has already gone.
-   */
-  const day = today();
+  if (!row) {
+    // Everything is checked before the day is claimed, so a week with nothing
+    // in it cannot use up the one send available today.
+    if (songs.length === 0 && artists.length === 0) {
+      return {
+        total: 0,
+        cursor: 0,
+        sent: 0,
+        failed: 0,
+        done: true,
+        skipped: "Nothing has been played this week yet, so there is no chart to send.",
+        weekLabel: week.label,
+        songs: 0,
+        artists: 0,
+      };
+    }
+
+    const people = await recipients(appUrl);
+    if (people.length === 0) {
+      return {
+        total: 0,
+        cursor: 0,
+        sent: 0,
+        failed: 0,
+        done: true,
+        skipped: "Nobody has an address to send to.",
+        weekLabel: week.label,
+        songs: songs.length,
+        artists: artists.length,
+      };
+    }
+
+    /**
+     * One batch a day, and the day is claimed before anything is sent.
+     *
+     * A unique row per day rather than a check on the clock: two presses
+     * arriving together would both pass a read-then-write, and the second
+     * mailing cannot be recalled. Whoever inserts the row owns the send.
+     */
+    const queue: Queue = { songs, artists, people };
+    try {
+      row = await prisma.chartBlastSend.create({
+        data: {
+          sentOn: day,
+          weekLabel: week.label,
+          recipients: people.length,
+          queue: JSON.stringify(queue),
+        },
+      });
+    } catch {
+      row = await prisma.chartBlastSend.findUnique({ where: { sentOn: day } });
+      if (!row) throw new Error("Could not claim today's send.");
+      if (row.doneAt) {
+        return {
+          total: row.recipients,
+          cursor: row.cursor,
+          sent: row.sent,
+          failed: row.failed,
+          done: true,
+          skipped: `This week's charts already went out today at ${clockTime(row.doneAt)}. One batch a day.`,
+          weekLabel: row.weekLabel,
+          songs: 0,
+          artists: 0,
+        };
+      }
+    }
+  }
+
+  // A claim made before the snapshot existed, or one that somehow lost it.
+  // Rebuilding is better than stranding the day: the cursor still says who
+  // has been reached, and the list is built the same way every time.
+  let queue: Queue | null = null;
   try {
-    await prisma.chartBlastSend.create({
-      data: { sentOn: day, weekLabel: week.label },
-    });
+    queue = row.queue ? (JSON.parse(row.queue) as Queue) : null;
   } catch {
-    const already = await prisma.chartBlastSend.findUnique({ where: { sentOn: day } });
-    const when = already?.sentAt
-      ? already.sentAt.toLocaleString("en-US", { timeZone: CHART_TZ, hour: "numeric", minute: "2-digit", hour12: true })
-      : "earlier";
-    return {
-      recipients: 0,
-      sent: 0,
-      failed: 0,
-      skipped: `This week's charts already went out today at ${when}. One batch a day.`,
-      weekLabel: week.label,
-      songs: 0,
-      artists: 0,
-    };
+    queue = null;
+  }
+  if (!queue) {
+    queue = { songs, artists, people: await recipients(appUrl) };
+    await prisma.chartBlastSend.update({
+      where: { id: row.id },
+      data: { queue: JSON.stringify(queue), recipients: queue.people.length },
+    });
   }
 
-  if (songs.length === 0 && artists.length === 0) {
-    // The day was claimed before this was known, so hand it back: a week with
-    // nothing in it must not use up the one send available today.
-    await prisma.chartBlastSend.delete({ where: { sentOn: day } }).catch(() => {});
-    return {
-      recipients: 0,
-      sent: 0,
-      failed: 0,
-      skipped: "Nothing has been played this week yet, so there is no chart to send.",
-      weekLabel: week.label,
-      songs: 0,
-      artists: 0,
-    };
-  }
+  const total = queue.people.length;
+  let cursor = row.cursor;
+  let sent = row.sent;
+  let failed = row.failed;
+  const startedAt = Date.now();
 
-  const people = await recipients(appUrl);
-  let sent = 0;
-  let failed = 0;
-
-  for (const person of people) {
+  while (cursor < total && cursor - row.cursor < BATCH_MAX) {
+    const person = queue.people[cursor];
     const result = await sendEmail(
       person.email,
-      weeklyChartEmail({ songs, artists, weekLabel: week.label, unsubscribeUrl: person.unsubscribe })
+      weeklyChartEmail({
+        songs: queue.songs,
+        artists: queue.artists,
+        weekLabel: row.weekLabel,
+        unsubscribeUrl: person.unsubscribe,
+      })
     );
     result.ok ? (sent += 1) : (failed += 1);
-    // Paced under Resend's limit, the same as every other batch here.
-    await new Promise((r) => setTimeout(r, 600));
+    cursor += 1;
+
+    // Stop on the budget rather than only on the count, so a slow batch
+    // still returns something the dashboard can record instead of being
+    // killed with the batch's work lost.
+    if (cursor >= total || Date.now() - startedAt > BATCH_BUDGET_MS) break;
+    await new Promise((r) => setTimeout(r, PACE_MS));
   }
 
-  await prisma.chartBlastSend
-    .update({ where: { sentOn: day }, data: { recipients: people.length, sent, failed } })
-    .catch(() => {});
+  const done = cursor >= total;
+  await prisma.chartBlastSend.update({
+    where: { id: row.id },
+    data: { cursor, sent, failed, doneAt: done ? new Date() : null },
+  });
 
   return {
-    recipients: people.length,
+    total,
+    cursor,
     sent,
     failed,
-    weekLabel: week.label,
-    songs: songs.length,
-    artists: artists.length,
+    done,
+    weekLabel: row.weekLabel,
+    songs: queue.songs.length,
+    artists: queue.artists.length,
   };
 }

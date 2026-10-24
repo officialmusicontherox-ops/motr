@@ -829,6 +829,20 @@ model ChartBlastSend {
   sent       Int      @default(0)
   failed     Int      @default(0)
   sentAt     DateTime @default(now())
+
+  /// How far down the queue the send has reached. The mailing is made in
+  /// batches because the function that sends it has about ten seconds, so
+  /// this is what lets the next batch pick up where the last one stopped.
+  cursor Int @default(0)
+
+  /// The chart and the address list as they stood when the day was claimed,
+  /// as JSON. Snapshotted so that every batch mails the same chart to the
+  /// same people, rather than re-reading a chart that moves under it.
+  queue String?
+
+  /// Set when the last address has been reached. Until then the send is
+  /// unfinished and pressing again resumes it; once set, the day is spent.
+  doneAt DateTime?
 }
 
 model WeeklyRecapSend {
