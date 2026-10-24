@@ -934,7 +934,8 @@ export function weeklyChartEmail(params: {
       .join("");
 
   return {
-    subject: artists.length > 0 ? `This week on MOTR: ${artists[0].name} at number one` : "This week on MOTR",
+    // Plain, and the same every week. Says what is inside and nothing else.
+    subject: "This Week's Charts",
     html:
       shell(
         "This week's charts",

@@ -6,6 +6,8 @@ import AdminSection from "./AdminSection";
 type Preview = {
   recipients: number;
   weekLabel: string;
+  /** Set when one already went out today, so the button says so up front. */
+  alreadySentToday?: string | null;
   songs: { title: string; artistName: string }[];
   artists: { name: string }[];
 };
@@ -67,11 +69,12 @@ export default function AdminChartBlast() {
   }
 
   const empty = preview !== null && preview.songs.length === 0 && preview.artists.length === 0;
+  const already = preview?.alreadySentToday ?? null;
 
   return (
     <AdminSection
       title="This week's charts"
-      description="Send the current week's top ten songs and artists to every listener and artist with an address. Can be sent at any point in the week."
+      description="Send the current week's top ten songs and artists to every listener and artist with an address. Can be sent at any point in the week, once a day."
     >
       <div className="flex flex-wrap items-center gap-2">
         <button
@@ -82,7 +85,7 @@ export default function AdminChartBlast() {
           {busy && !preview ? "Loading..." : "Preview"}
         </button>
 
-        {preview && !empty && !confirming && (
+        {preview && !empty && !already && !confirming && (
           <button
             onClick={() => setConfirming(true)}
             disabled={busy}
@@ -114,6 +117,12 @@ export default function AdminChartBlast() {
       </div>
 
       {error && <p className="text-nope mt-3 text-sm">{error}</p>}
+
+      {already && (
+        <p className="text-muted mt-3 text-sm">
+          Already sent today at {already}. One batch a day, so the next can go out tomorrow.
+        </p>
+      )}
 
       {empty && (
         <p className="text-muted mt-3 text-sm">

@@ -817,6 +817,20 @@ model ScoutLoginToken {
 /// who has already had which week, a retry after a partial failure mails
 /// everyone who succeeded a second time. The unique pair is what makes the
 /// job safe to run again.
+/// One row per on-demand chart send, keyed on the day it went out.
+model ChartBlastSend {
+  id String @id @default(cuid())
+
+  /// The calendar day in the chart's own zone, as YYYY-MM-DD. Unique, so a
+  /// second send on the same day cannot be inserted and therefore cannot run.
+  sentOn     String   @unique
+  weekLabel  String
+  recipients Int      @default(0)
+  sent       Int      @default(0)
+  failed     Int      @default(0)
+  sentAt     DateTime @default(now())
+}
+
 model WeeklyRecapSend {
   id        String   @id @default(cuid())
   artistId  String

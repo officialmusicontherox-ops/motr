@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { leadersBetween } from "./scoutData";
-import { weekOf } from "./weekWindow";
+import { weekOf, CHART_TZ } from "./weekWindow";
 import { sendEmail, weeklyChartEmail } from "./email";
 
 /**
@@ -14,6 +14,22 @@ import { sendEmail, weeklyChartEmail } from "./email";
  * weekOf rather than a rolling seven days, so what lands in an inbox matches
  * what the site says when somebody follows the link to check.
  */
+
+/** Today in the chart's own zone, as YYYY-MM-DD. The day is the guard. */
+function today(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: CHART_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  return parts; // en-CA formats as YYYY-MM-DD
+}
+
+/** The send already made today, if there was one. */
+export async function sentToday() {
+  return prisma.chartBlastSend.findUnique({ where: { sentOn: today() } });
+}
 
 export type ChartBlastResult = {
   recipients: number;
@@ -81,19 +97,59 @@ async function thisWeek() {
 
 /** Who it would reach and what it would say. Sends nothing. */
 export async function previewChartBlast(appUrl: string) {
-  const [{ week, songs, artists }, people] = await Promise.all([thisWeek(), recipients(appUrl)]);
+  const [{ week, songs, artists }, people, already] = await Promise.all([
+    thisWeek(),
+    recipients(appUrl),
+    sentToday(),
+  ]);
   return {
     recipients: people.length,
     weekLabel: week.label,
     songs,
     artists,
+    // So the button can say so before it is pressed, rather than after.
+    alreadySentToday: already
+      ? already.sentAt.toLocaleString("en-US", { timeZone: CHART_TZ, hour: "numeric", minute: "2-digit", hour12: true })
+      : null,
   };
 }
 
 export async function sendChartBlast(appUrl: string): Promise<ChartBlastResult> {
   const { week, songs, artists } = await thisWeek();
 
+  /**
+   * One batch a day, and the day is claimed before anything is sent.
+   *
+   * A unique row per day rather than a check on the clock: two presses
+   * arriving together would both pass a read-then-write, and the second
+   * mailing cannot be recalled. Whoever inserts the row sends; the other is
+   * told it has already gone.
+   */
+  const day = today();
+  try {
+    await prisma.chartBlastSend.create({
+      data: { sentOn: day, weekLabel: week.label },
+    });
+  } catch {
+    const already = await prisma.chartBlastSend.findUnique({ where: { sentOn: day } });
+    const when = already?.sentAt
+      ? already.sentAt.toLocaleString("en-US", { timeZone: CHART_TZ, hour: "numeric", minute: "2-digit", hour12: true })
+      : "earlier";
+    return {
+      recipients: 0,
+      sent: 0,
+      failed: 0,
+      skipped: `This week's charts already went out today at ${when}. One batch a day.`,
+      weekLabel: week.label,
+      songs: 0,
+      artists: 0,
+    };
+  }
+
   if (songs.length === 0 && artists.length === 0) {
+    // The day was claimed before this was known, so hand it back: a week with
+    // nothing in it must not use up the one send available today.
+    await prisma.chartBlastSend.delete({ where: { sentOn: day } }).catch(() => {});
     return {
       recipients: 0,
       sent: 0,
@@ -118,6 +174,10 @@ export async function sendChartBlast(appUrl: string): Promise<ChartBlastResult> 
     // Paced under Resend's limit, the same as every other batch here.
     await new Promise((r) => setTimeout(r, 600));
   }
+
+  await prisma.chartBlastSend
+    .update({ where: { sentOn: day }, data: { recipients: people.length, sent, failed } })
+    .catch(() => {});
 
   return {
     recipients: people.length,
