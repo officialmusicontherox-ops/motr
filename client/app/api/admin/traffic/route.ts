@@ -63,7 +63,9 @@ export async function GET() {
       }),
       prisma.visit.groupBy({
         by: ["referrer"],
-        where: { NOT: { referrer: null } },
+        // The null check plus the sign-in hosts, which were recorded as
+        // referrals before /api/visit learned to drop them.
+        where: { referrer: { not: null, notIn: ["accounts.google.com", "accounts.youtube.com"] } },
         _count: { referrer: true },
         orderBy: { _count: { referrer: "desc" } },
         take: 8,

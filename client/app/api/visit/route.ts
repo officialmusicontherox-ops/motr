@@ -15,6 +15,16 @@ import { prisma } from "@/lib/prisma";
 const COOKIE = "motr_v";
 const YEAR = 60 * 60 * 24 * 365;
 
+/**
+ * Hosts that are a step in our own sign-in, not a place traffic came from.
+ *
+ * Signing in with Google hands the browser back with accounts.google.com as
+ * the referrer, so every sign-in was being counted as a Google referral. It
+ * made search traffic look roughly twice its real size, and all sixteen of
+ * those browsers were already using the app.
+ */
+const OWN_FLOW = /^accounts\.(google|youtube)\.com$/;
+
 /** Crawlers would otherwise be most of the number and none of the answer. */
 const BOT =
   /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|preview|monitor|uptime|headless|lighthouse|pingdom|curl|wget|python-requests|axios|postman|semrush|ahrefs|mj12|dotbot|petal|bytespider|gptbot|claudebot|ccbot/i;
@@ -35,7 +45,7 @@ export async function POST(req: NextRequest) {
   if (typeof body.referrer === "string" && body.referrer) {
     try {
       const h = new URL(body.referrer).hostname;
-      if (!h.endsWith("musicontherox.com")) referrer = h.slice(0, 120);
+      if (!h.endsWith("musicontherox.com") && !OWN_FLOW.test(h)) referrer = h.slice(0, 120);
     } catch {
       // A referrer that will not parse tells us nothing; drop it.
     }
