@@ -837,7 +837,7 @@ export function artistSharePageEmail(params: {
 }) {
   const { name, tracks, attachments } = params;
   const first = tracks[0];
-  const more = tracks.length - 1;
+  const attached = attachments?.length ?? 0;
 
   // Named after their own song, and after the thing they are getting.
   //
@@ -848,23 +848,53 @@ export function artistSharePageEmail(params: {
     ? `"${first.title}" is ready to post`
     : "Your MOTR graphics are ready";
 
+  /**
+   * Every song they have submitted, each with its own graphic.
+   *
+   * One email per artist rather than one per song, so an artist with five
+   * tracks gets five graphics in one place instead of five emails. The
+   * images are loaded from the app rather than attached, which costs the
+   * email nothing in size: a card drawn over real cover art runs well over
+   * a megabyte, and the artist with seventeen tracks would otherwise get a
+   * mail no provider would accept.
+   */
+  const gallery = tracks
+    .map(
+      (t) => `<div style="margin:0 0 20px;text-align:center">
+                <img src="${APP_URL}/api/share-card/${t.id}?shape=post&v=${CARD_VERSION}" width="464" alt="Your MOTR graphic for ${t.title}" style="width:100%;max-width:464px;border-radius:14px;display:block;margin:0 auto" />
+                <p style="margin:6px 0 0;color:#8b8b8b;font-size:12px">${t.title}</p>
+              </div>`
+    )
+    .join("");
+
   return {
     subject,
     attachments,
     html: shell(
-      "Post this to your story",
+      "Post these to your story",
       `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
-       <p style="margin:0 0 18px">Your graphic is attached. Put it on your story and anyone who follows you can scan it and hear the track.</p>
+       <p style="margin:0 0 18px">${
+         tracks.length > 1
+           ? `Here is a graphic for all ${tracks.length} of your songs.`
+           : "Your graphic is ready."
+       } Put one on your story and anyone who follows you can scan it and hear the track.</p>
+       ${gallery}
        ${
-         first
-           ? `<div style="margin:0 0 18px;text-align:center">
-                <img src="${APP_URL}/api/share-card/${first.id}?shape=post&v=${CARD_VERSION}" width="464" alt="Your MOTR graphic for ${first.title}" style="width:100%;max-width:464px;border-radius:14px;display:block;margin:0 auto" />
-              </div>`
+         attached > 0
+           ? `<p style="margin:0 0 12px;color:#8b8b8b;font-size:13px">${
+               attached === 1
+                 ? "The first one is attached as a file, ready to save."
+                 : `The first ${attached} are attached as files, ready to save.`
+             }${
+               tracks.length > attached
+                 ? " Every one of them can be downloaded from your page."
+                 : ""
+             }</p>`
            : ""
        }
        <p style="margin:0 0 12px">On MOTR nobody sees your name while they listen. They get thirty seconds and decide on the song, then find out it was you once they have kept it.</p>
        <p style="margin:0">Your page has ${
-         more > 0 ? `all ${tracks.length} of your tracks` : "your track"
+         tracks.length > 1 ? `all ${tracks.length} of your tracks` : "your track"
        }, a graphic for each one, and how many people opened your link and kept the song.</p>`,
       { label: "Open your page", url: `${APP_URL}/artist` }
     ),

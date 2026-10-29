@@ -15,6 +15,7 @@ import AdminArtistShare from "./AdminArtistShare";
 import AdminChartWinners from "./AdminChartWinners";
 import AdminWeeklyChart from "./AdminWeeklyChart";
 import AdminChartBlast from "./AdminChartBlast";
+import AdminShareBlast from "./AdminShareBlast";
 import AdminScouts from "./AdminScouts";
 import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
@@ -220,6 +221,7 @@ export default function AdminDashboard({
  {view === "email" && (
  <>
  <AdminChartBlast />
+ <AdminShareBlast />
  <AdminArtistUpdates />
  <AdminArtistNudges />
  <AdminNudges />

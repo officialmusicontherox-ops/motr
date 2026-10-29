@@ -845,6 +845,29 @@ model ChartBlastSend {
   doneAt DateTime?
 }
 
+/// One mass send of the share cards per day, batched the same way the chart
+/// blast is: every email draws a card, so a request gets through only a few
+/// artists before it has to hand back.
+model ShareBlastSend {
+  id String @id @default(cuid())
+
+  /// The calendar day in the chart's own zone, as YYYY-MM-DD. Unique, so a
+  /// second mass send on the same day cannot be inserted.
+  sentOn     String   @unique
+  recipients Int      @default(0)
+  sent       Int      @default(0)
+  failed     Int      @default(0)
+
+  /// How far down the queue the send has reached.
+  cursor Int @default(0)
+
+  /// The artist list as it stood when the day was claimed, as JSON.
+  queue String?
+
+  sentAt DateTime  @default(now())
+  doneAt DateTime?
+}
+
 model WeeklyRecapSend {
   id        String   @id @default(cuid())
   artistId  String

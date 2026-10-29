@@ -73,9 +73,12 @@ export async function pendingSharePageArtists(): Promise<SharePageRecipient[]> {
 }
 
 /** Their story cards as files, ready to attach. */
-async function cardsFor(r: SharePageRecipient): Promise<Attachment[]> {
+export async function cardsFor(
+  r: SharePageRecipient,
+  max: number = MAX_CARDS
+): Promise<Attachment[]> {
   const out: Attachment[] = [];
-  for (const t of r.tracks.slice(0, MAX_CARDS)) {
+  for (const t of r.tracks.slice(0, max)) {
     try {
       const res = await renderShareCard({
         trackId: t.id,
