@@ -52,7 +52,25 @@ type Oembed = { title: string; thumbnail_url?: string };
  * artist's recording to someone's submission. The track page carries the
  * real credits in its meta tags.
  */
-export async function fetchSpotifyArtist(trackId: string): Promise<string | null> {
+/** What the submitted link itself says about the release. */
+export type SpotifyRelease = {
+  artist: string | null;
+  /** The album the linked recording sits on, when Spotify names one. */
+  album: string | null;
+  /** Four-digit year of that release. */
+  year: string | null;
+};
+
+/**
+ * Artist, album and year, from one read of the track page.
+ *
+ * All three come out of the same `og:description`, which Spotify writes as
+ * "Artist · Album · Song · 2026". Only the artist used to be taken from it.
+ * The other two are what tell apart two recordings of one song, which is the
+ * whole problem when an artist re-records something.
+ */
+export async function fetchSpotifyRelease(trackId: string): Promise<SpotifyRelease> {
+  const empty: SpotifyRelease = { artist: null, album: null, year: null };
   try {
     const res = await fetch(`https://open.spotify.com/track/${trackId}`, {
       headers: {
@@ -63,21 +81,37 @@ export async function fetchSpotifyArtist(trackId: string): Promise<string | null
         accept: "*/*",
       },
     });
-    if (!res.ok) return null;
+    if (!res.ok) return empty;
     const html = await res.text();
 
+    const desc = html.match(/<meta property="og:description" content="([^"]+)"/)?.[1];
+    const parts = desc ? desc.split("·").map((x) => decodeEntities(x.trim())) : [];
+
+    // The musician tag is the more reliable name where Spotify writes one,
+    // so it still wins for the artist. The description carries the rest.
     const musician = html.match(
       /<meta name="music:musician_description" content="([^"]+)"/
     )?.[1];
-    if (musician) return decodeEntities(musician);
 
-    // "Artist · Title · Song · 2024"
-    const desc = html.match(/<meta property="og:description" content="([^"]+)"/)?.[1];
-    const first = desc?.split("·")[0]?.trim();
-    return first ? decodeEntities(first) : null;
+    // "Artist · Album · Song · 2026". A release with no album named drops the
+    // second field rather than reordering, so the year is taken from the end
+    // and the album only from the second position.
+    const year = parts.find((x) => /^\d{4}$/.test(x)) ?? null;
+    const album = parts.length >= 4 && !/^\d{4}$/.test(parts[1]) ? parts[1] : null;
+
+    return {
+      artist: musician ? decodeEntities(musician) : (parts[0] ?? null),
+      album,
+      year,
+    };
   } catch {
-    return null;
+    return empty;
   }
+}
+
+/** The artist alone, for callers that want nothing else. */
+export async function fetchSpotifyArtist(trackId: string): Promise<string | null> {
+  return (await fetchSpotifyRelease(trackId)).artist;
 }
 
 function decodeEntities(s: string): string {
@@ -241,6 +275,8 @@ type ItunesResult = {
   artworkUrl100?: string;
   previewUrl?: string;
   trackTimeMillis?: number;
+  /** ISO date; only the year is used, to tell a re-recording from the original. */
+  releaseDate?: string;
 };
 
 /**
@@ -418,21 +454,69 @@ export async function appleArtistCatalogue(
 /** The artist's own recording of `title`, from their Apple catalogue. */
 async function findInArtistCatalogue(
   spotifyArtist: string,
-  title: string
+  title: string,
+  release: { album: string | null; year: string | null } = { album: null, year: null }
 ): Promise<{ hit: ItunesResult | null; throttled: boolean }> {
   const { songs, throttled } = await appleArtistCatalogue(spotifyArtist);
-  const hit =
-    songs.find(
-      (c) => titleMatches(title, c.trackName) && artistMatches(spotifyArtist, c.artistName)
-    ) ?? null;
-  return { hit, throttled };
+  // A catalogue listing holds every release an artist has, so it is the most
+  // likely place of all to contain two recordings of one song.
+  const matches = songs.filter(
+    (c) => titleMatches(title, c.trackName) && artistMatches(spotifyArtist, c.artistName)
+  );
+  return { hit: pickRecording(matches, release), throttled };
+}
+
+/**
+ * Which of several same-titled recordings the link actually points at.
+ *
+ * An artist who re-records a song has two recordings with one title, and
+ * Apple's relevance order picks between them. For an artist who submitted the
+ * 2026 acoustic versions of two songs, it returned the 2023 originals, so the
+ * feed played recordings he had never sent us and he had no way to correct it:
+ * his links were right, so resubmitting changed nothing.
+ *
+ * Spotify's own page names the album and the year of the linked release, so
+ * both are used to break the tie. Apple's order is still the fallback, which
+ * keeps every single-recording case behaving exactly as it did.
+ */
+function pickRecording(
+  candidates: ItunesResult[],
+  release: { album: string | null; year: string | null }
+): ItunesResult | null {
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  // Same flattening as titleMatches: the two stores punctuate album names
+  // differently on what is plainly the same release.
+  const flatten = (v: string) =>
+    v
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\b(deluxe|edition|remaster(ed)?|explicit|single|ep)\b/g, " ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+
+  if (release.album) {
+    const want = flatten(release.album);
+    const sameAlbum = candidates.find((c) => flatten(c.collectionName ?? "") === want);
+    if (sameAlbum) return sameAlbum;
+  }
+
+  if (release.year) {
+    const sameYear = candidates.find((c) => (c.releaseDate ?? "").slice(0, 4) === release.year);
+    if (sameYear) return sameYear;
+  }
+
+  return candidates[0];
 }
 
 export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrack> {
-  const [oembed, spotifyArtist] = await Promise.all([
+  const [oembed, release] = await Promise.all([
     fetchSpotifyOembed(trackId),
-    fetchSpotifyArtist(trackId),
+    fetchSpotifyRelease(trackId),
   ]);
+  const spotifyArtist = release.artist;
 
   const displayTitle = oembed.title?.trim();
   if (!displayTitle) {
@@ -484,16 +568,17 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
     // Both have to agree. The artist alone was never enough — it let a
     // correctly-identified artist hand back the wrong song of theirs, and a
     // near-miss on the name hand back someone else's entirely.
-    const hit = results.find(
+    const matches = results.filter(
       (c) => artistMatches(spotifyArtist, c.artistName) && titleMatches(title, c.trackName)
     );
+    const hit = pickRecording(matches, release);
     if (hit?.previewUrl) return accept(hit);
   }
 
   // Search finding nothing is not the same as Apple having nothing, so the
   // artist's own catalogue is read before anything is refused. Six of the six
   // tracks that had to be added by hand were sitting in it.
-  const catalogue = await findInArtistCatalogue(spotifyArtist, title);
+  const catalogue = await findInArtistCatalogue(spotifyArtist, title, release);
   if (catalogue.throttled) throttled = true;
   if (catalogue.hit?.previewUrl) return accept(catalogue.hit);
 
