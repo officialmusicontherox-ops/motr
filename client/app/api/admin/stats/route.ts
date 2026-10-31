@@ -14,7 +14,12 @@ export async function GET() {
   const [fanCount, artistCount, tracksByStatus, fanSwipeCount, revenue, recentNotifications] =
     await Promise.all([
       prisma.fan.count(),
-      prisma.artist.count(),
+      // Artists on the platform, not rows in the table. One whose tracks
+      // have all been pulled, by an opt-out or by rejection, is not on it,
+      // and counting them made the dashboard disagree with the feed.
+      prisma.artist.count({
+        where: { tracks: { some: { status: { not: "REJECTED" } } } },
+      }),
       prisma.track.groupBy({ by: ["status"], _count: { _all: true } }),
       prisma.fanSwipe.count(),
       prisma.payment.aggregate({
