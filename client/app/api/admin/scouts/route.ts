@@ -58,7 +58,9 @@ export async function POST(req: NextRequest) {
         name: link.name,
         url: `${appUrl}/scout/verify?token=${encodeURIComponent(link.token)}`,
         minutes: 15,
-      })
+      }),
+      // A sign-in link somebody asked for, not a mailing.
+      { transactional: true }
     );
     invited = sent.ok;
   }
@@ -104,7 +106,8 @@ export async function PATCH(req: NextRequest) {
         name: link.name,
         url: `${appUrl}/scout/verify?token=${encodeURIComponent(link.token)}`,
         minutes: 15,
-      })
+      }),
+      { transactional: true }
     );
     return NextResponse.json({ sent: sent.ok });
   }

@@ -15,6 +15,7 @@ import {
   resolveSpotifyShortLink,
 } from "@/lib/spotifyUrl";
 import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
+import { optInArtist } from "@/lib/optOut";
 
 // Two ways to ingest a track into the vetting queue:
 //  - { source: "SPOTIFY", spotifyTrackId, submittedById? } -> we look up
@@ -155,7 +156,9 @@ export async function POST(req: NextRequest) {
               spotifyUrl: String(body.spotifyUrl ?? ""),
               artistEmail: String(artistEmail),
               reason: e.message,
-            })
+            }),
+            // To our own inbox, about a refusal.
+            { transactional: true }
           );
         }
         return NextResponse.json({ error: e.message }, { status: 422 });
@@ -215,11 +218,17 @@ export async function POST(req: NextRequest) {
     // in their stored address.
     const found = await prisma.artist.findFirst({
       where: { email: { equals: artistEmail, mode: "insensitive" } },
-      select: { id: true },
+      select: { id: true, emailOptOut: true },
     });
 
     if (found) {
       artistId = found.id;
+
+      // Coming back is consent. An artist who unsubscribed had their music
+      // pulled with them; submitting again says they want back in, so the
+      // opt-out is lifted and whatever the opt-out took is restored. Their
+      // address is never blocked, so returning is always possible.
+      if (found.emailOptOut) await optInArtist(found.id);
     } else {
       artistId = await prisma.artist
         .create({ data: { email: artistEmail, name: normalized.artistName }, select: { id: true } })
@@ -302,7 +311,9 @@ export async function POST(req: NextRequest) {
         requiredVotes: track.requiredFanVotes,
         requiredRate: track.requiredApprovalRate,
         attachments: await storyCardAttachment(track),
-      })
+      }),
+      // A receipt for something they submitted moments ago.
+      { transactional: true }
     );
   }
 

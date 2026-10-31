@@ -71,7 +71,8 @@ export async function POST(req: NextRequest) {
       // One graphic even for a batch. The rest are on their page, and a
       // five-megabyte email helps nobody.
       attachments: await storyCardAttachment(tracks[0]),
-    })
+    }),
+    { transactional: true }
   );
 
   if (process.env.EMAIL_REPLY_TO) {
@@ -84,7 +85,8 @@ export async function POST(req: NextRequest) {
           genre: t.genre,
         })),
         submitterEmail: email,
-      })
+      }),
+      { transactional: true }
     );
   }
 

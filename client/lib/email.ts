@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import { CARD_VERSION } from "./shareCard";
 import { APP_URL as CANONICAL_APP_URL } from "./appUrl";
+import { isSuppressed } from "./suppression";
 
 /**
  * Transactional email. Two moments in the product depend on it: telling an
@@ -1091,9 +1092,22 @@ One email per distinct fault. Repeats of something already reported do not send 
   return { subject, html, text };
 }
 
+/**
+ * Send one email, unless the address has opted out.
+ *
+ * `transactional` is the only way past the check and is for mail the person
+ * has just asked for: a sign-in link, a receipt for a submission they made
+ * moments ago. Everything else is refused for an opted-out address, whatever
+ * the sender believed.
+ */
 export async function sendEmail(
   to: string,
-  template: { subject: string; html: string; attachments?: Attachment[] }
+  template: { subject: string; html: string; attachments?: Attachment[] },
+  opts: { transactional?: boolean } = {}
 ) {
+  if (!opts.transactional && (await isSuppressed(to))) {
+    console.log(`[email suppressed] ${to} has opted out. subject="${template.subject}"`);
+    return { ok: false as const, error: "suppressed", suppressed: true as const };
+  }
   return send(to, template.subject, template.html, template.attachments);
 }

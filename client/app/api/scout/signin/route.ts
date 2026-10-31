@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
         name: result.name,
         url: `${appUrl}/scout/verify?token=${encodeURIComponent(result.token)}`,
         minutes: 15,
-      })
+      }),
+      { transactional: true }
     );
   }
 

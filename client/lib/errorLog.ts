@@ -95,7 +95,7 @@ async function maybeAlert(row: {
   // Stamped before sending, not after. If the send throws, a retry storm of
   // alerts about a failing mailer is the last thing a broken app needs.
   await prisma.errorLog.update({ where: { id: row.id }, data: { alertedAt: new Date() } });
-  await sendEmail(ALERT_TO, mail);
+  await sendEmail(ALERT_TO, mail, { transactional: true });
 }
 
 export async function logError(report: ErrorReport): Promise<void> {

@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
         name: result.name,
         url: `${appUrl}/artist/verify?token=${encodeURIComponent(result.token)}`,
         minutes: 30,
-      })
+      }),
+      // Blocking this would lock an artist out of the account they are
+      // trying to come back to.
+      { transactional: true }
     );
   }
 

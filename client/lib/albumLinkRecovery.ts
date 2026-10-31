@@ -49,8 +49,11 @@ export async function artistsStuckOnAlbumLinks(): Promise<StuckArtist[]> {
 
     const artist = await prisma.artist.findFirst({
       where: { email: { equals: email, mode: "insensitive" } },
-      select: { name: true },
+      select: { name: true, emailOptOut: true },
     });
+    // Somebody who asked for no mail does not get this one either, helpful
+    // though it is. This sender was the one bulk mailing with no such check.
+    if (artist?.emailOptOut) continue;
     out.push({ email, name: artist?.name ?? null, refusalIds, count: refusalIds.length });
   }
   return out;
