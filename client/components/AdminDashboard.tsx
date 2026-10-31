@@ -19,6 +19,7 @@ import AdminWeeklyChart from "./AdminWeeklyChart";
 import AdminChartBlast from "./AdminChartBlast";
 import AdminShareBlast from "./AdminShareBlast";
 import AdminScouts from "./AdminScouts";
+import AdminPromotion from "./AdminPromotion";
 import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
@@ -236,6 +237,7 @@ export default function AdminDashboard({
  <>
  <AdminChartWinners />
  <AdminReports />
+ <AdminPromotion />
  <AdminScouts />
  </>
  )}

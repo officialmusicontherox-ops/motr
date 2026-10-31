@@ -456,3 +456,107 @@ export async function scoutSummary() {
     genres: genres.map((g) => g.genre).filter((g): g is string => Boolean(g)),
   };
 }
+
+/**
+ * How hard an artist works their own release.
+ *
+ * Deliberately separate from the save rate, and the two answer different
+ * questions. A save rate says whether strangers liked the record when they
+ * did not know whose it was. This says whether the artist can move people:
+ * how many opened their card, and how many of those went on to listen.
+ *
+ * Both matter to an A&R desk and neither substitutes for the other. A record
+ * that tests well with an artist who cannot bring an audience is a different
+ * proposition from one that tests the same with an artist who can, and the
+ * second one is the harder thing to buy.
+ *
+ * Carries no addresses, so it is safe to put in front of a scout.
+ */
+export type ArtistPromotion = {
+  artistId: string | null;
+  artistName: string;
+  tracks: number;
+  /** Times their share cards were opened, all time. */
+  shareOpens: number;
+  /** New listeners whose first verdict was on one of their tracks. */
+  broughtIn: number;
+  /** Saves those listeners gave that track. */
+  savesFromThem: number;
+  /** Their best-performing card, by arrivals. */
+  topTrack: string | null;
+};
+
+/**
+ * Promotion by artist over a window.
+ *
+ * A share link does not say which track it came from, so an arrival is
+ * attributed to the first track that listener gave a verdict on: the song
+ * they landed on is the song whose link they followed.
+ */
+export async function artistPromotion(days = 30): Promise<ArtistPromotion[]> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const rows = await prisma.$queryRawUnsafe<
+    {
+      artistId: string | null;
+      artistName: string;
+      tracks: bigint;
+      shareOpens: bigint;
+      broughtIn: bigint;
+      savesFromThem: bigint;
+      topTrack: string | null;
+    }[]
+  >(
+    `
+    WITH firsts AS (
+      SELECT DISTINCT ON (s."fanId") s."fanId", s."trackId"
+      FROM "FanSwipe" s
+      JOIN "Fan" f ON f.id = s."fanId"
+      WHERE f."createdAt" >= $1
+      ORDER BY s."fanId", s."createdAt" ASC
+    ),
+    per_track AS (
+      SELECT t.id,
+             t.title,
+             t."artistId",
+             coalesce(a.name, t."artistName") AS artist_name,
+             t."shareOpens",
+             count(fi."fanId") AS arrived,
+             count(*) FILTER (
+               WHERE EXISTS (
+                 SELECT 1 FROM "FanSwipe" s2
+                 WHERE s2."fanId" = fi."fanId" AND s2."trackId" = t.id
+                   AND s2.direction = 'RIGHT'
+               )
+             ) AS saved
+      FROM "Track" t
+      LEFT JOIN "Artist" a ON a.id = t."artistId"
+      LEFT JOIN firsts fi ON fi."trackId" = t.id
+      GROUP BY t.id, t.title, t."artistId", a.name, t."artistName", t."shareOpens"
+    )
+    SELECT "artistId",
+           artist_name AS "artistName",
+           count(*) AS tracks,
+           sum("shareOpens") AS "shareOpens",
+           sum(arrived) AS "broughtIn",
+           sum(saved) AS "savesFromThem",
+           (ARRAY_AGG(title ORDER BY arrived DESC, "shareOpens" DESC))[1] AS "topTrack"
+    FROM per_track
+    GROUP BY "artistId", artist_name
+    HAVING sum("shareOpens") > 0 OR sum(arrived) > 0
+    ORDER BY sum(arrived) DESC, sum("shareOpens") DESC
+    LIMIT 50
+    `,
+    since
+  );
+
+  return rows.map((r) => ({
+    artistId: r.artistId,
+    artistName: r.artistName,
+    tracks: Number(r.tracks),
+    shareOpens: Number(r.shareOpens),
+    broughtIn: Number(r.broughtIn),
+    savesFromThem: Number(r.savesFromThem),
+    topTrack: r.topTrack,
+  }));
+}
