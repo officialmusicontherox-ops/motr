@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 import AdminAudience from "./AdminAudience";
 import AdminTraffic from "./AdminTraffic";
+import AdminReferrals from "./AdminReferrals";
 import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
 import AdminUnsubscribes from "./AdminUnsubscribes";
@@ -214,6 +215,7 @@ export default function AdminDashboard({
 
  {view === "listeners" && (
  <>
+ <AdminReferrals />
  <AdminTraffic />
  <AdminAudience />
  </>
