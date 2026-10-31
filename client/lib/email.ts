@@ -894,6 +894,16 @@ export function artistSharePageEmail(params: {
            : ""
        }
        <p style="margin:0 0 12px">On MOTR nobody sees your name while they listen. They get thirty seconds and decide on the song, then find out it was you once they have kept it.</p>
+
+       <div style="margin:0 0 14px;padding:14px 16px;background:#0d0d0c;border:1px solid #262625;border-radius:12px">
+         <p style="margin:0 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">WHAT BRINGS PEOPLE IN</p>
+         <p style="margin:0 0 10px">The thing that has brought the most listeners here was not a graphic. One artist filmed themselves saying what MOTR is and how it works, and put their link in the caption. Forty six people came through and saved the track.</p>
+         <p style="margin:0 0 10px">It works as a TikTok, an Instagram Reel, a Facebook Reel or a YouTube Short. Film it on your phone, talk to camera, and say roughly this:</p>
+         <p style="margin:0 0 10px;padding:10px 12px;background:#131312;border-left:2px solid #dcb55f;color:#e8e8e6">
+           It is free and you do not have to sign up. You get thirty seconds of a song with no name attached, and you swipe right if you like it. You will not know it is mine until after you have decided. Link is in my caption.
+         </p>
+         <p style="margin:0">Put your link in the caption or your bio, not only in the video, because nobody can tap a link they can only see. Your graphic still works as the thumbnail or as a story on its own.</p>
+       </div>
        <p style="margin:0">Your page has ${
          tracks.length > 1 ? `all ${tracks.length} of your tracks` : "your track"
        }, a graphic for each one, and how many people opened your link and kept the song.</p>`,
