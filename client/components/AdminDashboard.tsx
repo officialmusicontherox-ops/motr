@@ -7,6 +7,7 @@ import AdminAudience from "./AdminAudience";
 import AdminTraffic from "./AdminTraffic";
 import AdminTracks from "./AdminTracks";
 import AdminErrors from "./AdminErrors";
+import AdminUnsubscribes from "./AdminUnsubscribes";
 import AdminFeedHealth from "./AdminFeedHealth";
 import AdminNudges from "./AdminNudges";
 import AdminArtistUpdates from "./AdminArtistUpdates";
@@ -240,6 +241,7 @@ export default function AdminDashboard({
  {view === "system" && (
  <>
  <AdminErrors />
+ <AdminUnsubscribes />
  <AdminSecurity />
  </>
  )}

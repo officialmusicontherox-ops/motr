@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { leadersBetween } from "./scoutData";
 import { weekOf, CHART_TZ } from "./weekWindow";
 import { sendEmail, weeklyChartEmail } from "./email";
+import { unsubscribeUrl, artistUnsubscribeUrl } from "./nudges";
 
 /**
  * This week's charts, sent on demand.
@@ -87,7 +88,10 @@ async function recipients(appUrl: string): Promise<Recipient[]> {
     list.push({
       email,
       name: f.username,
-      unsubscribe: `${appUrl}/unsubscribe?fan=${f.id}`,
+      // Built by the shared helper, never by hand: the page refuses a link
+      // without its signature, and hand-written ones here went out to the
+      // whole list with no way off.
+      unsubscribe: unsubscribeUrl(f.id, appUrl),
     });
   }
   for (const a of artists) {
@@ -97,7 +101,7 @@ async function recipients(appUrl: string): Promise<Recipient[]> {
     list.push({
       email,
       name: a.name,
-      unsubscribe: `${appUrl}/unsubscribe?artist=${a.id}`,
+      unsubscribe: artistUnsubscribeUrl(a.id, appUrl),
     });
   }
   return list;

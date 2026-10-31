@@ -291,6 +291,12 @@ model Track {
 
   status TrackStatus @default(DISCOVERY)
 
+  /// Pulled because the artist unsubscribed, rather than rejected on merit.
+  /// Without this, putting an artist back on the list could not tell the two
+  /// apart, and would either restore nothing or restore something a human
+  /// had deliberately removed.
+  removedForOptOut Boolean @default(false)
+
   // Fan discovery aggregates (DISCOVERY stage, gates entry to curator vetting).
   // A track breaks through on the *rate* of right-swipes once it has been
   // heard enough times to be meaningful — not on a raw approval count, which
@@ -410,6 +416,14 @@ model Artist {
   // no way out gets marked as spam, which costs the sending domain far more
   // than the artist was worth.
   emailOptOut Boolean @default(false)
+  /// When they opted out. Null means either still subscribed, or opted out
+  /// before this was recorded.
+  emailOptOutAt DateTime?
+
+  /// How the opt-out happened: "link" when they clicked unsubscribe
+  /// themselves, "admin" when it was done for them on request.
+  emailOptOutBy String?
+
 
   // When this artist was told their page exists. Recorded so the announcement
   // can only reach each artist once: a button that re-sends to everybody who
@@ -491,6 +505,14 @@ model Fan {
   // becoming a weekly nag — which costs the sending domain far more than the
   // listener was ever worth.
   emailOptOut Boolean   @default(false)
+  /// When they opted out. Null means either still subscribed, or opted out
+  /// before this was recorded.
+  emailOptOutAt DateTime?
+
+  /// How the opt-out happened: "link" when they clicked unsubscribe
+  /// themselves, "admin" when it was done for them on request.
+  emailOptOutBy String?
+
   lastNudgeAt DateTime?
   nudgeCount  Int       @default(0)
 
