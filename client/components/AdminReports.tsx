@@ -46,7 +46,7 @@ const METRICS = [
   { key: "activeFans", label: "Swiped at least once", format: (n: number) => n.toLocaleString() },
   {
     key: "approvalRate",
-    label: "Approval rate",
+    label: "Save rate",
     format: (n: number) => `${Math.round(n * 100)}%`,
   },
   {
@@ -154,7 +154,7 @@ export default function AdminReports() {
               gold
             />
             <Tile
-              label="Approval rate"
+              label="Save rate"
               value={
                 report.totals.approvalRate === null
                   ? "—"

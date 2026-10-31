@@ -478,7 +478,7 @@ export function comeBackEmail(params: {
  *
  * Every figure is a running total, never a change since last time. A weekly
  * "3 more than last week" invites the question of what happened the week it
- * was 0; "27 right swipes" is simply a good number, and the artist can be
+ * was 0; "27 saves" is simply a good number, and the artist can be
  * pleased with it whenever it arrives.
  *
  * The ask is the point of the email as much as the news is. An artist who
@@ -509,7 +509,7 @@ export function trackMilestoneEmail(params: {
           `<div style="margin:0 0 8px;padding:12px 14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
              <div style="color:#fff;font-weight:600;font-size:15px">${t.title}</div>
              <div style="color:#dcb55f;font-size:13px;margin-top:3px;font-weight:600">
-               ${t.rightSwipes} right swipe${t.rightSwipes === 1 ? "" : "s"}
+               ${t.rightSwipes} save${t.rightSwipes === 1 ? "" : "s"}
              </div>
            </div>`
       )
@@ -521,7 +521,7 @@ export function trackMilestoneEmail(params: {
   return {
     subject: first
       ? `Someone saved "${lead.title}" on MOTR`
-      : `"${lead.title}" has ${lead.rightSwipes} right swipes on MOTR`,
+      : `"${lead.title}" has ${lead.rightSwipes} saves on MOTR`,
     html:
       shell(
         first ? "Your music is landing" : "Your music keeps climbing",

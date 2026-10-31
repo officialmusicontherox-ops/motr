@@ -169,8 +169,8 @@ export default function AdminReferrals() {
                         </span>
                       </div>
                       <div className="text-muted mt-1 text-xs">
-                        {r.shareOpens} share opens · {r.swipes} swipes · {r.saves} saves
-                        {rate !== null && ` · ${rate}% saved`}
+                        {r.shareOpens} share opens · {r.saves} of {r.swipes} saved
+                        {rate !== null && ` (${rate}%)`}
                       </div>
                       {/* The whole point: go and look at the post. */}
                       <div className="mt-1.5 flex flex-wrap gap-3 text-xs">

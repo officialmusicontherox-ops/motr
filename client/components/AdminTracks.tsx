@@ -385,8 +385,8 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                         <span className="text-muted"> of 30s</span>
                       </p>
                       {t.convictionRate !== null && t.fanRightSwipes > 0 && (
-                        <p title="Share of likes that came after most of the clip had played">
-                          {Math.round(t.convictionRate * 100)}% liked it after hearing it out
+                        <p title="Share of saves that came after most of the clip had played">
+                          {Math.round(t.convictionRate * 100)}% saved after hearing it out
                         </p>
                       )}
                     </>

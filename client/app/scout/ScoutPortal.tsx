@@ -473,15 +473,15 @@ function TrackRow({ track: t }: { track: ScoutTrack }) {
           ) : (
             <>
               <p className="text-gold text-2xl font-bold tabular-nums">{pct(t.saveRate)}</p>
-              <p className="motr-label text-muted">liked it</p>
+              <p className="motr-label text-muted">saved</p>
             </>
           )}
         </div>
       </div>
 
       <div className="border-edge mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t pt-3 text-sm sm:grid-cols-4">
-        <Cell label="Liked it" value={t.rightSwipes.toLocaleString()} />
-        <Cell label="Didn't" value={t.leftSwipes.toLocaleString()} />
+        <Cell label="Saved" value={t.rightSwipes.toLocaleString()} />
+        <Cell label="Passed" value={t.leftSwipes.toLocaleString()} />
         <Cell
           label="Heard it out"
           value={t.fullListenRate === null ? "—" : pct(t.fullListenRate)}

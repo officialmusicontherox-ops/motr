@@ -17,7 +17,7 @@ const STEPS = [
   {
     n: "02",
     title: "The crowd decides",
-    body: "Tracks that collect enough right-swipes break through. A listener who hears the full 30 seconds before deciding counts double, whichever way they swipe. Nobody can buy their way past this step; it's the one gate money doesn't open.",
+    body: "Tracks that collect enough saves break through. A listener who hears the full 30 seconds before deciding counts double, whichever way they swipe. Nobody can buy their way past this step; it's the one gate money doesn't open.",
   },
   {
     n: "03",
@@ -91,7 +91,7 @@ export default function FaqPage() {
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Card
             title="If you're a fan"
-            body="An endless feed of music nobody paid to put in front of you. Save what you like. Your right-swipes decide which artists move forward."
+            body="An endless feed of music nobody paid to put in front of you. Save what you like. Your saves decide which artists move forward."
           />
           <Card
             title="If you're an artist"

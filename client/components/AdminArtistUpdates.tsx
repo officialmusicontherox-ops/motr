@@ -69,7 +69,7 @@ export default function AdminArtistUpdates() {
   return (
     <AdminSection
       title="Artist updates"
-      description="Tells an artist when a track passes a round number of right swipes, and asks them to send their own fans over."
+      description="Tells an artist when a track passes a round number of saves, and asks them to send their own fans over."
       defaultOpen={false}
       badge={
         preview && preview.artists > 0 ? (
@@ -80,7 +80,7 @@ export default function AdminArtistUpdates() {
       }
     >
       <p className="text-muted text-sm">
-        Milestones are 1, 10, 25, 50, 100, 250 and 500 right swipes. Every figure quoted is a
+        Milestones are 1, 10, 25, 50, 100, 250 and 500 saves. Every figure quoted is a
         running total, never a change since last time — so an email only ever arrives with good
         news in it, and a quiet week produces nothing at all. An artist with several tracks gets
         one email covering all of them, and each milestone is sent once.
@@ -125,7 +125,7 @@ export default function AdminArtistUpdates() {
                 {r.tracks.map((t) => (
                   <li key={t.trackId} className="text-sm">
                     <span className="text-ink">{t.title}</span>
-                    <span className="text-gold"> · {t.rightSwipes} right swipes</span>
+                    <span className="text-gold"> · {t.rightSwipes} saves</span>
                     <span className="text-muted"> (passing {t.milestone})</span>
                   </li>
                 ))}
