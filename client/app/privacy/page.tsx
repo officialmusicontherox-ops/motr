@@ -214,7 +214,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           </li>
           <li>
             <span className="text-ink">Unsubscribe</span> from any non-essential email using the
-            link in it.
+            link in it. If you are an artist, that also takes your music off the platform, because
+            email is the only way we can reach you about it. We ask you to confirm first, nothing
+            is deleted, and submitting again puts you back on.
           </li>
         </ul>
         <p className="mt-2">

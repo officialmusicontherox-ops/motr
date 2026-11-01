@@ -547,7 +547,7 @@ export function trackMilestoneEmail(params: {
         { label: "Share MOTR with your fans", url: appUrl }
       ) +
       `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
-         Don't want these updates? <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a>. Your music stays in rotation either way.
+         Don't want these updates? <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a>. Email is the only way we can reach an artist, so that also takes your music off the platform. We will ask you to confirm first.
        </p>`,
   };
 }
@@ -1034,7 +1034,7 @@ export function submitMoreMusicEmail(params: {
         { label: "Submit another song", url: `${appUrl}/artists` }
       ) +
       `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
-         <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> and we won't email you again.
+         <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a>. Email is the only way we can reach an artist, so that also takes your music off the platform. We will ask you to confirm first.
        </p>`,
   };
 }
