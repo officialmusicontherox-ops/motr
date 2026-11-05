@@ -225,6 +225,7 @@ export default function AdminDashboard({
  {view === "email" && (
  <>
  <AdminChartBlast />
+ <AdminChartBlast variant="midweek" />
  <AdminShareBlast />
  <AdminArtistUpdates />
  <AdminArtistNudges />

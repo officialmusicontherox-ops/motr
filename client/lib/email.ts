@@ -953,8 +953,15 @@ export function weeklyChartEmail(params: {
   /** "October 18 - October 24", so a forwarded copy still says which week. */
   weekLabel: string;
   unsubscribeUrl: string;
+  /**
+   * "midweek" is the same two charts sent while the week is still open, so
+   * the standing can still be changed. Same lists, same shape, different
+   * opening line and subject: one template rather than two that drift.
+   */
+  variant?: "weekly" | "midweek";
 }) {
-  const { songs, artists, weekLabel, unsubscribeUrl } = params;
+  const { songs, artists, weekLabel, unsubscribeUrl, variant = "weekly" } = params;
+  const midweek = variant === "midweek";
 
   const rows = (items: string[]) =>
     items
@@ -969,12 +976,16 @@ export function weeklyChartEmail(params: {
 
   return {
     // Plain, and the same every week. Says what is inside and nothing else.
-    subject: "This Week's Charts",
+    subject: midweek ? "Midweek Charts" : "This Week's Charts",
     html:
       shell(
-        "This week's charts",
+        midweek ? "Where we stand midweek" : "This week's charts",
         `<p style="margin:0 0 4px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${weekLabel.toUpperCase()}</p>
-         <p style="margin:0 0 16px">Here's where we are at for the week so far. The week runs through Saturday at 11:59 pm, so these positions can still move. Every one of them was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song.</p>
+         <p style="margin:0 0 16px">${
+           midweek
+             ? `This is where we stand midweek. Nothing is settled: the week runs through Saturday at 11:59 pm, so there is still time to move it. Head to <a href="${APP_URL}" style="color:#dcb55f;font-weight:700;text-decoration:none">app.musicontherox.com</a> and make sure your favorite gets heard.`
+             : "Here's where we are at for the week so far. The week runs through Saturday at 11:59 pm, so these positions can still move. Every one of them was earned by listeners who heard thirty seconds with no artist name attached and chose to keep the song."
+         }</p>
          ${
            artists.length > 0
              ? `<p style="margin:0 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP ARTISTS</p>${rows(artists.map((a) => a.name))}`
@@ -992,7 +1003,7 @@ export function weeklyChartEmail(params: {
          <a href="${APP_URL}" style="color:#dcb55f;font-weight:700;text-decoration:none">app.musicontherox.com</a>
        </p>` +
       `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
-         <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> from these weekly emails.
+         <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> from these chart emails.
        </p>`,
   };
 }

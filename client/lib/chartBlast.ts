@@ -16,6 +16,21 @@ import { unsubscribeUrl, artistUnsubscribeUrl } from "./nudges";
  * what the site says when somebody follows the link to check.
  */
 
+/** Which of the two chart mailings a send is. */
+export type ChartVariant = "weekly" | "midweek";
+
+/**
+ * The key that claims a day.
+ *
+ * The variant is part of it so the two mailings have a daily limit each
+ * rather than one between them. Sending the midweek charts on Wednesday must
+ * not stop the weekly ones going out later the same day.
+ */
+function dayKey(variant: ChartVariant, now = new Date()): string {
+  const d = today(now);
+  return variant === "midweek" ? `${d}:midweek` : d;
+}
+
 /** Today in the chart's own zone, as YYYY-MM-DD. The day is the guard. */
 function today(now = new Date()): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -28,8 +43,8 @@ function today(now = new Date()): string {
 }
 
 /** The send already made today, if there was one. */
-export async function sentToday() {
-  return prisma.chartBlastSend.findUnique({ where: { sentOn: today() } });
+export async function sentToday(variant: ChartVariant = "weekly") {
+  return prisma.chartBlastSend.findUnique({ where: { sentOn: dayKey(variant) } });
 }
 
 export type ChartBlastProgress = {
@@ -134,11 +149,11 @@ function clockTime(at: Date) {
 }
 
 /** Who it would reach and what it would say. Sends nothing. */
-export async function previewChartBlast(appUrl: string) {
+export async function previewChartBlast(appUrl: string, variant: ChartVariant = "weekly") {
   const [{ week, songs, artists }, people, already] = await Promise.all([
     thisWeek(),
     recipients(appUrl),
-    sentToday(),
+    sentToday(variant),
   ]);
   return {
     recipients: people.length,
@@ -165,8 +180,11 @@ export async function previewChartBlast(appUrl: string) {
  * address whether its send succeeded or failed, because a second attempt at
  * a bad address is worth less than the risk of a duplicate at a good one.
  */
-export async function sendChartBlast(appUrl: string): Promise<ChartBlastProgress> {
-  const day = today();
+export async function sendChartBlast(
+  appUrl: string,
+  variant: ChartVariant = "weekly"
+): Promise<ChartBlastProgress> {
+  const day = dayKey(variant);
   let row = await prisma.chartBlastSend.findUnique({ where: { sentOn: day } });
 
   if (row?.doneAt) {
@@ -176,7 +194,7 @@ export async function sendChartBlast(appUrl: string): Promise<ChartBlastProgress
       sent: row.sent,
       failed: row.failed,
       done: true,
-      skipped: `This week's charts already went out today at ${clockTime(row.doneAt)}. One batch a day.`,
+      skipped: `The ${variant === "midweek" ? "midweek" : "weekly"} charts already went out today at ${clockTime(row.doneAt)}. One batch a day.`,
       weekLabel: row.weekLabel,
       songs: 0,
       artists: 0,
@@ -244,7 +262,7 @@ export async function sendChartBlast(appUrl: string): Promise<ChartBlastProgress
           sent: row.sent,
           failed: row.failed,
           done: true,
-          skipped: `This week's charts already went out today at ${clockTime(row.doneAt)}. One batch a day.`,
+          skipped: `The ${variant === "midweek" ? "midweek" : "weekly"} charts already went out today at ${clockTime(row.doneAt)}. One batch a day.`,
           weekLabel: row.weekLabel,
           songs: 0,
           artists: 0,
@@ -285,6 +303,7 @@ export async function sendChartBlast(appUrl: string): Promise<ChartBlastProgress
         artists: queue.artists,
         weekLabel: row.weekLabel,
         unsubscribeUrl: person.unsubscribe,
+        variant,
       })
     );
     result.ok ? (sent += 1) : (failed += 1);

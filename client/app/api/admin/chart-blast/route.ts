@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/adminAuth";
 import { APP_URL } from "@/lib/appUrl";
-import { previewChartBlast, sendChartBlast } from "@/lib/chartBlast";
+import { previewChartBlast, sendChartBlast, type ChartVariant } from "@/lib/chartBlast";
+
+/** "midweek" or anything else, which means the weekly one. */
+function variantOf(req: NextRequest): ChartVariant {
+  return req.nextUrl.searchParams.get("variant") === "midweek" ? "midweek" : "weekly";
+}
 
 /**
  * This week's charts, on demand.
@@ -16,11 +21,11 @@ import { previewChartBlast, sendChartBlast } from "@/lib/chartBlast";
  * which is why the send is batched rather than run in one request.
  */
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   if (!(await getAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.json(await previewChartBlast(APP_URL));
+  return NextResponse.json(await previewChartBlast(APP_URL, variantOf(req)));
 }
 
 export async function POST(_req: NextRequest) {

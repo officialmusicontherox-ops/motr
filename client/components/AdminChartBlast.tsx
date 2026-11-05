@@ -40,7 +40,13 @@ type Progress = {
  * rather than breaking it: the server remembers how far it got, and pressing
  * again carries on from there.
  */
-export default function AdminChartBlast() {
+export default function AdminChartBlast({
+  variant = "weekly",
+}: {
+  variant?: "weekly" | "midweek";
+} = {}) {
+  const midweek = variant === "midweek";
+  const qs = midweek ? "?variant=midweek" : "";
   const [preview, setPreview] = useState<Preview | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +59,7 @@ export default function AdminChartBlast() {
     setError(null);
     setProgress(null);
     try {
-      const res = await fetch("/api/admin/chart-blast");
+      const res = await fetch(`/api/admin/chart-blast${qs}`);
       if (!res.ok) throw new Error("Could not load the preview.");
       setPreview(await res.json());
     } catch (e) {
@@ -74,7 +80,7 @@ export default function AdminChartBlast() {
     try {
       for (;;) {
         if (++batches > 400) throw new Error("Stopped after too many batches. Press Resume.");
-        const res = await fetch("/api/admin/chart-blast", { method: "POST" });
+        const res = await fetch(`/api/admin/chart-blast${qs}`, { method: "POST" });
         if (!res.ok) {
           throw new Error(
             "That batch did not go through. Nothing was lost. Press Resume to carry on from where it stopped."
@@ -106,8 +112,12 @@ export default function AdminChartBlast() {
 
   return (
     <AdminSection
-      title="This week's charts"
-      description="Send the current week's top ten songs and artists to every listener and artist with an address. Can be sent at any point in the week, once a day."
+      title={midweek ? "Midweek Chart Email" : "This week's charts"}
+      description={
+        midweek
+          ? "The same two charts sent while the week is still open, saying where things stand midweek and asking people to go and make sure their favorite gets heard. To every listener and artist with an address, once a day."
+          : "Send the current week's top ten songs and artists to every listener and artist with an address. Can be sent at any point in the week, once a day."
+      }
     >
       <div className="flex flex-wrap items-center gap-2">
         <button
