@@ -272,12 +272,16 @@ export const CHART_SIZE = 10;
  * past the cap as a different name. The artist chart is untouched: that one
  * sums a whole catalogue on purpose, so being prolific still wins there.
  */
-function capPerArtist<T extends { artistId: string | null; id: string }>(rows: T[]): T[] {
+function capPerArtist<
+  T extends { artistId: string | null; id: string; artistName: string; appleArtistId?: string | null },
+>(rows: T[]): T[] {
   const held = new Map<string, number>();
   const out: T[] = [];
   for (const r of rows) {
     if (out.length >= CHART_SIZE) break;
-    const key = r.artistId ?? `track:${r.id}`;
+    // By Apple's artist id where there is one, so an account posting
+    // several artists does not have them share one artist's allowance.
+    const key = r.appleArtistId ?? `name:${(r.artistName ?? r.id).toLowerCase()}`;
     const n = held.get(key) ?? 0;
     if (n >= SONGS_PER_ARTIST) continue;
     held.set(key, n + 1);
@@ -299,13 +303,14 @@ export async function leadersBetween(
         title: string;
         artistName: string;
         artistId: string | null;
+        appleArtistId: string | null;
         artworkUrl: string | null;
         saves: bigint;
         score: bigint;
         verdicts: bigint;
       }[]
     >(Prisma.sql`
-      SELECT t."id", t."title", t."artistName", t."artistId", t."artworkUrl",
+      SELECT t."id", t."title", t."artistName", t."artistId", t."appleArtistId", t."artworkUrl",
         COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
         COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
         COUNT(s."id")::bigint AS verdicts
@@ -324,20 +329,34 @@ export async function leadersBetween(
     prisma.$queryRaw<
       { artistId: string; name: string; saves: bigint; score: bigint; verdicts: bigint; tracks: bigint }[]
     >(Prisma.sql`
-      SELECT t."artistId" AS "artistId",
-        MIN(a."name") AS name,
+      SELECT MIN(t."artistId") AS "artistId",
+        COALESCE(t."appleArtistName", t."artistName") AS name,
         COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
         COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
         COUNT(s."id")::bigint AS verdicts,
         COUNT(DISTINCT t."id")::bigint AS tracks
       FROM "Track" t
-      JOIN "Artist" a ON a."id" = t."artistId"
       JOIN "FanSwipe" s ON s."trackId" = t."id"
       WHERE t."artistId" IS NOT NULL
         AND t."status" <> 'REJECTED'
         AND s."createdAt" >= ${since}
         ${upper}
-      GROUP BY t."artistId"
+      -- Grouped by the artist credited on the track, not the account that
+      -- submitted it: one account can legitimately post several artists, a
+      -- manager, a label or a PR company, and each of them charts on their
+      -- own name.
+      --
+      -- By Apple's own artist id, which is the artist's profile on Apple
+      -- Music. Apple already names the primary artist on its own and puts
+      -- collaborators in the track title, so a feature counts toward the
+      -- lead without anything being parsed. That matters: splitting a
+      -- credit on a comma would wreck any name that contains one, and
+      -- Earth, Wind & Fire is not three artists.
+      --
+      -- Tracks Apple has no id for fall back to the credited string, which
+      -- is the seeded catalogue and anything a lookup could not place.
+      GROUP BY COALESCE(t."appleArtistId", 'name:' || t."artistName"),
+               COALESCE(t."appleArtistName", t."artistName")
       ORDER BY score DESC, verdicts DESC
       LIMIT 10
     `),
@@ -519,7 +538,7 @@ export async function artistPromotion(days = 30): Promise<ArtistPromotion[]> {
       SELECT t.id,
              t.title,
              t."artistId",
-             coalesce(a.name, t."artistName") AS artist_name,
+             t."artistName" AS artist_name,
              t."shareOpens",
              count(fi."fanId") AS arrived,
              count(*) FILTER (
@@ -532,7 +551,7 @@ export async function artistPromotion(days = 30): Promise<ArtistPromotion[]> {
       FROM "Track" t
       LEFT JOIN "Artist" a ON a.id = t."artistId"
       LEFT JOIN firsts fi ON fi."trackId" = t.id
-      GROUP BY t.id, t.title, t."artistId", a.name, t."artistName", t."shareOpens"
+      GROUP BY t.id, t.title, t."artistId", t."artistName", t."shareOpens"
     )
     SELECT "artistId",
            artist_name AS "artistName",

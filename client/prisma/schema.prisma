@@ -335,6 +335,18 @@ model Track {
   // the whole library becomes one or two calls.
   appleTrackId String?
 
+  // Apple's id for the primary artist of this recording, and their name as
+  // Apple lists it. This is what decides who a track charts under.
+  //
+  // Not the account that submitted it: a manager, label or PR company posts
+  // for several artists, and each of them charts on their own name. Not the
+  // credited string either, because it cannot be split safely: "Luis
+  // Martelo, Badoxa" is two artists and "Earth, Wind & Fire" is one. Apple
+  // settles it by naming the primary artist on its own and putting
+  // collaborators in the track title.
+  appleArtistId   String?
+  appleArtistName String?
+
   // How many people opened this track from the artist's own share link.
   //
   // Counted here rather than in a join table because the only question ever
@@ -393,6 +405,7 @@ model Track {
   updatedAt DateTime @updatedAt
 
   @@unique([source, externalId])
+  @@index([appleArtistId])
 }
 
 /// One artist per address.
@@ -415,7 +428,7 @@ model Artist {
   // it does: both because the law says so and because a recurring email with
   // no way out gets marked as spam, which costs the sending domain far more
   // than the artist was worth.
-  emailOptOut Boolean @default(false)
+  emailOptOut   Boolean   @default(false)
   /// When they opted out. Null means either still subscribed, or opted out
   /// before this was recorded.
   emailOptOutAt DateTime?
@@ -423,7 +436,6 @@ model Artist {
   /// How the opt-out happened: "link" when they clicked unsubscribe
   /// themselves, "admin" when it was done for them on request.
   emailOptOutBy String?
-
 
   // When this artist was told their page exists. Recorded so the announcement
   // can only reach each artist once: a button that re-sends to everybody who
@@ -504,7 +516,7 @@ model Fan {
   // might come back, so it stops after a few unanswered ones rather than
   // becoming a weekly nag — which costs the sending domain far more than the
   // listener was ever worth.
-  emailOptOut Boolean   @default(false)
+  emailOptOut   Boolean   @default(false)
   /// When they opted out. Null means either still subscribed, or opted out
   /// before this was recorded.
   emailOptOutAt DateTime?
@@ -687,12 +699,12 @@ enum RefusedStatus {
 /// artist's — but the artist is often correct and the track simply needs
 /// adding by hand. Without a record, that only survived as an email.
 model RefusedSubmission {
-  id          String        @id @default(cuid())
+  id          String  @id @default(cuid())
   spotifyUrl  String
   artistEmail String
   genre       String?
   reason      String
-  attempts    Int           @default(1)
+  attempts    Int     @default(1)
 
   /// When the artist was written to about what went wrong.
   ///
@@ -700,10 +712,10 @@ model RefusedSubmission {
   /// nothing. Twenty-one album links sat dismissed while the people who sent
   /// them had no idea what to fix. Recorded so the recovery email reaches
   /// each person once.
-  helpedAt DateTime?
-  status      RefusedStatus @default(PENDING)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  helpedAt  DateTime?
+  status    RefusedStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   @@unique([spotifyUrl, artistEmail])
   @@index([status, createdAt(sort: Desc)])
@@ -875,10 +887,10 @@ model ShareBlastSend {
 
   /// The calendar day in the chart's own zone, as YYYY-MM-DD. Unique, so a
   /// second mass send on the same day cannot be inserted.
-  sentOn     String   @unique
-  recipients Int      @default(0)
-  sent       Int      @default(0)
-  failed     Int      @default(0)
+  sentOn     String @unique
+  recipients Int    @default(0)
+  sent       Int    @default(0)
+  failed     Int    @default(0)
 
   /// How far down the queue the send has reached.
   cursor Int @default(0)

@@ -187,6 +187,8 @@ export async function POST(req: NextRequest) {
       previewUrl,
       durationMs: body.durationMs ?? null,
       appleTrackId: null,
+      appleArtistId: null,
+      appleArtistName: null,
     };
   }
 

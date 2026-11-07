@@ -48,19 +48,20 @@ export async function winnerForWeek(weekStart: Date): Promise<WeekResult | null>
   const rows = await prisma.$queryRaw<
     { artistId: string; name: string; saves: bigint; tracks: bigint }[]
   >(Prisma.sql`
-    SELECT t."artistId" AS "artistId",
-      MIN(a."name") AS name,
+    SELECT MIN(t."artistId") AS "artistId",
+      COALESCE(t."appleArtistName", t."artistName") AS name,
       COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
       COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
       COUNT(DISTINCT t."id")::bigint AS tracks
     FROM "Track" t
-    JOIN "Artist" a ON a."id" = t."artistId"
     JOIN "FanSwipe" s ON s."trackId" = t."id"
     WHERE t."artistId" IS NOT NULL
       AND t."status" <> 'REJECTED'
       AND s."createdAt" >= ${weekStart}
       AND s."createdAt" < ${weekEnd}
-    GROUP BY t."artistId"
+    -- By Apple's artist id, matching the chart exactly.
+    GROUP BY COALESCE(t."appleArtistId", 'name:' || t."artistName"),
+             COALESCE(t."appleArtistName", t."artistName")
     HAVING COUNT(*) FILTER (WHERE s."direction" = 'RIGHT') > 0
     -- Weighted, the same as the chart. The winner of the week has to be the
     -- artist the chart shows at number one, or the two contradict each other

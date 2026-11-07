@@ -35,6 +35,10 @@ export type ResolvedTrack = {
   /** Apple's own id for the preview, so the feed check can later confirm this
    *  track with a lookup instead of another rate-limited search. */
   appleTrackId: string | null;
+  /** Apple's primary artist for this recording: their profile id and the
+   *  name Apple lists them under. This is who the track charts as. */
+  appleArtistId: string | null;
+  appleArtistName: string | null;
 };
 
 export class TrackLookupError extends Error {}
@@ -277,6 +281,8 @@ type ItunesResult = {
   trackTimeMillis?: number;
   /** ISO date; only the year is used, to tell a re-recording from the original. */
   releaseDate?: string;
+  /** The primary artist Apple files this recording under. */
+  artistId?: number;
 };
 
 /**
@@ -553,6 +559,10 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
     previewUrl: hit.previewUrl as string,
     durationMs: hit.trackTimeMillis ?? null,
     appleTrackId: hit.trackId ? String(hit.trackId) : null,
+    // Apple names the primary artist on its own, with collaborators in the
+    // track title, so this needs no parsing and survives a comma in a name.
+    appleArtistId: hit.artistId ? String(hit.artistId) : null,
+    appleArtistName: hit.artistName ?? null,
   });
 
   // Whether Apple refused to answer at any point, which is not the same thing
@@ -621,5 +631,7 @@ export async function resolveBySearch(
     previewUrl: itunes.previewUrl,
     durationMs: itunes.trackTimeMillis ?? null,
     appleTrackId: itunes.trackId ? String(itunes.trackId) : null,
+    appleArtistId: itunes.artistId ? String(itunes.artistId) : null,
+    appleArtistName: itunes.artistName ?? null,
   };
 }
