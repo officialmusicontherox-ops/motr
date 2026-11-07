@@ -17,6 +17,7 @@ import AdminArtistShare from "./AdminArtistShare";
 import AdminChartWinners from "./AdminChartWinners";
 import AdminWeeklyChart from "./AdminWeeklyChart";
 import AdminChartBlast from "./AdminChartBlast";
+import AdminWinnerAnnounce from "./AdminWinnerAnnounce";
 import AdminShareBlast from "./AdminShareBlast";
 import AdminScouts from "./AdminScouts";
 import AdminPromotion from "./AdminPromotion";
@@ -226,6 +227,7 @@ export default function AdminDashboard({
  <>
  <AdminChartBlast />
  <AdminChartBlast variant="midweek" />
+ <AdminWinnerAnnounce />
  <AdminShareBlast />
  <AdminArtistUpdates />
  <AdminArtistNudges />

@@ -905,6 +905,47 @@ export function artistSharePageEmail(params: {
   };
 }
 
+
+/**
+ * The week's winner, and the article about them.
+ *
+ * Sent to everyone once the write-up is published, for two reasons: the
+ * winner gets the thing they were promised in front of an audience, and
+ * everyone else sees that it was real. The article link is the point of the
+ * email, so it is the button.
+ *
+ * No save counts. The number that won is interesting to the person running
+ * the platform and noise to everyone receiving this.
+ */
+export function chartWinnerEmail(params: {
+  artistName: string;
+  writeUpUrl: string;
+  /** "November 1 - November 7" */
+  weekLabel: string;
+  unsubscribeUrl: string;
+}) {
+  const { artistName, writeUpUrl, weekLabel, unsubscribeUrl } = params;
+
+  return {
+    subject: `${artistName} won this week on MOTR`,
+    html:
+      shell(
+        "This week's winner",
+        `<p style="margin:0 0 4px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${weekLabel.toUpperCase()}</p>
+         <p style="margin:0 0 16px"><strong style="color:#fff;font-size:18px">${artistName}</strong> finished first on the weekly chart, which means a full write-up on Music On The Rox. It is published now and the link is below.</p>
+         <p style="margin:0 0 16px">Nobody paid to be there. Every save came from someone who heard thirty seconds with no artist name attached and decided to keep the song, finding out who it was afterwards.</p>
+         <p style="margin:0">A new week has already started. Whoever finishes first next gets the same, and the way to move it is to play a track and swipe right.</p>`,
+        { label: "Read the write-up", url: writeUpUrl }
+      ) +
+      `<p style="max-width:520px;margin:14px auto 0;text-align:center">
+         <a href="${APP_URL}" style="color:#dcb55f;font-weight:700;text-decoration:none">app.musicontherox.com</a>
+       </p>` +
+      `<p style="max-width:520px;margin:8px auto 0;color:#6b6b6b;font-size:11px;text-align:center">
+         <a href="${unsubscribeUrl}" style="color:#8b8b8b">Unsubscribe</a> from these chart emails.
+       </p>`,
+  };
+}
+
 /**
  * A one-off note to everyone who has signed in, describing what MOTR is.
  *

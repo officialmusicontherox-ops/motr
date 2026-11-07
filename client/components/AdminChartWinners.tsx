@@ -45,6 +45,12 @@ export default function AdminChartWinners() {
   const [busy, setBusy] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [announce, setAnnounce] = useState<{
+    sent: number;
+    total: number;
+    done: boolean;
+    skipped?: string;
+  } | null>(null);
 
   async function load() {
     try {
@@ -61,7 +67,7 @@ export default function AdminChartWinners() {
     load();
   }, []);
 
-  async function post(body: Record<string, unknown>, key: string) {
+  async function post(body: Record<string, unknown>, key: string): Promise<boolean> {
     setBusy(key);
     setError(null);
     const res = await fetch("/api/admin/chart-winners", {
@@ -73,9 +79,34 @@ export default function AdminChartWinners() {
     setBusy(null);
     if (!res.ok) {
       setError(data.error ?? "That didn't work.");
-      return;
+      return false;
     }
-    load();
+    await load();
+    return true;
+  }
+
+  /**
+   * Announce the winner, straight after the link is saved.
+   *
+   * Driven from the browser rather than the server because the mailing is
+   * far longer than the ten seconds the function gets, so it has to be asked
+   * for a batch at a time. The server refuses a second announcement for the
+   * same week, so correcting the link later re-saves it without mailing
+   * anybody twice.
+   */
+  async function announceWinner() {
+    setAnnounce({ sent: 0, total: 0, done: false });
+    for (let i = 0; i < 400; i++) {
+      const res = await fetch("/api/admin/winner-announce", { method: "POST" });
+      if (!res.ok) {
+        setError("The link saved, but the announcement stopped. Open Winner Announcement Email to finish it.");
+        setAnnounce(null);
+        return;
+      }
+      const p = await res.json();
+      setAnnounce({ sent: p.sent, total: p.total, done: p.done, skipped: p.skipped });
+      if (p.done || p.skipped) return;
+    }
   }
 
   const pending = weeks?.filter((w) => w.recorded && !w.recorded.writeUpUrl).length ?? 0;
@@ -94,6 +125,33 @@ export default function AdminChartWinners() {
       }
     >
       {error && <p className="text-nope mb-3 text-sm">{error}</p>}
+
+      {announce && (
+        <div className="border-gold/40 bg-gold/10 mb-3 rounded-xl border p-3 text-sm">
+          {announce.skipped ? (
+            <p className="text-muted">{announce.skipped}</p>
+          ) : (
+            <>
+              <p>
+                <strong className="text-gold tabular-nums">{announce.sent}</strong>
+                <span className="text-muted">
+                  {" "}
+                  of {announce.total} told{announce.done ? ". Finished." : ", sending..."}
+                </span>
+              </p>
+              <div className="border-edge bg-surface mt-1.5 h-2 overflow-hidden rounded-full border">
+                <div
+                  className="bg-gold h-full rounded-full transition-[width] duration-500"
+                  style={{ width: `${announce.total ? Math.round((announce.sent / announce.total) * 100) : 0}%` }}
+                />
+              </div>
+              {!announce.done && (
+                <p className="text-muted mt-1.5 text-xs">Leave this page open until it finishes.</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {!weeks && <p className="text-muted text-sm">Loading...</p>}
 
@@ -149,19 +207,20 @@ export default function AdminChartWinners() {
                       />
                       <button
                         disabled={busy === w.recorded.id || !(drafts[w.recorded.id] ?? "").trim()}
-                        onClick={() =>
-                          post(
+                        onClick={async () => {
+                          const saved = await post(
                             {
                               action: "SET_WRITEUP",
                               winnerId: w.recorded!.id,
                               writeUpUrl: drafts[w.recorded!.id],
                             },
                             w.recorded!.id
-                          )
-                        }
+                          );
+                          if (saved) await announceWinner();
+                        }}
                         className="bg-gold text-bg rounded-full px-4 py-2 text-sm font-bold disabled:opacity-40"
                       >
-                        Save link
+                        Save link and announce
                       </button>
                     </div>
                   )}

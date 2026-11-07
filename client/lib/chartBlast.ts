@@ -75,13 +75,13 @@ const BATCH_BUDGET_MS = 4500;
 /** Under Resend's two-a-second ceiling, the same as every other batch here. */
 const PACE_MS = 550;
 
-type Recipient = { email: string; name: string; unsubscribe: string };
+export type Recipient = { email: string; name: string; unsubscribe: string };
 
 /**
  * Everyone with an address who has not opted out, listeners and artists
  * alike, deduplicated. Somebody who is both gets one copy.
  */
-async function recipients(appUrl: string): Promise<Recipient[]> {
+export async function recipients(appUrl: string): Promise<Recipient[]> {
   const [fans, artists] = await Promise.all([
     prisma.fan.findMany({
       where: { email: { not: null }, emailOptOut: false },
