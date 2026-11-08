@@ -76,7 +76,7 @@ export default function AdminAudience() {
       {totals && (
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           <Tile
-            label="Google sign-ins"
+            label="With an email"
             value={totals.google}
             sub={`${totals.activeGoogle} active this week`}
             gold
@@ -110,17 +110,26 @@ export default function AdminAudience() {
       {showSaves && <SavedBreakdown />}
 
       <div className="mt-4 flex gap-2">
-        {(["google", "anonymous"] as const).map((t) => (
+        {/* The split has never been about Google. It is whether there is an
+            address to reach someone at, which is the only distinction that
+            changes what you can do with them. Plenty of these typed an email
+            in without signing in with Google at all. */}
+        {(
+          [
+            ["google", "With an email"],
+            ["anonymous", "Anonymous"],
+          ] as const
+        ).map(([t, label]) => (
           <button
             key={t}
             onClick={() => setType(t)}
-            className={`rounded-full px-4 py-1.5 text-sm capitalize ${
+            className={`rounded-full px-4 py-1.5 text-sm ${
               type === t
                 ? "bg-gold text-bg"
                 : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
             }`}
           >
-            {t}
+            {label}
           </button>
         ))}
       </div>
@@ -131,34 +140,36 @@ export default function AdminAudience() {
         <p className="mt-3 text-sm text-muted">Loading...</p>
       ) : fans.length === 0 ? (
         <p className="mt-3 text-sm text-muted">
-          No {type === "google" ? "Google sign-ins" : "anonymous fans"} yet.
+          No {type === "google" ? "listeners with an email" : "anonymous listeners"} yet.
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto rounded-xl border border-edge">
           <table className="w-full text-left text-sm">
             <thead className="bg-surface-2 text-muted">
               <tr>
-                <th className="p-3">Fan</th>
+                <th className="p-3">{type === "google" ? "Email" : "Fan"}</th>
                 <th className="p-3">Swipes</th>
                 <th className="p-3">Joined</th>
-                {type === "google" && <th className="p-3">Email</th>}
+                {type === "google" && <th className="p-3">Signed in as</th>}
               </tr>
             </thead>
             <tbody>
               {fans.slice(0, page.visible).map((f) => (
                 <tr key={f.id} className="border-t border-edge">
-                  <td className="max-w-[18rem] truncate p-3">
-                    {f.displayName ?? f.username}
-                    {f.displayName && (
-                      <span className="text-muted"> · {f.username}</span>
-                    )}
+                  {/* In the email tab the address leads, because it is the
+                      only thing here anyone acts on. An auto-generated handle
+                      in the first column read as an empty row. */}
+                  <td className="max-w-[22rem] truncate p-3">
+                    {type === "google" ? (f.email ?? "—") : (f.displayName ?? f.username)}
                   </td>
                   <td className="p-3 tabular-nums">{f.swipes}</td>
                   <td className="p-3 text-muted">
                     {new Date(f.createdAt).toLocaleDateString()}
                   </td>
                   {type === "google" && (
-                    <td className="max-w-[18rem] truncate p-3 text-muted">{f.email ?? "—"}</td>
+                    <td className="text-muted max-w-[18rem] truncate p-3">
+                      {f.displayName ?? f.username}
+                    </td>
                   )}
                 </tr>
               ))}
