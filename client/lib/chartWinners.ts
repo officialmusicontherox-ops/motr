@@ -13,17 +13,27 @@ import { prisma } from "./prisma";
  */
 
 /** Nothing before this counts. The contest starts in October. */
-import { CHART_START } from "./weekWindow";
+import { CHART_START, weekOf } from "./weekWindow";
 export { CHART_START };
 
-/** Monday 00:00 UTC of the week containing `d`. */
+/**
+ * The start of the chart week containing `d`.
+ *
+ * The same week the site, the charts and the emails use: Sunday to Saturday
+ * in Central time. This used to compute Monday to Monday in UTC, a different
+ * seven days about eighteen hours out of step, which meant the winner was
+ * counted over a window nobody had been shown. It also left the week that
+ * had just closed unlockable until the Monday after it.
+ */
 export function weekStartOf(d: Date): Date {
-  const copy = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
-  // getUTCDay is 0 for Sunday, so Sunday belongs to the week that began six
-  // days earlier rather than starting a new one.
-  const back = (copy.getUTCDay() + 6) % 7;
-  copy.setUTCDate(copy.getUTCDate() - back);
-  return copy;
+  return weekOf(d).start;
+}
+
+/** The instant a chart week ends, exclusive. */
+function weekEndOf(start: Date): Date {
+  // Read back through weekOf rather than adding seven days of milliseconds,
+  // so the week containing a daylight-saving change is still seven days.
+  return weekOf(new Date(start.getTime() + 36 * 60 * 60 * 1000)).end;
 }
 
 export type WeekResult = {
@@ -42,8 +52,7 @@ export type WeekResult = {
  * can't win a prize aimed at the artists who chose to be here.
  */
 export async function winnerForWeek(weekStart: Date): Promise<WeekResult | null> {
-  const weekEnd = new Date(weekStart);
-  weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
+  const weekEnd = weekEndOf(weekStart);
 
   const rows = await prisma.$queryRaw<
     { artistId: string; name: string; saves: bigint; tracks: bigint }[]
@@ -103,11 +112,15 @@ export async function chartWinnerBoard() {
     provisional: WeekResult | null;
   }[] = [];
 
-  for (let w = new Date(thisWeek); w >= CHART_START; w.setUTCDate(w.getUTCDate() - 7)) {
-    const start = new Date(w);
+  // Walked back a week at a time through weekOf, so each step lands on a
+  // real chart week rather than drifting across a clock change.
+  for (
+    let start = new Date(thisWeek);
+    start >= CHART_START;
+    start = weekOf(new Date(start.getTime() - 24 * 60 * 60 * 1000)).start
+  ) {
     if (start.getTime() === thisWeek.getTime()) continue; // still running
-    const end = new Date(start);
-    end.setUTCDate(end.getUTCDate() + 7);
+    const end = weekEndOf(start);
 
     const key = start.toISOString();
     const already = byWeek.get(key) ?? null;
