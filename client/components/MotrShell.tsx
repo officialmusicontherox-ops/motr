@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
-import { Bookmark, Disc, Menu, Seal, Waveform, Note } from "./icons";
+import { Bookmark, Disc, Menu, Waveform, Note } from "./icons";
 import PullToRefresh from "./PullToRefresh";
 import SideRail from "./SideRail";
 import { useUnseenSaves } from "@/lib/savedCount";
@@ -31,7 +31,6 @@ const TABS = [
   { href: "/saved", label: "Saved", Icon: Bookmark },
   { href: "/charts", label: "Charts", Icon: Waveform },
   { href: "/spotlight", label: "Spotlight", Icon: Note },
-  { href: "/badges", label: "Badges", Icon: Seal },
 ];
 
 /**
@@ -164,7 +163,6 @@ export default function MotrShell({
                 <span className="relative flex items-center">
                   <Icon className="h-4 w-4" />
                   {href === "/saved" && <SavedBadge count={savedCount} />}
-                  {href === "/badges" && <SavedBadge count={badgeCount} />}
                 </span>
                 {label}
               </Link>
@@ -181,6 +179,9 @@ export default function MotrShell({
           >
             <Menu className="h-4 w-4" />
             Menu
+            {/* Badges moved into the menu, so its unread count moves with
+                it. Without this a new badge would unlock silently. */}
+            {badgeCount > 0 && <SavedBadge count={badgeCount} />}
           </button>
         </nav>
 
@@ -297,6 +298,7 @@ export default function MotrShell({
             >
               <Menu className="h-[18px] w-[18px]" />
               Menu
+              {badgeCount > 0 && <SavedBadge count={badgeCount} />}
               <span
                 className={`bg-gold h-0.5 w-6 rounded-full transition-opacity ${
                   menuOpen ? "opacity-100" : "opacity-0"

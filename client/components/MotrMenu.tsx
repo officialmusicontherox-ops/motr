@@ -8,6 +8,10 @@ import InstallApp from "./InstallApp";
 import { canVibrate, feedbackEnabled, setFeedbackEnabled, swipeFeedback } from "@/lib/feedback";
 
 const LINKS = [
+  // Moved out of the tab bar on 10 Nov 2026 to make room for Spotlight: five
+  // labelled tabs is too many on a phone. Its unread count now rides on the
+  // menu button, so an unlocked badge is still noticed.
+  { href: "/badges", label: "Your badges", note: "What you have unlocked so far" },
   { href: "/artists", label: "Submit your song", note: "Free. Paste a Spotify link" },
   { href: "/faq", label: "How it works", note: "Thirty seconds, no names, your call" },
   { href: "/contact", label: "Contact", note: "Questions, press, support" },
