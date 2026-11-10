@@ -32,10 +32,17 @@ export async function isSuppressed(email: string): Promise<boolean> {
     }),
     // Covers anyone with no account at all: a cold outreach contact who
     // asked to be removed has no row to carry an opt-out flag.
-    prisma.suppressedEmail.findFirst({
-      where: { email: { equals: address, mode: "insensitive" } },
-      select: { id: true },
-    }),
+    //
+    // Caught rather than thrown. This runs before every non-transactional
+    // send, so if the table is missing, which it is between deploying this
+    // and running the migration, an uncaught error here would stop all mail
+    // rather than one address. The account checks either side still apply.
+    prisma.suppressedEmail
+      .findFirst({
+        where: { email: { equals: address, mode: "insensitive" } },
+        select: { id: true },
+      })
+      .catch(() => null),
   ]);
 
   return Boolean(artist || fan || listed);
