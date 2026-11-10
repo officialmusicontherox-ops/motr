@@ -448,8 +448,17 @@ model Artist {
   lastNudgeAt DateTime?
   nudgeCount  Int       @default(0)
 
+  /// Public profile, cached for the Spotlight tab. Two page reads per artist
+  /// is far too slow to do while rendering, and Spotify rate-limits it.
+  spotifyArtistId  String?
+  photoUrl         String?
+  monthlyListeners Int?
+  appleArtistUrl   String?
+  profileFetchedAt DateTime?
+
   tracks        Track[]
   notifications ArtistNotification[]
+  spotlights    Spotlight[]
   payments      Payment[]
 
   createdAt DateTime @default(now())
@@ -895,6 +904,31 @@ model SuppressedEmail {
   /// Free text: who asked and how, so a removal can be explained later.
   reason    String?
   createdAt DateTime @default(now())
+}
+
+/// A paid slot on the Spotlight tab.
+///
+/// Bought by a listener for an artist they want others to hear. The tab is a
+/// promo surface and nothing on it is a verdict, so it cannot touch the
+/// chart or the blind A&R data.
+model Spotlight {
+  id String @id @default(cuid())
+
+  artistId String
+  artist   Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  /// Seven days in a slot. Null until a slot frees, so a purchase made while
+  /// all six are taken waits rather than losing the time it paid for.
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  /// Who bought it. Null for one placed by hand from the dashboard.
+  fanId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([startsAt, endsAt])
+  @@index([artistId])
 }
 
 model ShareBlastSend {
