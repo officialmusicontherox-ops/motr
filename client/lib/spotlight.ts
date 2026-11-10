@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { leadersBetween } from "./scoutData";
 import { weekOf } from "./weekWindow";
+import { refreshProfile } from "./artistProfile";
 
 /**
  * The Spotlight tab: six tiles, always.
@@ -79,6 +80,10 @@ const SELECT = {
 } as const;
 
 export async function spotlightTiles(): Promise<Tile[]> {
+  // Promote anything waiting first, so a slot that expired a minute ago is
+  // already filled by the time this reads.
+  await startSpotlights().catch(() => {});
+
   const now = new Date();
 
   const live = await prisma.spotlight.findMany({
@@ -137,4 +142,74 @@ export async function spotlightTiles(): Promise<Tile[]> {
   }
 
   return tiles.slice(0, SLOTS);
+}
+
+/**
+ * Create a Spotlight, and fetch that artist's profile while doing it.
+ *
+ * The profile is read here rather than when the tab renders, for two
+ * reasons. Rendering six tiles would mean fifteen-odd sequential page reads
+ * inside a function Netlify kills at ten seconds. And a background fetch
+ * kicked off during a render often never finishes, because the function
+ * freezes once it has responded.
+ *
+ * A purchase is the right moment: it happens once, somebody is waiting for
+ * it anyway, and it only ever fetches for an artist who is actually going to
+ * appear.
+ *
+ * A slot runs for seven days. Where all six are taken the row is created
+ * with no dates and waits; startSpotlights gives it its seven days when one
+ * frees, so nobody pays for time they lose.
+ */
+export async function createSpotlight(artistId: string, fanId?: string | null) {
+  const now = new Date();
+  const active = await prisma.spotlight.count({
+    where: { startsAt: { lte: now }, endsAt: { gt: now } },
+  });
+
+  const starts = active < SLOTS ? now : null;
+  const ends = starts ? new Date(starts.getTime() + SPOTLIGHT_DAYS * 24 * 60 * 60 * 1000) : null;
+
+  const row = await prisma.spotlight.create({
+    data: { artistId, fanId: fanId ?? null, startsAt: starts, endsAt: ends },
+  });
+
+  // Never let a profile read cost somebody their purchase. The tile falls
+  // back to track artwork, which is always present.
+  await refreshProfile(artistId).catch(() => {});
+
+  return { spotlight: row, queued: starts === null };
+}
+
+/**
+ * Give waiting Spotlights their seven days as slots free up.
+ *
+ * Called before the tab is read, so an expired slot is replaced the moment
+ * somebody looks rather than when a timer happens to run.
+ */
+export async function startSpotlights() {
+  const now = new Date();
+  const active = await prisma.spotlight.count({
+    where: { startsAt: { lte: now }, endsAt: { gt: now } },
+  });
+  const free = SLOTS - active;
+  if (free <= 0) return 0;
+
+  const waiting = await prisma.spotlight.findMany({
+    where: { startsAt: null },
+    orderBy: { createdAt: "asc" },
+    take: free,
+    select: { id: true },
+  });
+
+  for (const w of waiting) {
+    await prisma.spotlight.update({
+      where: { id: w.id },
+      data: {
+        startsAt: now,
+        endsAt: new Date(now.getTime() + SPOTLIGHT_DAYS * 24 * 60 * 60 * 1000),
+      },
+    });
+  }
+  return waiting.length;
 }
