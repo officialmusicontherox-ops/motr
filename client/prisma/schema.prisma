@@ -882,6 +882,21 @@ model ChartBlastSend {
 /// One mass send of the share cards per day, batched the same way the chart
 /// blast is: every email draws a card, so a request gets through only a few
 /// artists before it has to hand back.
+/// An address that must never be mailed, whoever it belongs to.
+///
+/// The opt-out flags on Artist and Fan only cover people with an account.
+/// Somebody on a cold outreach list who asks to be removed has no row to
+/// flag, so without this the request survives only in a spreadsheet and the
+/// next export that includes them undoes it.
+model SuppressedEmail {
+  id String @id @default(cuid())
+
+  email     String
+  /// Free text: who asked and how, so a removal can be explained later.
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
 model ShareBlastSend {
   id String @id @default(cuid())
 

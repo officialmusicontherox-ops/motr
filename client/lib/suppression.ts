@@ -12,12 +12,16 @@ import { prisma } from "./prisma";
  * Transactional mail is exempt and must say so at the call site. A sign-in
  * link somebody has just asked for is not marketing, and blocking it would
  * lock an artist out of the account they are trying to come back to.
+ *
+ * Three sources: an artist who opted out, a listener who opted out, and the
+ * suppression list for anyone with no account, which is how a cold outreach
+ * removal survives the next export of the list it came from.
  */
 export async function isSuppressed(email: string): Promise<boolean> {
   const address = email.trim();
   if (!address) return false;
 
-  const [artist, fan] = await Promise.all([
+  const [artist, fan, listed] = await Promise.all([
     prisma.artist.findFirst({
       where: { email: { equals: address, mode: "insensitive" }, emailOptOut: true },
       select: { id: true },
@@ -26,7 +30,13 @@ export async function isSuppressed(email: string): Promise<boolean> {
       where: { email: { equals: address, mode: "insensitive" }, emailOptOut: true },
       select: { id: true },
     }),
+    // Covers anyone with no account at all: a cold outreach contact who
+    // asked to be removed has no row to carry an opt-out flag.
+    prisma.suppressedEmail.findFirst({
+      where: { email: { equals: address, mode: "insensitive" } },
+      select: { id: true },
+    }),
   ]);
 
-  return Boolean(artist || fan);
+  return Boolean(artist || fan || listed);
 }

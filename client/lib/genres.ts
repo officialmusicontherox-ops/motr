@@ -1,6 +1,15 @@
 // Fixed list so artist-selected genres and curator-selected genres always
 // match exactly — routing does a straight containment check, not fuzzy text.
 export const GENRES = [
+  // First on purpose, and meant to be temporary. Holiday music is a season
+  // rather than a scene: it arrives, it takes over, and in January nobody
+  // wants it in the feed. The picker renders this list in order, so being
+  // first is how it gets seen on arrival.
+  //
+  // After Christmas: move it back down or drop the entry, and retire the
+  // seeded tracks with
+  //   UPDATE "Track" SET status='REJECTED' WHERE genre='Holiday' AND "artistId" IS NULL;
+  "Holiday",
   "Hip-Hop / Rap",
   "R&B / Soul",
   "Pop",
