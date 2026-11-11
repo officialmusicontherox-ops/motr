@@ -16,7 +16,7 @@ import { stripe } from "@/lib/stripe";
 export async function POST(req: NextRequest) {
   if (!stripe) return NextResponse.json({ error: "Not configured" }, { status: 503 });
 
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  const secret = process.env.STRIPE_SPOTLIGHT_WEBHOOK_SECRET;
   if (!secret) return NextResponse.json({ error: "Not configured" }, { status: 503 });
 
   // The raw body, not the parsed one: the signature is over the exact bytes.
