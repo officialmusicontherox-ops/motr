@@ -8,7 +8,9 @@ import { ImageResponse } from "next/og";
  * be judged before it ships. Pulls the live tiles and their real artwork.
  */
 
-const OUT = process.argv[2] ?? ".";
+// The Chromebook's Files app shows this, not the Linux container's
+// ~/Downloads, which is invisible from ChromeOS.
+const OUT = process.argv[2] ?? "/mnt/shared/MyFiles/Downloads";
 const BG = "#09090a";
 const SURFACE = "#121214";
 const SURFACE2 = "#1c1c20";
