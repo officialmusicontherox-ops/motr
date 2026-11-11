@@ -129,13 +129,13 @@ export default function MotrMenu({
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="border-edge flex shrink-0 items-center justify-between gap-3 border-b px-4 py-4">
+        <div className="border-edge flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
           <Image
             src="/motr-logo.png"
             alt="MOTR"
             width={1000}
             height={550}
-            className="h-9 w-auto shrink-0"
+            className="h-8 w-auto shrink-0"
           />
           <button
             onClick={onClose}
@@ -148,20 +148,20 @@ export default function MotrMenu({
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-3">
+          <ul className="space-y-0.5">
             {LINKS.map((l) => (
               <li key={l.href}>
                 <Link
                   href={l.href}
                   onClick={onClose}
-                  className="hover:bg-surface-2 group block rounded-xl px-3 py-3 transition"
+                  className="hover:bg-surface-2 group block rounded-xl px-3 py-2 transition"
                 >
-                  <span className="group-hover:text-gold flex items-center gap-2 font-semibold transition">
+                  <span className="group-hover:text-gold flex items-center gap-2 text-sm font-semibold transition">
                     <Note className="text-gold/50 group-hover:text-gold h-3.5 w-3.5 transition" />
                     {l.label}
                   </span>
-                  <span className="text-muted mt-0.5 block pl-[1.4rem] text-xs">{l.note}</span>
+                  <span className="text-muted block pl-[1.4rem] text-[0.68rem] leading-snug">{l.note}</span>
                 </Link>
               </li>
             ))}
@@ -173,11 +173,11 @@ export default function MotrMenu({
           <button
             type="button"
             onClick={toggleTheme}
-            className="border-edge hover:border-gold mt-3 flex w-full items-center justify-between rounded-xl border px-3 py-3 transition"
+            className="border-edge hover:border-gold mt-2 flex w-full items-center justify-between rounded-xl border px-3 py-2 transition"
           >
             <span className="flex flex-col items-start">
-              <span className="font-semibold">{light ? "Light mode" : "Dark mode"}</span>
-              <span className="text-muted mt-0.5 text-xs">
+              <span className="text-sm font-semibold">{light ? "Light mode" : "Dark mode"}</span>
+              <span className="text-muted text-[0.68rem] leading-snug">
                 Tap to switch to {light ? "dark" : "light"}
               </span>
             </span>
@@ -203,10 +203,10 @@ export default function MotrMenu({
             className="border-edge hover:border-gold mt-3 flex w-full items-center justify-between rounded-xl border px-3 py-3 transition"
           >
             <span className="flex flex-col items-start">
-              <span className="font-semibold">
+              <span className="text-sm font-semibold">
                 {buzzes ? "Swipe sound and vibration" : "Swipe sound"}
               </span>
-              <span className="text-muted mt-0.5 text-xs">
+              <span className="text-muted text-[0.68rem] leading-snug">
                 {cues ? "Playing on every swipe" : "Off"}
                 {!buzzes && " · this device has no vibration"}
               </span>
@@ -227,21 +227,21 @@ export default function MotrMenu({
 
           {/* Renders nothing once MOTR is already installed, so the menu
               doesn't offer something that's already done. */}
-          <div className="mt-4">
+          <div className="mt-3">
             <InstallApp variant="inline" />
           </div>
 
-          <div className="border-edge mt-5 border-t pt-5">
+          <div className="border-edge mt-3 border-t pt-3">
             <a
               href="https://musicontherox.com"
               target="_blank"
               rel="noreferrer"
               onClick={onClose}
-              className="hover:bg-surface-2 flex items-center justify-between rounded-xl px-3 py-3 transition"
+              className="hover:bg-surface-2 flex items-center justify-between rounded-xl px-3 py-2 transition"
             >
               <span>
-                <span className="text-gold block font-semibold">MusicOnTheRox.com</span>
-                <span className="text-muted mt-0.5 block text-xs">The mothership</span>
+                <span className="text-gold block text-sm font-semibold">MusicOnTheRox.com</span>
+                <span className="text-muted block text-[0.68rem] leading-snug">The mothership</span>
               </span>
               <ArrowOut className="text-muted h-4 w-4" />
             </a>
@@ -250,7 +250,7 @@ export default function MotrMenu({
 
         {/* Nothing sits in the very bottom corner — that's where the
             dev-tools indicator overlaps and swallows clicks. */}
-        <div className="border-edge shrink-0 border-t px-3 py-3 pb-6">
+        <div className="border-edge shrink-0 border-t px-3 py-2.5 pb-4">
           {/* Which account, above the button that ends it. Without this the
               menu looked identical signed in and signed out. */}
           {who && (
@@ -261,7 +261,7 @@ export default function MotrMenu({
           <button
             onClick={signOut}
             disabled={signingOut}
-            className="border-edge text-muted hover:border-nope/50 hover:text-nope w-full rounded-xl border px-3 py-3 text-sm font-semibold transition disabled:opacity-50"
+            className="border-edge text-muted hover:border-nope/50 hover:text-nope w-full rounded-xl border px-3 py-2 text-sm font-semibold transition disabled:opacity-50"
           >
             {signingOut ? "Signing out..." : "Sign out"}
           </button>
@@ -272,7 +272,7 @@ export default function MotrMenu({
           <Link
             href="/admin"
             onClick={onClose}
-            className="text-muted hover:text-gold block rounded-lg px-3 py-2 text-xs font-medium transition"
+            className="text-muted hover:text-gold block rounded-lg px-3 py-1.5 text-[0.68rem] font-medium transition"
           >
             Admin
           </Link>
