@@ -75,6 +75,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   /** Spotlights this listener is holding. A swipe up spends one. */
   const [credits, setCredits] = useState(0);
   const [needCredits, setNeedCredits] = useState(false);
+  /** How many were just bought, read off the URL Stripe sent them back to. */
+  const [bought, setBought] = useState(0);
   /** Set when the next track could not be loaded, so the spinner is not forever. */
   const [loadFailed, setLoadFailed] = useState(false);
   const [justSaved, setJustSaved] = useState<{
@@ -178,6 +180,20 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     return () => clearTimeout(t);
   }, [breakout]);
 
+  /**
+   * Coming back from checkout.
+   *
+   * Says so and then takes the marker out of the address bar, so a refresh
+   * or a shared link does not claim a purchase that already happened. The
+   * number is only what to say; the balance itself comes from the server.
+   */
+  useEffect(() => {
+    const n = Number(new URLSearchParams(window.location.search).get("spotlights"));
+    if (!Number.isInteger(n) || n < 1) return;
+    setBought(n);
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
+
   // Read once on arrival. A swipe up corrects it from the server's answer,
   // so this only has to be right at the start.
   useEffect(() => {
@@ -195,6 +211,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     // right swipe either way: one listener, one track, one save. The money
     // buys the slot on the Spotlight tab, never an extra vote, which is what
     // keeps a bought Spotlight out of the chart.
+    setBought(0);
     const spotlight = direction === "UP";
     const verdict = spotlight ? "RIGHT" : direction;
 
@@ -515,6 +532,16 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           onClose={() => setAskEmail(false)}
         />
       )}
+      {bought > 0 && (
+        <div className="pb-nav pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-5">
+          <p className="border-gold/40 bg-surface text-gold mb-3 flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold shadow-lg">
+            <Note className="h-4 w-4 shrink-0" />
+            {bought === 1 ? "1 Spotlight added" : `${bought} Spotlights added`}. Swipe up to use
+            one.
+          </p>
+        </div>
+      )}
+
       {needCredits && <SpotlightOffer onClose={() => setNeedCredits(false)} />}
 
     </MotrShell>

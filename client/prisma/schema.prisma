@@ -916,6 +916,20 @@ model SuppressedEmail {
 /// Bought by a listener for an artist they want others to hear. The tab is a
 /// promo surface and nothing on it is a verdict, so it cannot touch the
 /// chart or the blind A&R data.
+/// Every bundle of Spotlights bought. The unique session id is what makes
+/// the webhook safe to receive twice, which Stripe will do whenever a reply
+/// is slow.
+model SpotlightPurchase {
+  id        String   @id @default(cuid())
+  fanId     String
+  sessionId String   @unique
+  credits   Int
+  cents     Int
+  createdAt DateTime @default(now())
+
+  @@index([fanId])
+}
+
 model Spotlight {
   id String @id @default(cuid())
 
