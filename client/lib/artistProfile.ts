@@ -49,11 +49,23 @@ export async function fetchProfile(artistId: string): Promise<FetchedProfile> {
     appleArtistUrl: null,
   };
 
-  const track = await prisma.track.findFirst({
-    where: { artistId, status: { not: "REJECTED" }, source: "SPOTIFY" },
-    select: { externalId: true, appleTrackId: true },
+  // All of their live tracks, not just the newest. Apple ids are filled in
+  // at submission and a release that predates that has none, so reading only
+  // the latest track left ten artists with no Apple link while their own
+  // back catalogue carried the id.
+  const tracks = await prisma.track.findMany({
+    where: { artistId, status: { not: "REJECTED" } },
+    select: {
+      externalId: true,
+      source: true,
+      title: true,
+      artistName: true,
+      appleTrackId: true,
+      appleArtistId: true,
+    },
     orderBy: { createdAt: "desc" },
   });
+  const track = tracks.find((t) => t.source === "SPOTIFY");
   if (!track) return empty;
 
   const out = { ...empty };
@@ -75,30 +87,83 @@ export async function fetchProfile(artistId: string): Promise<FetchedProfile> {
     // Leave what was read so far; a partial profile still renders.
   }
 
-  // Apple's link comes from the id already stored at submission, so it costs
-  // a lookup rather than a search and is not rate-limited the same way.
-  if (track.appleTrackId) {
-    try {
-      const res = await fetch(`https://itunes.apple.com/lookup?id=${track.appleTrackId}&entity=song`);
-      if (res.ok) {
-        const body = (await res.json()) as { results?: { wrapperType?: string; artistViewUrl?: string }[] };
-        const hit = (body.results ?? []).find((r) => r.wrapperType === "track");
-        out.appleArtistUrl = hit?.artistViewUrl ?? null;
-      }
-    } catch {
-      // Same again: a missing Apple link hides one button, nothing more.
-    }
-  }
+  out.appleArtistUrl = await appleLink(tracks);
 
   return out;
 }
 
-/** Fetch and store. Returns what was written. */
+
+type AppleSource = {
+  title: string;
+  artistName: string;
+  appleTrackId: string | null;
+  appleArtistId: string | null;
+};
+
+/**
+ * The artist's own page on Apple Music, by the cheapest route that works.
+ *
+ * Three ways in, in order of how certain each one is:
+ *  1. An Apple artist id already stored on one of their tracks. That is the
+ *     same id the charts group on, so it costs nothing and cannot be wrong.
+ *  2. An Apple track id, which a lookup turns into the artist's page.
+ *  3. A search, for the older releases that predate both. Only accepted on
+ *     an exact name match against Apple's own spelling, because a near match
+ *     sends listeners to a different artist, which is worse than no link.
+ *
+ * Never throws. A missing link hides one mark on a tile, nothing more.
+ */
+async function appleLink(tracks: AppleSource[]): Promise<string | null> {
+  const byArtistId = tracks.find((t) => t.appleArtistId)?.appleArtistId;
+  if (byArtistId) return `https://music.apple.com/us/artist/${byArtistId}`;
+
+  const byTrackId = tracks.find((t) => t.appleTrackId)?.appleTrackId;
+  if (byTrackId) {
+    try {
+      const res = await fetch(`https://itunes.apple.com/lookup?id=${byTrackId}&entity=song`);
+      if (res.ok) {
+        const body = (await res.json()) as {
+          results?: { wrapperType?: string; artistViewUrl?: string }[];
+        };
+        const hit = (body.results ?? []).find((r) => r.wrapperType === "track");
+        if (hit?.artistViewUrl) return hit.artistViewUrl;
+      }
+    } catch {
+      // Fall through to the search.
+    }
+  }
+
+  const seed = tracks[0];
+  if (!seed) return null;
+  try {
+    const term = encodeURIComponent(`${seed.artistName} ${seed.title}`);
+    const res = await fetch(`https://itunes.apple.com/search?term=${term}&entity=song&limit=10`);
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      results?: { artistName?: string; artistViewUrl?: string }[];
+    };
+    const want = seed.artistName.trim().toLowerCase();
+    const hit = (body.results ?? []).find(
+      (r) => r.artistViewUrl && r.artistName?.trim().toLowerCase() === want
+    );
+    return hit?.artistViewUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch and store. Returns what was written.
+ *
+ * A field that came back empty is left alone rather than written as null.
+ * These are read from pages we do not control, and one flaky response would
+ * otherwise wipe a good photo or listener count off a tile and leave it
+ * blank until the next refresh happened to go better.
+ */
 export async function refreshProfile(artistId: string) {
   const p = await fetchProfile(artistId);
-  await prisma.artist.update({
-    where: { id: artistId },
-    data: { ...p, profileFetchedAt: new Date() },
-  });
+  const data: Record<string, unknown> = { profileFetchedAt: new Date() };
+  for (const [k, v] of Object.entries(p)) if (v !== null) data[k] = v;
+  await prisma.artist.update({ where: { id: artistId }, data });
   return p;
 }
