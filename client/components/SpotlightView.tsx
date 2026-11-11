@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import MotrShell from "./MotrShell";
+import ArtistSheet from "./ArtistSheet";
+import SpotlightOffer from "./SpotlightOffer";
 
 type Tile = {
   artistId: string;
@@ -40,12 +42,22 @@ function listeners(n: number) {
 export default function SpotlightView() {
   const [tiles, setTiles] = useState<Tile[] | null>(null);
   const [error, setError] = useState(false);
+  const [sheet, setSheet] = useState<Tile | null>(null);
+  const [offer, setOffer] = useState(false);
+  const [credits, setCredits] = useState(0);
 
   useEffect(() => {
     fetch("/api/spotlight")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setTiles(d.tiles))
       .catch(() => setError(true));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/spotlight/spend")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => typeof d?.credits === "number" && setCredits(d.credits))
+      .catch(() => {});
   }, []);
 
   return (
@@ -55,8 +67,22 @@ export default function SpotlightView() {
           Spotlight
         </h1>
         <p className="text-muted mx-auto mt-1 max-w-md shrink-0 text-center text-xs md:text-sm">
-          Artists someone wanted you to hear. Tap a logo to listen.
+          Artists someone wanted you to hear. Tap one to see who they are.
         </p>
+
+        {/* The only place to get one used to be the moment you reached for a
+            Spotlight you did not have, which left the tab named after them
+            with no way to get any. */}
+        <div className="mt-2 flex shrink-0 justify-center">
+          <button
+            onClick={() => setOffer(true)}
+            className="border-gold/50 text-gold hover:bg-gold/10 rounded-full border px-4 py-1.5 text-xs font-semibold transition"
+          >
+            {credits > 0
+              ? `You have ${credits} Spotlight${credits === 1 ? "" : "s"}`
+              : "Get Spotlights"}
+          </button>
+        </div>
 
         {error ? (
           <p className="text-muted mt-8 text-center text-sm">
@@ -71,19 +97,42 @@ export default function SpotlightView() {
             {/* Six placeholders rather than a spinner, so nothing moves when
                 the real tiles arrive. */}
             {(tiles ?? Array.from({ length: 6 }, () => null)).map((t, i) =>
-              t ? <TileCard key={t.artistId} t={t} /> : <Skeleton key={i} />
+              t ? (
+                <TileCard key={t.artistId} t={t} onOpen={() => setSheet(t)} />
+              ) : (
+                <Skeleton key={i} />
+              )
             )}
           </div>
         )}
       </div>
+
+      {sheet && (
+        <ArtistSheet
+          artistId={sheet.artistId}
+          fallbackName={sheet.name}
+          onClose={() => setSheet(null)}
+        />
+      )}
+
+      {offer && <SpotlightOffer onClose={() => setOffer(false)} />}
     </MotrShell>
   );
 }
 
-function TileCard({ t }: { t: Tile }) {
+function TileCard({ t, onOpen }: { t: Tile; onOpen: () => void }) {
   return (
-    <div className="border-edge bg-surface flex min-h-0 flex-col overflow-hidden rounded-2xl border">
-      <div className="bg-surface-2 relative min-h-0 flex-1">
+    <div className="border-edge bg-surface hover:border-gold/50 flex min-h-0 flex-col overflow-hidden rounded-2xl border transition">
+      {/* The photo opens the artist rather than going straight out to a
+          service, so there is somewhere to read who they are and to put
+          them in the Spotlight yourself. The two marks below stay links of
+          their own, which is why this cannot wrap the whole tile. */}
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`About ${t.name}`}
+        className="bg-surface-2 relative min-h-0 flex-1 cursor-pointer"
+      >
         {t.image ? (
           <Image
             src={t.image}
@@ -101,7 +150,7 @@ function TileCard({ t }: { t: Tile }) {
             No photo
           </div>
         )}
-      </div>
+      </button>
 
       <div className="shrink-0 px-2.5 py-2 md:px-3 md:py-2.5">
         {/* Under the photo rather than over it: on the mockup the badge
@@ -112,7 +161,13 @@ function TileCard({ t }: { t: Tile }) {
           </span>
         )}
 
-        <p className="truncate text-[0.82rem] font-semibold md:text-sm">{t.name}</p>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="block max-w-full truncate text-left text-[0.82rem] font-semibold md:text-sm"
+        >
+          {t.name}
+        </button>
 
         <div className="mt-0.5 flex items-center gap-1">
           <p className="text-muted min-w-0 flex-1 truncate text-[0.68rem] md:text-xs">
