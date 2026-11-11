@@ -55,7 +55,7 @@ export default function SpotlightView() {
           Spotlight
         </h1>
         <p className="text-muted mx-auto mt-1 max-w-md shrink-0 text-center text-xs md:text-sm">
-          Artists someone wanted you to hear. Tap one to listen.
+          Artists someone wanted you to hear. Tap a logo to listen.
         </p>
 
         {error ? (
@@ -81,19 +81,8 @@ export default function SpotlightView() {
 }
 
 function TileCard({ t }: { t: Tile }) {
-  // The whole tile is the link. Two buttons under every photo cost a row of
-  // height each, which on a phone came straight out of the artwork.
-  const href = t.spotifyUrl ?? t.appleUrl ?? undefined;
-  const apple = !t.spotifyUrl && !!t.appleUrl;
-
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener"
-      aria-label={`Open ${t.name} on ${apple ? "Apple Music" : "Spotify"}`}
-      className="border-edge bg-surface hover:border-gold flex min-h-0 flex-col overflow-hidden rounded-2xl border transition"
-    >
+    <div className="border-edge bg-surface flex min-h-0 flex-col overflow-hidden rounded-2xl border">
       <div className="bg-surface-2 relative min-h-0 flex-1">
         {t.image ? (
           <Image
@@ -125,21 +114,43 @@ function TileCard({ t }: { t: Tile }) {
 
         <p className="truncate text-[0.82rem] font-semibold md:text-sm">{t.name}</p>
 
-        <div className="mt-0.5 flex items-center gap-1.5">
+        <div className="mt-0.5 flex items-center gap-1">
           <p className="text-muted min-w-0 flex-1 truncate text-[0.68rem] md:text-xs">
             {t.genre?.split(" /")[0] ?? "Music"}
             {t.monthlyListeners !== null && ` · ${listeners(t.monthlyListeners)} listeners`}
           </p>
-          {/* Says where the tap goes without spending a line on a button. */}
-          {href &&
-            (apple ? (
-              <AppleMark className="text-muted h-3.5 w-3.5 shrink-0" />
-            ) : (
-              <SpotifyMark className="text-hot h-3.5 w-3.5 shrink-0" />
-            ))}
+
+          {/* Two marks rather than two buttons. Buttons cost a row of artwork
+              each, and the logos say where the tap goes without a word on
+              them. Each one goes to that artist's own page on that service,
+              so nobody is sent to whichever one we picked for them. */}
+          {t.spotifyUrl && (
+            <a
+              href={t.spotifyUrl}
+              target="_blank"
+              rel="noopener"
+              aria-label={`${t.name} on Spotify`}
+              title="Open on Spotify"
+              className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition hover:bg-white/5"
+            >
+              <SpotifyMark className="h-[18px] w-[18px] text-[#1DB954]" />
+            </a>
+          )}
+          {t.appleUrl && (
+            <a
+              href={t.appleUrl}
+              target="_blank"
+              rel="noopener"
+              aria-label={`${t.name} on Apple Music`}
+              title="Open on Apple Music"
+              className="-my-1 -mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition hover:bg-white/5"
+            >
+              <AppleMusicMark className="h-[18px] w-[18px] text-[#FA243C]" />
+            </a>
+          )}
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -163,10 +174,10 @@ function SpotifyMark({ className }: { className?: string }) {
   );
 }
 
-function AppleMark({ className }: { className?: string }) {
+function AppleMusicMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M16.4 12.9c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.6-1.3-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2 2.5 2 1 0 1.4-.6 2.6-.6 1.2 0 1.5.6 2.6.6 1.1 0 1.8-1 2.5-2 .5-.7.7-1.1 1.1-1.9-2.5-1-2.7-3.2-2.7-3.3Zm-2.1-6c.5-.7.9-1.6.8-2.6-.8.1-1.8.6-2.4 1.3-.5.6-1 1.6-.8 2.5.9.1 1.9-.5 2.4-1.2Z" />
+      <path d="M17.6 2H6.4A4.4 4.4 0 0 0 2 6.4v11.2A4.4 4.4 0 0 0 6.4 22h11.2a4.4 4.4 0 0 0 4.4-4.4V6.4A4.4 4.4 0 0 0 17.6 2Zm-1.1 3.9v8.6a2.4 2.4 0 0 1-1.9 2.4c-1.2.2-2.1-.5-2.1-1.5s.7-1.7 1.8-1.9l.7-.1c.4-.1.5-.2.5-.6V8.6c0-.3-.1-.4-.4-.3l-4 .8c-.3.1-.4.2-.4.5v6.9a2.4 2.4 0 0 1-1.9 2.4c-1.2.2-2.1-.5-2.1-1.5s.7-1.7 1.8-1.9l.7-.1c.4-.1.5-.2.5-.6V7.4c0-.6.3-.9.9-1l5.9-1.2c.6-.1 1 .2 1 .8v-.1Z" />
     </svg>
   );
 }
