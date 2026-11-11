@@ -37,12 +37,14 @@ export default function SwipeCard({
   disabled,
   onProgress,
   credits = 0,
+  onNeedCredits,
 }: {
   track: Track;
   onSwipe: (direction: Direction, listenDurationMs: number) => void;
-  /** How many Spotlights this listener is holding. Zero still swipes up;
-      the queue answers it with an offer rather than spending nothing. */
+  /** How many Spotlights this listener is holding. */
   credits?: number;
+  /** Reached for a Spotlight without holding one. */
+  onNeedCredits?: () => void;
   disabled: boolean;
   /** Lets the shell render the clip scrubber above the card. */
   onProgress?: (currentTime: number, duration: number) => void;
@@ -140,6 +142,22 @@ export default function SwipeCard({
 
   function commitSwipe(direction: Direction) {
     if (exiting || disabled) return;
+
+    /**
+     * Reaching for a Spotlight without one.
+     *
+     * The card must not leave. Everything below commits the exit animation,
+     * and the queue cannot advance a swipe it is not going to record, so the
+     * card would fly off and never be replaced. Spring it back instead and
+     * let the queue make the offer.
+     */
+    if (direction === "UP" && credits < 1) {
+      setDx(0);
+      setDy(0);
+      onNeedCredits?.();
+      return;
+    }
+
     // Here rather than in the queue's success handler: the cue has to land on
     // the gesture itself. A round trip later and it feels like the app is
     // reacting to the network instead of to them.
@@ -405,35 +423,62 @@ export default function SwipeCard({
 
       {/* Tap targets, so swiping is optional rather than required. Labelled
           left/right to match the gesture they stand in for. */}
-      <div className="relative z-10 mt-3 flex shrink-0 items-center justify-center gap-3">
+      <div className="relative z-10 mt-3 flex shrink-0 items-center justify-center gap-2">
         <button
           type="button"
           disabled={disabled}
           onClick={() => commitSwipe("LEFT")}
-          className="border-nope/30 bg-surface-2 text-nope hover:border-nope group flex flex-1 items-center justify-center gap-2 rounded-2xl border py-3 transition disabled:opacity-40"
+          className="border-nope/30 bg-surface-2 text-nope hover:border-nope group flex flex-1 items-center justify-center gap-1.5 rounded-2xl border py-2.5 transition disabled:opacity-40"
         >
-          <Cross className="h-5 w-5" />
+          <Cross className="h-4 w-4" />
           <span className="text-left leading-tight">
-            <span className="motr-verdict block text-lg">Nope</span>
+            <span className="motr-verdict block text-base">Nope</span>
             <span className="text-muted block text-[0.6rem] uppercase tracking-widest">
               Not for me
             </span>
           </span>
         </button>
 
+        {/* Between the two verdicts, because that is where the gesture it
+            stands for starts. Round and gold rather than another rectangle:
+            it is not a third verdict, and it must not look like one. The
+            count is on it so nobody taps it expecting something free. */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => commitSwipe("UP")}
+          aria-label={
+            credits > 0
+              ? `Spotlight this artist, ${credits} left`
+              : "Spotlight this artist"
+          }
+          title="Spotlight this artist"
+          className="border-gold/40 bg-surface-2 text-gold hover:border-gold relative flex h-[3.1rem] w-[3.1rem] shrink-0 flex-col items-center justify-center rounded-full border transition disabled:opacity-40"
+        >
+          <Note className="h-5 w-5" />
+          <span className="mt-0.5 text-[0.55rem] font-bold uppercase tracking-widest">
+            Up
+          </span>
+          {credits > 0 && (
+            <span className="bg-gold text-bg absolute -right-1 -top-1 min-w-[1.05rem] rounded-full px-1 text-center text-[0.6rem] font-bold leading-[1.05rem] tabular-nums">
+              {credits > 9 ? "9+" : credits}
+            </span>
+          )}
+        </button>
+
         <button
           type="button"
           disabled={disabled}
           onClick={() => commitSwipe("RIGHT")}
-          className="border-hot/30 bg-surface-2 text-hot hover:border-hot group flex flex-1 items-center justify-center gap-2 rounded-2xl border py-3 transition disabled:opacity-40"
+          className="border-hot/30 bg-surface-2 text-hot hover:border-hot group flex flex-1 items-center justify-center gap-1.5 rounded-2xl border py-2.5 transition disabled:opacity-40"
         >
           <span className="text-right leading-tight">
-            <span className="motr-verdict block text-lg">Like</span>
+            <span className="motr-verdict block text-base">Like</span>
             <span className="text-muted block text-[0.6rem] uppercase tracking-widest">
               Save song
             </span>
           </span>
-          <Heart className="h-5 w-5" />
+          <Heart className="h-4 w-4" />
         </button>
       </div>
 

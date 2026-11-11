@@ -215,8 +215,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     const spotlight = direction === "UP";
     const verdict = spotlight ? "RIGHT" : direction;
 
-    // Nothing to spend. Make the offer instead of swallowing the gesture, and
-    // leave the card where it is so nothing is lost.
+    // A safety net. The card springs back rather than committing an up swipe
+    // with nothing to spend, so this should not be reachable.
     if (spotlight && credits < 1) {
       setNeedCredits(true);
       return;
@@ -520,6 +520,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           track={track}
           disabled={pending}
           credits={credits}
+          onNeedCredits={() => setNeedCredits(true)}
           onSwipe={(direction, listenMs) => handleSwipe(direction, listenMs)}
           onProgress={(currentTime, duration) => setClip({ currentTime, duration })}
         />
