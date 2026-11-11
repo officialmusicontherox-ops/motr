@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Cross } from "./icons";
+import { Cross, Note } from "./icons";
+import SpotlightOffer from "./SpotlightOffer";
 
 type Card = {
   artistId: string;
@@ -38,6 +39,10 @@ export default function ArtistSheet({
 }) {
   const [card, setCard] = useState<Card | null>(null);
   const [failed, setFailed] = useState(false);
+  const [credits, setCredits] = useState(0);
+  const [offer, setOffer] = useState(false);
+  const [spending, setSpending] = useState(false);
+  const [done, setDone] = useState<"live" | "queued" | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -49,6 +54,48 @@ export default function ArtistSheet({
       live = false;
     };
   }, [artistId]);
+
+  useEffect(() => {
+    fetch("/api/spotlight/spend")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => typeof d?.credits === "number" && setCredits(d.credits))
+      .catch(() => {});
+  }, []);
+
+  /**
+   * Spend one on them.
+   *
+   * Nothing here takes money. If they have none, the offer opens instead, so
+   * the only thing that ever happens inside this sheet is a Spotlight they
+   * already hold being used.
+   */
+  async function spend() {
+    if (credits < 1) {
+      setOffer(true);
+      return;
+    }
+    setSpending(true);
+    try {
+      const res = await fetch("/api/spotlight/spend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ artistId }),
+      });
+      const d = await res.json().catch(() => null);
+      if (res.status === 402) {
+        setCredits(0);
+        setOffer(true);
+        return;
+      }
+      if (!res.ok) return;
+      if (typeof d?.credits === "number") setCredits(d.credits);
+      setDone(d?.queued ? "queued" : "live");
+    } catch {
+      // Nothing was spent, so the button simply comes back.
+    } finally {
+      setSpending(false);
+    }
+  }
 
   // Escape closes it, the same as the backdrop.
   useEffect(() => {
@@ -95,7 +142,16 @@ export default function ArtistSheet({
           </button>
         </div>
 
-        {failed ? (
+        {done ? (
+          /* Says what actually happened. A queued slot is not a failure, but
+             pretending it is already live would be a lie they would catch. */
+          <p className="text-gold mt-4 flex items-center gap-2 text-sm">
+            <Note className="h-4 w-4 shrink-0" />
+            {done === "live"
+              ? `${card?.name ?? fallbackName} is on the Spotlight tab for the next seven days.`
+              : `All six slots are taken. ${card?.name ?? fallbackName} goes up the moment one frees, for a full seven days.`}
+          </p>
+        ) : failed ? (
           <p className="text-muted mt-4 text-sm">Couldn&apos;t load their profile right now.</p>
         ) : (
           <div className="mt-5 flex gap-2">
@@ -124,7 +180,26 @@ export default function ArtistSheet({
             )}
           </div>
         )}
+
+        {card && !done && (
+          <button
+            onClick={spend}
+            disabled={spending}
+            className="border-gold/50 text-gold hover:bg-gold/10 mt-2.5 flex w-full items-center justify-center gap-2 rounded-full border py-2.5 text-sm font-semibold transition disabled:opacity-40"
+          >
+            <Note className="h-4 w-4" />
+            {spending
+              ? "Putting them up..."
+              : credits > 0
+                ? `Put them in the Spotlight · ${credits} left`
+                : "Put them in the Spotlight"}
+          </button>
+        )}
       </div>
+
+      {offer && (
+        <SpotlightOffer onClose={() => setOffer(false)} artistName={card?.name ?? fallbackName} />
+      )}
     </div>
   );
 }

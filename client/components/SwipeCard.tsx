@@ -7,6 +7,8 @@ import { clipPlayer, playClip } from "@/lib/clipPlayer";
 import { swipeFeedback } from "@/lib/feedback";
 
 const SWIPE_THRESHOLD = 100;
+/** Higher than sideways on purpose: an upward flick must be meant. */
+const UP_THRESHOLD = 130;
 const EXIT_DISTANCE = 600;
 
 /** Every track is a 30-second clip, no matter how long the source file is. */
@@ -27,14 +29,20 @@ const SAVE_NOTES = [
   { left: "57%", drift: "16px", delay: "130ms", spin: "11deg", size: "h-3 w-3" },
 ];
 
+export type Direction = "LEFT" | "RIGHT" | "UP";
+
 export default function SwipeCard({
   track,
   onSwipe,
   disabled,
   onProgress,
+  credits = 0,
 }: {
   track: Track;
-  onSwipe: (direction: "LEFT" | "RIGHT", listenDurationMs: number) => void;
+  onSwipe: (direction: Direction, listenDurationMs: number) => void;
+  /** How many Spotlights this listener is holding. Zero still swipes up;
+      the queue answers it with an offer rather than spending nothing. */
+  credits?: number;
   disabled: boolean;
   /** Lets the shell render the clip scrubber above the card. */
   onProgress?: (currentTime: number, duration: number) => void;
@@ -47,9 +55,11 @@ export default function SwipeCard({
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [dx, setDx] = useState(0);
+  const [dy, setDy] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const [exiting, setExiting] = useState<"LEFT" | "RIGHT" | null>(null);
+  const [exiting, setExiting] = useState<Direction | null>(null);
   const dragStartX = useRef(0);
+  const dragStartY = useRef(0);
 
   useEffect(() => {
     const a = clipPlayer();
@@ -128,14 +138,19 @@ export default function SwipeCard({
     void playClip(track.previewUrl).then(setIsPlaying);
   }
 
-  function commitSwipe(direction: "LEFT" | "RIGHT") {
+  function commitSwipe(direction: Direction) {
     if (exiting || disabled) return;
     // Here rather than in the queue's success handler: the cue has to land on
     // the gesture itself. A round trip later and it feels like the app is
     // reacting to the network instead of to them.
-    swipeFeedback(direction);
+    // Up is a save as well as a Spotlight, so it gets the save's cue.
+    swipeFeedback(direction === "UP" ? "RIGHT" : direction);
     setExiting(direction);
-    setDx(direction === "RIGHT" ? EXIT_DISTANCE : -EXIT_DISTANCE);
+    if (direction === "UP") {
+      setDy(-EXIT_DISTANCE);
+    } else {
+      setDx(direction === "RIGHT" ? EXIT_DISTANCE : -EXIT_DISTANCE);
+    }
     const listenDurationMs = Math.round(currentTime * 1000);
     setTimeout(() => onSwipe(direction, listenDurationMs), 180);
   }
@@ -144,25 +159,40 @@ export default function SwipeCard({
     if (disabled || exiting) return;
     setDragging(true);
     dragStartX.current = e.clientX - dx;
+    dragStartY.current = e.clientY - dy;
     (e.target as Element).setPointerCapture(e.pointerId);
   }
 
   function onPointerMove(e: React.PointerEvent) {
     if (!dragging) return;
     setDx(e.clientX - dragStartX.current);
+    // Downward does nothing, so it is not tracked: letting the card follow a
+    // downward drag only teaches a gesture that has no meaning.
+    setDy(Math.min(0, e.clientY - dragStartY.current));
   }
 
   function onPointerUp() {
     if (!dragging) return;
     setDragging(false);
-    if (dx > SWIPE_THRESHOLD) commitSwipe("RIGHT");
+    // Up wins only when it is clearly the gesture being made. Without the
+    // comparison a diagonal flick toward the top right would fire a
+    // Spotlight when the listener meant an ordinary save.
+    if (dy < -UP_THRESHOLD && Math.abs(dy) > Math.abs(dx)) commitSwipe("UP");
+    else if (dx > SWIPE_THRESHOLD) commitSwipe("RIGHT");
     else if (dx < -SWIPE_THRESHOLD) commitSwipe("LEFT");
-    else setDx(0);
+    else {
+      setDx(0);
+      setDy(0);
+    }
   }
 
   const rotation = dx / 22;
-  const yes = Math.min(Math.max(dx / SWIPE_THRESHOLD, 0), 1);
-  const nope = Math.min(Math.max(-dx / SWIPE_THRESHOLD, 0), 1);
+  const up = Math.min(Math.max(-dy / UP_THRESHOLD, 0), 1);
+  // Sideways stamps give way to the upward one, so a diagonal drag does not
+  // show LIKE and SPOTLIGHT fighting each other.
+  const sideways = 1 - up;
+  const yes = Math.min(Math.max(dx / SWIPE_THRESHOLD, 0), 1) * sideways;
+  const nope = Math.min(Math.max(-dx / SWIPE_THRESHOLD, 0), 1) * sideways;
   const played = duration ? currentTime / duration : 0;
 
   /**
@@ -221,11 +251,11 @@ export default function SwipeCard({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         style={{
-          transform: `translateX(${dx}px) rotate(${rotation}deg)`,
+          transform: `translate(${dx}px, ${dy}px) rotate(${rotation}deg)`,
           transition: dragging
             ? "none"
             : "transform 180ms ease-out, box-shadow 180ms ease-out, border-color 180ms ease-out",
-          touchAction: "pan-y",
+          touchAction: "none",
           // Grows with the drag, so the card is lit before it's committed and
           // a half-hearted pull reads as exactly that.
           ...(verdict
@@ -261,6 +291,14 @@ export default function SwipeCard({
           style={{ opacity: nope }}
         >
           NOPE
+        </div>
+        {/* Centred rather than in a corner, because the gesture it belongs to
+            comes from the middle of the card and goes straight up. */}
+        <div
+          className="text-gold border-gold pointer-events-none absolute inset-x-0 top-5 z-10 mx-auto w-fit rounded-xl border-4 px-3 py-1 text-2xl font-black"
+          style={{ opacity: up }}
+        >
+          SPOTLIGHT
         </div>
 
         {/* Stacked on a phone; side-by-side on a wider screen, where a tall

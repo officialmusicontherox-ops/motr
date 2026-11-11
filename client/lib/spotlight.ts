@@ -175,7 +175,11 @@ export async function spotlightTiles(): Promise<Tile[]> {
  * with no dates and waits; startSpotlights gives it its seven days when one
  * frees, so nobody pays for time they lose.
  */
-export async function createSpotlight(artistId: string, fanId?: string | null) {
+export async function createSpotlight(
+  artistId: string,
+  fanId?: string | null,
+  trackId?: string | null
+) {
   const now = new Date();
   const active = await prisma.spotlight.count({
     where: { startsAt: { lte: now }, endsAt: { gt: now } },
@@ -185,7 +189,13 @@ export async function createSpotlight(artistId: string, fanId?: string | null) {
   const ends = starts ? new Date(starts.getTime() + SPOTLIGHT_DAYS * 24 * 60 * 60 * 1000) : null;
 
   const row = await prisma.spotlight.create({
-    data: { artistId, fanId: fanId ?? null, startsAt: starts, endsAt: ends },
+    data: {
+      artistId,
+      fanId: fanId ?? null,
+      trackId: trackId ?? null,
+      startsAt: starts,
+      endsAt: ends,
+    },
   });
 
   // Never let a profile read cost somebody their purchase. The tile falls
@@ -226,4 +236,56 @@ export async function startSpotlights() {
     });
   }
   return waiting.length;
+}
+
+
+export class NoCreditsError extends Error {
+  constructor() {
+    super("No Spotlights left");
+    this.name = "NoCreditsError";
+  }
+}
+
+/**
+ * Spend one of a listener's Spotlights on an artist.
+ *
+ * The decrement is a conditional update rather than a read then a write: two
+ * taps landing together on the last credit would both pass a read-first
+ * check and hand out two Spotlights for one. `updateMany` with the balance
+ * in the where clause either matches a row or does not, so the second one
+ * loses and is told it has none left.
+ *
+ * The slot is created after the credit is taken, and on the rare failure
+ * after that point the credit is handed back, because a listener who paid
+ * and got nothing is the one outcome worth writing extra code to avoid.
+ */
+export async function spendCredit(fanId: string, artistId: string, trackId?: string | null) {
+  const taken = await prisma.fan.updateMany({
+    where: { id: fanId, spotlightCredits: { gte: 1 } },
+    data: { spotlightCredits: { decrement: 1 } },
+  });
+  if (taken.count === 0) throw new NoCreditsError();
+
+  try {
+    const { queued } = await createSpotlight(artistId, fanId, trackId ?? null);
+    const fan = await prisma.fan.findUnique({
+      where: { id: fanId },
+      select: { spotlightCredits: true },
+    });
+    return { queued, left: fan?.spotlightCredits ?? 0 };
+  } catch (e) {
+    await prisma.fan
+      .update({ where: { id: fanId }, data: { spotlightCredits: { increment: 1 } } })
+      .catch(() => {});
+    throw e;
+  }
+}
+
+/** How many Spotlights this listener is holding. */
+export async function creditsFor(fanId: string) {
+  const fan = await prisma.fan.findUnique({
+    where: { id: fanId },
+    select: { spotlightCredits: true },
+  });
+  return fan?.spotlightCredits ?? 0;
 }

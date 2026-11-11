@@ -537,6 +537,11 @@ model Fan {
   lastNudgeAt DateTime?
   nudgeCount  Int       @default(0)
 
+  /// Spotlights bought and not yet spent. A swipe up spends one. Held as a
+  /// balance because the moment a Spotlight is worth spending is mid-swipe,
+  /// and a card cannot stop to take money without ruining the swipe.
+  spotlightCredits Int @default(0)
+
   /// When this id was exchanged for a session cookie. The exchange happens
   /// once: the owner's next visit binds them, and the same id offered after
   /// that gets nothing, so knowing an id stops being enough.
@@ -924,6 +929,11 @@ model Spotlight {
 
   /// Who bought it. Null for one placed by hand from the dashboard.
   fanId String?
+
+  /// The track that was playing when it was spent, where one was. The slot
+  /// belongs to the artist, but this traces it back to the song that earned
+  /// it.
+  trackId String?
 
   createdAt DateTime @default(now())
 

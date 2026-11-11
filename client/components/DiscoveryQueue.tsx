@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
-import SwipeCard from "./SwipeCard";
+import SwipeCard, { type Direction } from "./SwipeCard";
+import SpotlightOffer from "./SpotlightOffer";
 import SponsoredCard from "./SponsoredCard";
 import SaveEmailPrompt, { savePromptDismissed } from "./SaveEmailPrompt";
 import GenrePicker from "./GenrePicker";
@@ -71,6 +72,9 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const [unlocked, setUnlocked] = useState<string | null>(null);
   /** Set when a swipe did not reach the server, so the card can be tried again. */
   const [swipeFailed, setSwipeFailed] = useState(false);
+  /** Spotlights this listener is holding. A swipe up spends one. */
+  const [credits, setCredits] = useState(0);
+  const [needCredits, setNeedCredits] = useState(false);
   /** Set when the next track could not be loaded, so the spinner is not forever. */
   const [loadFailed, setLoadFailed] = useState(false);
   const [justSaved, setJustSaved] = useState<{
@@ -174,13 +178,38 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
     return () => clearTimeout(t);
   }, [breakout]);
 
-  async function handleSwipe(direction: "LEFT" | "RIGHT", listenMs: number) {
+  // Read once on arrival. A swipe up corrects it from the server's answer,
+  // so this only has to be right at the start.
+  useEffect(() => {
+    fetch("/api/spotlight/spend")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => typeof d?.credits === "number" && setCredits(d.credits))
+      .catch(() => {});
+  }, [fan.id]);
+
+  async function handleSwipe(direction: Direction, listenMs: number) {
     if (!track) return;
     setSwipeFailed(false);
+
+    // Up is a save that also spends a Spotlight. The verdict recorded is a
+    // right swipe either way: one listener, one track, one save. The money
+    // buys the slot on the Spotlight tab, never an extra vote, which is what
+    // keeps a bought Spotlight out of the chart.
+    const spotlight = direction === "UP";
+    const verdict = spotlight ? "RIGHT" : direction;
+
+    // Nothing to spend. Make the offer instead of swallowing the gesture, and
+    // leave the card where it is so nothing is lost.
+    if (spotlight && credits < 1) {
+      setNeedCredits(true);
+      return;
+    }
     // Set before the request, not after it. The gap this fills is the request
     // itself, and a reveal that waits for the server to answer would arrive
     // after the thing it was meant to fill.
-    setJustSaved(direction === "RIGHT" ? { title: track.title, artistName: track.artistName } : null);
+    setJustSaved(
+      verdict === "RIGHT" ? { title: track.title, artistName: track.artistName } : null
+    );
     setPending(true);
 
     /**
@@ -201,7 +230,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       const res = await fetch("/api/discover/swipe", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ trackId: track.id, direction, listenMs }),
+        body: JSON.stringify({ trackId: track.id, direction: verdict, listenMs }),
       });
       if (!res.ok) throw new Error(String(res.status));
       data = await res.json();
@@ -212,7 +241,26 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
       return;
     }
 
-    if (direction === "RIGHT") {
+    // After the swipe is safely recorded, so a Spotlight is never spent on a
+    // verdict that did not land. Not awaited: it runs during the fetch for
+    // the next card rather than holding the feed up.
+    if (spotlight) {
+      setCredits((c) => Math.max(0, c - 1));
+      void fetch("/api/spotlight/spend", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ trackId: track.id }),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          // The server is the authority on the balance, so correct to it
+          // rather than trusting the optimistic decrement.
+          if (typeof d?.credits === "number") setCredits(d.credits);
+        })
+        .catch(() => {});
+    }
+
+    if (verdict === "RIGHT") {
       bumpSavedCount();
       // Arrives a beat after the name, during the fetch for the next
       // track, so it reads as the result of the save settling rather
@@ -454,6 +502,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           key={track.id}
           track={track}
           disabled={pending}
+          credits={credits}
           onSwipe={(direction, listenMs) => handleSwipe(direction, listenMs)}
           onProgress={(currentTime, duration) => setClip({ currentTime, duration })}
         />
@@ -466,6 +515,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           onClose={() => setAskEmail(false)}
         />
       )}
+      {needCredits && <SpotlightOffer onClose={() => setNeedCredits(false)} />}
+
     </MotrShell>
   );
 }
