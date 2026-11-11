@@ -8,11 +8,14 @@ import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 import { markSavesSeen } from "@/lib/savedCount";
+import ArtistSheet from "./ArtistSheet";
 
 type SavedTrack = {
   id: string;
   title: string;
   artistName: string;
+  /** Null for the seeded catalogue, which has no artist record behind it. */
+  artistId: string | null;
   artworkUrl: string | null;
   previewUrl: string;
   genre: string | null;
@@ -29,6 +32,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
   const [shared, setShared] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetch(`/api/fans/saved`)
@@ -201,7 +205,19 @@ export default function SavedList({ fan }: { fan: Fan }) {
 
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{t.title}</p>
-                  <p className="text-gold truncate text-sm">{t.artistName}</p>
+                  {/* The name is the way in: Saved is the only screen where
+                      the artist is already revealed, so it is the only place
+                      somebody is thinking about them rather than the song. */}
+                  {t.artistId ? (
+                    <button
+                      onClick={() => setSheet({ id: t.artistId!, name: t.artistName })}
+                      className="text-gold block max-w-full truncate text-left text-sm underline decoration-transparent underline-offset-2 transition hover:decoration-inherit"
+                    >
+                      {t.artistName}
+                    </button>
+                  ) : (
+                    <p className="text-gold truncate text-sm">{t.artistName}</p>
+                  )}
                   {/* Numeric and short on purpose: it sits under two lines
                       that matter more, and a listener scanning for when they
                       found something wants a date, not a sentence. */}
@@ -297,6 +313,14 @@ export default function SavedList({ fan }: { fan: Fan }) {
           </>
         )}
       </div>
+
+      {sheet && (
+        <ArtistSheet
+          artistId={sheet.id}
+          fallbackName={sheet.name}
+          onClose={() => setSheet(null)}
+        />
+      )}
     </MotrShell>
   );
 }

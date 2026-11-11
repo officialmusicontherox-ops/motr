@@ -79,6 +79,20 @@ const SELECT = {
   appleArtistUrl: true,
 } as const;
 
+/**
+ * One artist, in the same shape a tile uses.
+ *
+ * Feeds the sheet that opens from a saved track, so what a listener sees
+ * there is exactly what the Spotlight tab would show. The profile is
+ * whatever was last fetched; nothing is read live, because this runs while
+ * somebody is waiting on a tap.
+ */
+export async function artistCard(artistId: string): Promise<Tile | null> {
+  const a = await prisma.artist.findUnique({ where: { id: artistId }, select: SELECT });
+  if (!a) return null;
+  return toTile(a, false);
+}
+
 export async function spotlightTiles(): Promise<Tile[]> {
   // Promote anything waiting first, so a slot that expired a minute ago is
   // already filled by the time this reads.

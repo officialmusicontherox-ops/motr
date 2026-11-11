@@ -31,6 +31,9 @@ export async function GET() {
           fanRightSwipes: true,
           externalId: true,
           source: true,
+          // For the artist sheet in Saved. Null for the seeded catalogue,
+          // which has no artist record and therefore no profile to show.
+          artistId: true,
         },
       },
     },
