@@ -1,4 +1,5 @@
 import PageNav from "@/components/PageNav";
+import { SLOTS, SPOTLIGHT_SPAN } from "@/lib/spotlightBundles";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -8,30 +9,42 @@ export const metadata = {
 };
 
 const EMAIL = "officialmusicontherox@gmail.com";
-const UPDATED = "August 3, 2026";
+const UPDATED = "November 12, 2026";
 
 /**
  * Written against what the product actually does.
  *
- * MOTR is free on both sides: nothing is charged to a listener and nothing is
- * charged to an artist. The curator programme, the submission fee and the
- * payouts that went with them were retired, and the sections covering them
- * were removed rather than left standing as terms for something that no
- * longer exists.
+ * MOTR is free to use. Artists are never charged and listening costs
+ * nothing. The curator programme, the submission fee and the payouts that
+ * went with them were retired, and the sections covering them were removed
+ * rather than left standing as terms for something that no longer exists.
+ *
+ * The single exception is a Spotlight, which a listener may buy to promote
+ * an artist. It is promotion and nothing else: it cannot touch the chart,
+ * which is why these terms can still promise the vote is unbuyable.
  */
 const SECTIONS: { title: string; body: React.ReactNode }[] = [
   {
     title: "The short version",
     body: (
       <ul>
-        <li>MOTR is free. Nothing is charged to anyone, ever.</li>
+        <li>MOTR is free to use. No artist is ever charged anything.</li>
         <li>Artists submit music for free, and it stays in the feed for free.</li>
+        <li>
+          The one thing anyone can buy is a{" "}
+          <strong className="text-ink">Spotlight</strong>, which a listener may buy to put an
+          artist on the Spotlight tab. It is advertising, it is{" "}
+          <strong className="text-ink">non-refundable</strong>, and it cannot affect the chart.
+        </li>
         <li>
           Every track is heard with{" "}
           <strong className="text-ink">no artist name attached</strong>, so what comes back is a
           verdict on the song.
         </li>
-        <li>Nobody can buy their way past the fan vote, because there is nothing to buy.</li>
+        <li>
+          Nobody can buy their way onto the chart. A Spotlight buys a place on its own tab and
+          nothing else.
+        </li>
       </ul>
     ),
   },
@@ -49,7 +62,8 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <>
         <p>
-          Submitting is free, and there is nothing to buy at any point afterwards.
+          Submitting is free, and an artist is never asked to pay for anything, including a
+          Spotlight. Only a listener can buy one, and only for somebody else.
         </p>
         <ul>
           <li>
@@ -168,6 +182,53 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             {EMAIL}
           </a>
         </address>
+      </>
+    ),
+  },
+  {
+    title: "Spotlights",
+    body: (
+      <>
+        <p>
+          A <strong className="text-ink">Spotlight</strong> is the only thing MOTR sells. A
+          listener buys one and spends it on an artist they like, and that artist appears on the
+          Spotlight tab, named, with their photo and links to Spotify and Apple Music.
+        </p>
+        <ul>
+          <li>
+            <strong className="text-ink">It runs for {SPOTLIGHT_SPAN}.</strong> There are{" "}
+            {SLOTS} places on the tab. If all of them are taken when you buy, yours waits in line
+            and its {SPOTLIGHT_SPAN} start when a place frees, so you never lose time you paid
+            for.
+          </li>
+          <li>
+            <strong className="text-ink">It is promotion, not a vote.</strong> A Spotlight has no
+            effect on the charts, on the weekly winner, or on any figure an artist is judged by.
+            Those come only from blind listening, where nobody knows whose song is playing. This
+            is deliberate and it is the reason a Spotlight can be sold at all.
+          </li>
+          <li>
+            <strong className="text-ink">Purchases are non-refundable.</strong> Spotlights are
+            delivered immediately as credit on your account and are consumed the moment you spend
+            one, so we do not offer refunds, exchanges or transfers, and unspent Spotlights have
+            no cash value. This does not affect rights you have under the law where you live.
+          </li>
+          <li>
+            <strong className="text-ink">Artists never pay.</strong> An artist cannot buy a
+            Spotlight for themselves. Only a listener can buy one, and only for somebody else.
+          </li>
+          <li>
+            <strong className="text-ink">We may remove one without warning.</strong> If an
+            artist&apos;s music is taken down, if they ask us to, or if a Spotlight was bought
+            through a fraudulent or disputed payment, we will pull it from the tab. Where we
+            remove a Spotlight for a reason that is our fault rather than yours, we will put the
+            credit back.
+          </li>
+        </ul>
+        <p>
+          Payments are handled by Stripe. We never see or store your card details. Your card
+          statement will show Music On The Rox.
+        </p>
       </>
     ),
   },

@@ -1,4 +1,5 @@
 import PageNav from "@/components/PageNav";
+import { BUNDLES, SLOTS, SPOTLIGHT_SPAN, price } from "@/lib/spotlightBundles";
 import Image from "next/image";
 import Link from "next/link";
 import { Disc } from "@/components/icons";
@@ -34,19 +35,31 @@ const STEPS = [
 const FAQS = [
   {
     q: "Does it cost anything?",
-    a: "No. It's free for listeners and free for artists. Submitting your music costs nothing, staying in the feed costs nothing, and there is no paid tier that moves you up it.",
+    a: "No. Listening is free and submitting is free. Artists are never charged for anything, and there is no paid tier that moves you up the feed. The one thing on sale is a Spotlight, which a listener can buy to promote an artist they like, and that has nothing to do with the charts.",
   },
   {
     q: "Why does hearing the whole clip count double?",
     a: "A decision made three seconds in is a reaction to the first thing you hear. One made after the full thirty seconds is a verdict on the song. Both count, but the second one counts twice, whether you swiped left or right. Sitting with a track you end up passing on is just as useful to the artist as one you save, so patience is rewarded rather than agreement.",
   },
   {
-    q: "Is any of this paid for?",
-    a: "No. There is nothing to buy. Every track is heard with no artist name attached, and the only thing that moves it is whether people keep it.",
+    q: "Can anyone pay to get on the charts?",
+    a: "No, and this is the one thing we will not bend on. Every track is heard with no artist name attached, and the only thing that moves it up is whether people keep it. A Spotlight is advertising on its own tab and counts for nothing on the chart, the weekly winner, or any figure an artist is measured by.",
   },
   {
     q: "What if my track doesn't break through?",
     a: "That's a real outcome, and it costs you nothing. Entry is free, the crowd decides, and a track that doesn't connect simply stays in the feed for the next listener.",
+  },
+  {
+    q: "What is a Spotlight?",
+    a: `A way to back an artist you love. Swipe up on a track, or tap an artist's name in Saved, and they go on the Spotlight tab for ${SPOTLIGHT_SPAN} — named, with their photo and links to hear more. There are ${SLOTS} places, and if they are all full yours waits and starts the moment one frees, so you never lose time you paid for. Swiping up also saves the track, the same as swiping right.`,
+  },
+  {
+    q: "What does a Spotlight cost, and can I get a refund?",
+    a: `${BUNDLES.map((b) => `${price(b.cents)} for ${b.credits}`).join(", ")}. You buy a few and spend them whenever something lands, because stopping to pay mid-swipe would ruin the moment it is for. Spotlights are non-refundable: they arrive instantly as credit and are used up the moment you spend one, so there are no refunds, exchanges or transfers, and unspent ones have no cash value.`,
+  },
+  {
+    q: "Can an artist buy a Spotlight for themselves?",
+    a: "No. Only a listener can buy one, and only for somebody else. An artist paying to promote themselves is the thing MOTR exists not to be.",
   },
   {
     q: "Where does my saved music go?",

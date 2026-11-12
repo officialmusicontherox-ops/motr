@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BUNDLES, price } from "@/lib/spotlightBundles";
+import { BUNDLES, SPOTLIGHT_SPAN, price } from "@/lib/spotlightBundles";
 import { Cross } from "./icons";
 
 /**
@@ -62,8 +62,8 @@ export default function SpotlightOffer({
             <p className="font-display text-xl uppercase tracking-wide">Spotlights</p>
             <p className="text-muted mt-1 text-sm leading-relaxed">
               {artistName
-                ? `Put ${artistName} on the Spotlight tab for seven days, where everyone sees who they are.`
-                : "Swipe up on something you love and that artist goes on the Spotlight tab for seven days, named, where everyone sees them."}
+                ? `Put ${artistName} on the Spotlight tab for ${SPOTLIGHT_SPAN}, where everyone sees who they are.`
+                : `Swipe up on something you love and that artist goes on the Spotlight tab for ${SPOTLIGHT_SPAN}, named, where everyone sees them.`}
             </p>
           </div>
           <button
@@ -106,9 +106,10 @@ export default function SpotlightOffer({
 
         {/* The one thing that must be said plainly, because the whole app
             rests on it. */}
+        {/* The two things somebody is owed before they pay. */}
         <p className="text-muted mt-4 text-xs leading-relaxed">
           A Spotlight is promotion, not a vote. It never counts toward the
-          charts.
+          charts. Purchases are non-refundable.
         </p>
       </div>
     </div>

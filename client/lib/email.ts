@@ -379,7 +379,7 @@ export function submissionReceivedEmail(params: {
           ? `All <strong style="color:#fff">${tracks.length}</strong> are now playing in the MOTR feed`
           : `<strong style="color:#fff">${first.title}</strong> by ${first.artistName} is now playing in the MOTR feed`
       }, where listeners hear thirty seconds with no artist name attached and decide on the music alone.</p>
-       <p style="margin:0 0 12px">To break through, a track needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that. MOTR is free, so there is nothing to buy.</p>
+       <p style="margin:0 0 12px">To break through, a track needs <strong style="color:#fff">${Math.round(requiredRate * 100)}% approval across at least ${requiredVotes} listens</strong>. Nobody can buy past that. It is the one thing money does not open.</p>
        <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${many ? "YOUR LINKS" : "YOUR LINK"}</p>
        <p style="margin:0 0 10px;font-size:14px">${many ? "Each link opens straight on that track" : "This link opens straight on your track"} rather than a random one, so everyone you send lands on it.</p>
        ${list}
@@ -810,7 +810,7 @@ export function weeklyRecapEmail(params: {
            trackTitle ? `, led by <strong style="color:#fff">${trackTitle}</strong>` : ""
          }. ${kept} this week. ${heardOut}</p>
          <p style="margin:0 0 18px">There's a graphic attached saying so. Put it on your story and send your people over, and next week's position partly depends on who turns up.</p>
-         <p style="margin:0;color:#8b8b8b;font-size:13px">Every place on that chart was earned by listeners keeping the song. There is nothing to buy and no way to move it.</p>`,
+         <p style="margin:0;color:#8b8b8b;font-size:13px">Every place on that chart was earned by listeners keeping the song. There is no way to buy a place on it.</p>`,
         { label: "See the full chart", url: `${appUrl}/charts` }
       ),
     };

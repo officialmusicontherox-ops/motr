@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 const EMAIL = "officialmusicontherox@gmail.com";
-const UPDATED = "August 3, 2026";
+const UPDATED = "November 12, 2026";
 
 /**
  * Written around what the app actually stores rather than a generic template —
@@ -110,6 +110,13 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           </li>
           <li>
             <span className="text-ink">Neon and Netlify</span>: database and hosting.
+          </li>
+          <li>
+            <span className="text-ink">Stripe</span>: payment, and only if you buy a Spotlight.
+            Stripe handles the whole payment on its own pages. Your card number never reaches
+            MOTR and we never store it. We keep a record that a purchase happened, how many
+            Spotlights it was for and the amount, so your balance is correct and so we can
+            answer a question about it.
           </li>
           <li>
             <span className="text-ink">Google AdSense</span>: the ads on the site. Google
@@ -247,7 +254,8 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         MOTR is operated in the United States and your information is stored and processed there.
-        MOTR is free and open worldwide, and we take no payment from anyone. If you&apos;re in the
+        MOTR is free to use and open worldwide; the only thing we charge for is a Spotlight, and
+        nobody has to buy one. If you&apos;re in the
         UK or EU, you may have additional rights over your data under UK GDPR or GDPR. Email us
         and we&apos;ll honour them.
       </p>

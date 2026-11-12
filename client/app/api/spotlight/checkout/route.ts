@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFanSession } from "@/lib/fanAuth";
 import { stripe } from "@/lib/stripe";
-import { bundle } from "@/lib/spotlightBundles";
+import { SPOTLIGHT_SPAN, bundle } from "@/lib/spotlightBundles";
 
 /**
  * Start a purchase.
@@ -47,8 +47,8 @@ export async function POST(req: NextRequest) {
             name: b.label,
             description:
               b.credits === 1
-                ? "One Spotlight on MOTR. Seven days on the Spotlight tab."
-                : `${b.credits} Spotlights on MOTR. Each one is seven days on the Spotlight tab.`,
+                ? `One Spotlight on MOTR. ${SPOTLIGHT_SPAN} on the Spotlight tab. Non-refundable.`
+                : `${b.credits} Spotlights on MOTR. Each one is ${SPOTLIGHT_SPAN} on the Spotlight tab. Non-refundable.`,
           },
         },
       },

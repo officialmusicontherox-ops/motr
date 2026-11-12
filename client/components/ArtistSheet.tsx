@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Cross, Note } from "./icons";
 import SpotlightOffer from "./SpotlightOffer";
+import { SPOTLIGHT_SPAN } from "@/lib/spotlightBundles";
 
 type Card = {
   artistId: string;
@@ -148,8 +149,8 @@ export default function ArtistSheet({
           <p className="text-gold mt-4 flex items-center gap-2 text-sm">
             <Note className="h-4 w-4 shrink-0" />
             {done === "live"
-              ? `${card?.name ?? fallbackName} is on the Spotlight tab for the next seven days.`
-              : `All six slots are taken. ${card?.name ?? fallbackName} goes up the moment one frees, for a full seven days.`}
+              ? `${card?.name ?? fallbackName} is on the Spotlight tab for the next ${SPOTLIGHT_SPAN}.`
+              : `All six slots are taken. ${card?.name ?? fallbackName} goes up the moment one frees, for a full ${SPOTLIGHT_SPAN}.`}
           </p>
         ) : failed ? (
           <p className="text-muted mt-4 text-sm">Couldn&apos;t load their profile right now.</p>

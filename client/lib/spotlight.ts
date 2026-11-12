@@ -2,12 +2,15 @@ import { prisma } from "./prisma";
 import { leadersBetween } from "./scoutData";
 import { weekOf } from "./weekWindow";
 import { refreshProfile } from "./artistProfile";
+import { SLOTS, SPOTLIGHT_DAYS } from "./spotlightBundles";
+
+export { SLOTS, SPOTLIGHT_DAYS };
 
 /**
  * The Spotlight tab: six tiles, always.
  *
  * Paid slots first, then the week's leading artists to fill whatever is
- * left. Six slots at seven days needs six sales a week to stay full, which
+ * left. Six slots needs a sale every half day to stay full, which
  * will not happen at first, and a tab with four blank squares looks broken
  * and makes the filled ones look sad. The backfill means the tab is worth
  * opening from day one, and shows people what a Spotlight looks like, which
@@ -16,9 +19,6 @@ import { refreshProfile } from "./artistProfile";
  * Nothing here is a verdict. The tab names the artist, so it is not blind
  * and by definition cannot reach the chart or the A&R figures.
  */
-
-export const SLOTS = 6;
-export const SPOTLIGHT_DAYS = 7;
 
 /** Below this a listener count reads as a warning rather than momentum. */
 export const LISTENER_THRESHOLD = 1500;
@@ -171,9 +171,9 @@ export async function spotlightTiles(): Promise<Tile[]> {
  * it anyway, and it only ever fetches for an artist who is actually going to
  * appear.
  *
- * A slot runs for seven days. Where all six are taken the row is created
- * with no dates and waits; startSpotlights gives it its seven days when one
- * frees, so nobody pays for time they lose.
+ * A slot runs for SPOTLIGHT_DAYS. Where all six are taken the row is
+ * created with no dates and waits; startSpotlights gives it its full run
+ * when one frees, so nobody pays for time they lose.
  */
 export async function createSpotlight(
   artistId: string,
@@ -206,7 +206,7 @@ export async function createSpotlight(
 }
 
 /**
- * Give waiting Spotlights their seven days as slots free up.
+ * Give waiting Spotlights their run as slots free up.
  *
  * Called before the tab is read, so an expired slot is replaced the moment
  * somebody looks rather than when a timer happens to run.
