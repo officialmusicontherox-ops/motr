@@ -1,15 +1,6 @@
 // Fixed list so artist-selected genres and curator-selected genres always
 // match exactly — routing does a straight containment check, not fuzzy text.
 export const GENRES = [
-  // First on purpose, and meant to be temporary. Holiday music is a season
-  // rather than a scene: it arrives, it takes over, and in January nobody
-  // wants it in the feed. The picker renders this list in order, so being
-  // first is how it gets seen on arrival.
-  //
-  // After Christmas: move it back down or drop the entry, and retire the
-  // seeded tracks with
-  //   UPDATE "Track" SET status='REJECTED' WHERE genre='Holiday' AND "artistId" IS NULL;
-  "Holiday",
   "Hip-Hop / Rap",
   "R&B / Soul",
   "Pop",
@@ -28,6 +19,13 @@ export const GENRES = [
   // with their own playlists, stations and press, and filing them under Pop
   // sent them to curators who don't cover the music.
   "Christian / Gospel",
+  // Sits with the others rather than first. It led the list for two days so
+  // it would be found on arrival, which made it read as the thing MOTR was
+  // pushing rather than one genre among sixteen.
+  //
+  // After Christmas: drop this entry and retire the seeded tracks with
+  //   UPDATE "Track" SET status='REJECTED' WHERE genre='Holiday' AND "artistId" IS NULL;
+  "Holiday",
 ] as const;
 
 export type Genre = (typeof GENRES)[number];
