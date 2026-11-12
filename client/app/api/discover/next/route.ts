@@ -78,36 +78,68 @@ export async function GET(req: NextRequest) {
    * it lands as a rhythm they can feel — a steady trickle of new music
    * between the catalogue — instead of clumping or vanishing by chance.
    *
-   * Pure random was fair but slow: across 153 tracks a submission collected
-   * about 0.29 votes a day, most of a year to reach 75. It also buried the
-   * newest work under a catalogue that mostly exists to make the feed feel
-   * full.
+   * Pure random was fair but slow: across a few hundred tracks a submission
+   * collected about 0.29 votes a day, most of a year to reach 75. It also
+   * buried the newest work under a catalogue that mostly exists to make the
+   * feed feel full.
    *
-   * Falls straight through to the normal pick when there's nothing recent
-   * left for this listener, so nobody sees a repeat or runs out early.
+   * Which recent track, though, is a weighted draw rather than "the newest
+   * five". Two things that strictly-newest got wrong:
+   *
+   * One artist uploading a batch took the whole pool. Three of the five
+   * slots were the same person on 11 Nov 2026, so for a day every sixth
+   * card a listener saw was one artist. DISTINCT ON keeps only each
+   * artist's newest unheard track, so a batch counts once.
+   *
+   * And newest-first is a cliff: a track is in the pool, then it is not.
+   * The weight decays smoothly instead, so today's upload is likeliest,
+   * last week's is still common, and a three-week-old one still turns up.
+   * Past the cutoff nothing qualifies at all, because the point is new
+   * music, not a second random feed.
+   *
+   * The ordering is the standard trick for sampling proportional to a
+   * weight: with w = exp(-age/HALF), -ln(U)/w picks each row with
+   * probability proportional to w, and the smallest key wins.
+   *
+   * Falls straight through to the normal pick when nothing qualifies, so
+   * nobody sees a repeat or runs out early.
    */
   const EVERY = 6;
+  /** Days at which a submission is e times less likely than one posted today. */
+  const HALF = 14;
+  /** Past this it is catalogue, not news, and the normal random pick has it. */
+  const WINDOW_DAYS = 30;
+
   const swipesSoFar = await prisma.fanSwipe.count({ where: { fanId } });
   const dueANewOne = swipesSoFar > 0 && swipesSoFar % EVERY === 0;
 
   if (dueANewOne && !genre) {
     const recent = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-      SELECT t."id"
-      FROM "Track" t
-      WHERE t."status" = 'DISCOVERY'::"TrackStatus"
-        AND t."artistId" IS NOT NULL
-        ${aiClause}
-        AND NOT EXISTS (
-          SELECT 1 FROM "FanSwipe" s
-          WHERE s."trackId" = t."id" AND s."fanId" = ${fanId}
-        )
-      ORDER BY t."createdAt" DESC
-      LIMIT 5
+      WITH candidates AS (
+        SELECT DISTINCT ON (t."artistId")
+               t."id",
+               t."createdAt"
+        FROM "Track" t
+        WHERE t."status" = 'DISCOVERY'::"TrackStatus"
+          AND t."artistId" IS NOT NULL
+          AND t."createdAt" > NOW() - MAKE_INTERVAL(days => ${WINDOW_DAYS})
+          ${aiClause}
+          AND NOT EXISTS (
+            SELECT 1 FROM "FanSwipe" s
+            WHERE s."trackId" = t."id" AND s."fanId" = ${fanId}
+          )
+        ORDER BY t."artistId", t."createdAt" DESC
+      )
+      SELECT "id"
+      FROM candidates
+      ORDER BY
+        -- GREATEST guards the 0 that RANDOM() can return, where LN is -inf.
+        (-LN(GREATEST(RANDOM(), 1e-9)))
+        * EXP(EXTRACT(EPOCH FROM (NOW() - "createdAt")) / 86400.0 / ${HALF}) ASC
+      LIMIT 1
     `);
     if (recent.length > 0) {
-      // Spread across the newest few, so one track doesn't take every slot.
-      const pick = recent[Math.floor(Math.random() * recent.length)];
-      const track = await prisma.track.findUnique({ where: { id: pick.id } });
+      const track = await prisma.track.findUnique({ where: { id: recent[0].id } });
       if (track) return NextResponse.json({ track, fresh: true });
     }
   }
