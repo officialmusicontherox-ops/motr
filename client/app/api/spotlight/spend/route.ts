@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
     if (e instanceof NoCreditsError) {
       return NextResponse.json({ error: "No Spotlights left", credits: 0 }, { status: 402 });
     }
+
     throw e;
   }
 }

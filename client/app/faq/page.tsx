@@ -58,10 +58,6 @@ const FAQS = [
     a: `${BUNDLES.map((b) => `${price(b.cents)} for ${b.credits}`).join(", ")}. You buy a few and spend them whenever something lands, because stopping to pay mid-swipe would ruin the moment it is for. Spotlights are non-refundable: they arrive instantly as credit and are used up the moment you spend one, so there are no refunds, exchanges or transfers, and unspent ones have no cash value.`,
   },
   {
-    q: "Can an artist buy a Spotlight for themselves?",
-    a: "No. Only a listener can buy one, and only for somebody else. An artist paying to promote themselves is the thing MOTR exists not to be.",
-  },
-  {
     q: "Where does my saved music go?",
     a: "Everything you swipe right on lands in Saved, with a link out to the artist. Pushing those straight into your own streaming library is on the way.",
   },

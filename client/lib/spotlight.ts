@@ -111,6 +111,9 @@ export async function spotlightTiles(): Promise<Tile[]> {
   const taken = new Set<string>();
 
   for (const s of live) {
+    // No dedupe on purpose. Spending two Spotlights on one artist is a
+    // choice the buyer paid for, and a tile is three days, so it corrects
+    // itself. The backfill below still skips anyone already up.
     tiles.push(await toTile(s.artist, true));
     taken.add(s.artist.id);
   }

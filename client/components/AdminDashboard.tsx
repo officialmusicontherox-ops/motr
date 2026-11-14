@@ -20,6 +20,7 @@ import AdminWinnerAnnounce from "./AdminWinnerAnnounce";
 import AdminShareBlast from "./AdminShareBlast";
 import AdminScouts from "./AdminScouts";
 import AdminPromotion from "./AdminPromotion";
+import AdminSpotlights from "./AdminSpotlights";
 import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
@@ -216,6 +217,7 @@ export default function AdminDashboard({
 
  {view === "listeners" && (
  <>
+ <AdminSpotlights />
  <AdminReferrals />
  <AdminTraffic />
  <AdminAudience />

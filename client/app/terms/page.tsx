@@ -214,8 +214,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             no cash value. This does not affect rights you have under the law where you live.
           </li>
           <li>
-            <strong className="text-ink">Artists never pay.</strong> An artist cannot buy a
-            Spotlight for themselves. Only a listener can buy one, and only for somebody else.
+            <strong className="text-ink">No artist is ever required to pay.</strong> Submitting
+            music and staying in the feed are free and always will be. A Spotlight buys
+            attention on one tab and nothing else.
           </li>
           <li>
             <strong className="text-ink">We may remove one without warning.</strong> If an

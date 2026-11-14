@@ -16,6 +16,21 @@ import { newlyEarned } from "@/lib/badgeNotices";
 
 const AI_KEY = "motr_allow_ai";
 const GENRE_KEY = "motr:genre";
+const GENRE_AT_KEY = "motr:genre:at";
+/**
+ * How long a chosen genre survives.
+ *
+ * It used to survive for ever, which turned one curious tap into a
+ * permanent setting. Someone who tried Holiday while it led the picker was
+ * still hearing nothing but Christmas music days later, with no idea why:
+ * the active chip had scrolled off the end of the row where they could not
+ * see it. A filter nobody remembers choosing is indistinguishable from a
+ * broken feed.
+ *
+ * A day is long enough to keep a mood across an evening and short enough
+ * that a new visit starts on everything.
+ */
+const GENRE_TTL_MS = 24 * 60 * 60 * 1000;
 
 type FeedResponse = {
   track: Track | null;
@@ -105,7 +120,20 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   const swipesSinceAd = useRef(0);
 
   useEffect(() => {
-    setGenre(localStorage.getItem(GENRE_KEY));
+    try {
+      const saved = localStorage.getItem(GENRE_KEY);
+      const at = Number(localStorage.getItem(GENRE_AT_KEY) ?? 0);
+      // No timestamp means it was stored before this expiry existed, so it
+      // is older than the rule and goes.
+      if (saved && at && Date.now() - at < GENRE_TTL_MS) {
+        setGenre(saved);
+      } else if (saved) {
+        localStorage.removeItem(GENRE_KEY);
+        localStorage.removeItem(GENRE_AT_KEY);
+      }
+    } catch {
+      // Storage refused. The feed just starts on everything.
+    }
     setAllowAi(localStorage.getItem(AI_KEY) !== "0");
   }, []);
 
@@ -120,8 +148,13 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
   function chooseGenre(next: string | null) {
     setGenre(next);
-    if (next) localStorage.setItem(GENRE_KEY, next);
-    else localStorage.removeItem(GENRE_KEY);
+    if (next) {
+      localStorage.setItem(GENRE_KEY, next);
+      localStorage.setItem(GENRE_AT_KEY, String(Date.now()));
+    } else {
+      localStorage.removeItem(GENRE_KEY);
+      localStorage.removeItem(GENRE_AT_KEY);
+    }
     setTrack(undefined);
     setExhausted(null);
     setRefreshKey((k) => k + 1);

@@ -54,6 +54,26 @@ export default function GenrePicker({
     return () => ro.disconnect();
   }, [measure, available.length]);
 
+  /**
+   * Bring the active genre into view.
+   *
+   * A filter you cannot see is a filter you cannot undo. Holiday sat at the
+   * far right of the row, so anyone still filtered to it saw a feed of
+   * nothing but Christmas music and no sign of why.
+   */
+  useEffect(() => {
+    if (!value) return;
+    const el = scroller.current;
+    if (!el) return;
+    const chip = el.querySelector<HTMLElement>('[data-active="true"]');
+    if (!chip) return;
+    el.scrollTo({
+      left: Math.max(0, chip.offsetLeft - el.clientWidth / 2 + chip.offsetWidth / 2),
+      behavior: "auto",
+    });
+    measure();
+  }, [value, available.length, measure]);
+
   function nudge(direction: -1 | 1) {
     const el = scroller.current;
     if (!el) return;
@@ -132,6 +152,7 @@ function Chip({
   return (
     <button
       type="button"
+      data-active={active}
       onClick={onClick}
       aria-pressed={active}
       className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
