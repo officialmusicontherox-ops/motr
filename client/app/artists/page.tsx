@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Disc } from "@/components/icons";
 import { GENRES } from "@/lib/genres";
+import { isEmailAddress } from "@/lib/emailAddress";
 
 /** Songs per submission. Past this they start a fresh batch. */
 const MAX_SONGS = 5;
@@ -27,7 +28,8 @@ export default function ArtistsPage() {
   const [done, setDone] = useState<{ accepted: Accepted[]; rejected: Rejected[] } | null>(null);
 
   const filled = songs.filter((s) => s.url.trim() && s.genre && s.ai !== null);
-  const canSubmit = filled.length > 0 && artistEmail.trim() && !pending;
+  const emailOk = isEmailAddress(artistEmail);
+  const canSubmit = filled.length > 0 && emailOk && !pending;
 
   function setSong(i: number, patch: Partial<SongRow>) {
     setSongs((prev) => prev.map((s, n) => (n === i ? { ...s, ...patch } : s)));
@@ -275,7 +277,9 @@ export default function ArtistsPage() {
             <a href="/contact" className="text-gold underline underline-offset-2">
               contact us
             </a>{" "}
-            to change it.
+            to change it. It has to be an address that works: everything about your music goes
+            there, and if we cannot reach you we may take your tracks out of the feed until you
+            give us one that does.
           </span>
           <input
             type="email"
@@ -283,8 +287,22 @@ export default function ArtistsPage() {
             onChange={(e) => setArtistEmail(e.target.value)}
             required
             placeholder="you@example.com"
-            className="border-edge bg-surface focus:border-gold w-full rounded-xl border px-4 py-3 outline-none transition placeholder:text-neutral-600"
+            className={`bg-surface w-full rounded-xl border px-4 py-3 outline-none transition placeholder:text-neutral-600 ${
+              artistEmail.trim() && !emailOk
+                ? "border-nope focus:border-nope"
+                : "border-edge focus:border-gold"
+            }`}
           />
+          {/* A browser accepts "jay@thehumblebrag" as a valid email, because
+              the HTML rule does not require a dot. One artist submitted
+              exactly that and could not be reached at all. Said while they
+              are typing rather than after they press the button. */}
+          {artistEmail.trim() && !emailOk && (
+            <span className="text-nope mt-1 block text-xs">
+              That address isn&apos;t complete. It needs an ending like .com or .co.uk after the
+              domain, or we can&apos;t reach you.
+            </span>
+          )}
         </label>
 
         {/* Stated as a requirement rather than an explanation, and given its

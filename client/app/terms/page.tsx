@@ -62,8 +62,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <>
         <p>
-          Submitting is free, and an artist is never asked to pay for anything, including a
-          Spotlight. Only a listener can buy one, and only for somebody else.
+          Submitting is free, and no artist is ever required to pay for anything.
         </p>
         <ul>
           <li>
@@ -79,6 +78,14 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           <li>
             You must have the right to submit the track. Don&apos;t submit music you don&apos;t
             control.
+          </li>
+          <li>
+            <span className="text-ink">Your email has to work.</span> It is the only way we
+            reach you, and everything about your music goes to it: when a track goes live, when
+            it is refused and why, your weekly results, and anything we have to tell you. Give
+            us an address you actually read, with a real ending such as .com or .co.uk. If mail
+            to it bounces and we cannot reach you another way, we may take your music out of the
+            feed until you give us one that works.
           </li>
           <li>
             We may decline or remove a submission. If we do, we&apos;ll tell you why.

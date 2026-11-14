@@ -116,7 +116,13 @@ async function send(
   to: string,
   subject: string,
   html: string,
-  attachments?: Attachment[]
+  attachments?: Attachment[],
+  /**
+   * ISO timestamp to hand to Resend, which holds the message and sends it
+   * itself. The alternative is a job on this machine, and this machine is a
+   * laptop that gets closed.
+   */
+  scheduledAt?: string
 ): Promise<SendResult> {
   if (!resend) {
     console.log(`[email skipped — no RESEND_API_KEY] to=${to} subject="${subject}"`);
@@ -149,6 +155,7 @@ async function send(
       ...(attachments?.length
         ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content })) }
         : {}),
+      ...(scheduledAt ? { scheduledAt } : {}),
     });
 
     if (error) {
@@ -1155,14 +1162,72 @@ One email per distinct fault. Repeats of something already reported do not send 
  * moments ago. Everything else is refused for an opted-out address, whatever
  * the sender believed.
  */
+
+/**
+ * Announces the Spotlight tab, to artists and to listeners who have an email.
+ *
+ * One email for both, because the thing itself is the same: a place on a tab
+ * that names the artist. An artist reads it as a way to be found, a listener
+ * as a way to back somebody.
+ *
+ * Opens with "Hi" for everybody. No names, no usernames.
+ */
+export function spotlightLaunchEmail(params: {
+  listens: number;
+  unsubscribeUrl: string;
+}) {
+  const { listens, unsubscribeUrl } = params;
+  const app = "https://app.musicontherox.com";
+
+  const body = `
+      <p style="margin:0 0 14px">Hi,</p>
+
+      <p style="margin:0 0 14px">Something new on MOTR, and we are genuinely excited about this one. It is called <strong style="color:#fff">Spotlight</strong>, and it is a tab of its own.</p>
+
+      <p style="margin:0 0 14px">Six places. An artist in one of them is shown <strong style="color:#fff">by name</strong>, with their photo, next to links straight to their Spotify and Apple Music pages. Nothing hidden, nothing blind, no thirty second clip. Just the artist, in front of people who opened a music app looking for something new. We have passed <strong style="color:#fff">${listens.toLocaleString()} listens</strong> on MOTR, and this puts a name to one of them.</p>
+
+      <p style="margin:0 0 14px"><strong style="color:#fff">It has nothing to do with the charts.</strong> Not the weekly winner, not the save rate, not one number an artist is judged by. Those come from people listening without knowing whose song it is, and they are staying that way. A Spotlight buys attention on one tab, and that is the whole of it.</p>
+
+      <p style="margin:0 0 6px"><strong style="color:#fff">Three ways to use one</strong></p>
+      <ul style="margin:0 0 14px;padding-left:18px">
+        <li style="margin:0 0 6px">Swipe <strong style="color:#fff">up</strong> on a song you love. It saves the track like a right swipe and puts that artist up at the same time.</li>
+        <li style="margin:0 0 6px">Tap the gold button between <em>Nope</em> and <em>Like</em>.</li>
+        <li style="margin:0 0 6px">Tap an artist's name in <strong style="color:#fff">Saved</strong>, then "Put them in the Spotlight".</li>
+      </ul>
+
+      <p style="margin:0 0 6px"><strong style="color:#fff">What they cost</strong></p>
+      <ul style="margin:0 0 14px;padding-left:18px">
+        <li style="margin:0 0 6px">$2 for one</li>
+        <li style="margin:0 0 6px">$5 for three</li>
+        <li style="margin:0 0 6px">$12 for ten</li>
+      </ul>
+
+      <p style="margin:0 0 14px">Each one runs for three days. If all six places are full, yours joins the queue and starts its full three days the moment one frees, so no time is lost. Buy a few and spend them whenever something lands. Purchases are non-refundable.</p>
+
+      <p style="margin:0 0 14px">MOTR itself is still free and always will be. Submitting is free, listening is free, and nothing about a Spotlight changes how a song is judged.</p>
+
+      <p style="margin:0 0 14px">The app lives at <a href="${app}" style="color:#dcb55f;font-weight:600">app.musicontherox.com</a>. Open it on your phone and the Spotlight tab is along the bottom.</p>
+  `;
+
+  return {
+    subject: "Spotlight is live on MOTR: your name and your links, out front",
+    html:
+      shell("Spotlight is here", body, {
+        label: "See the Spotlight tab",
+        url: `${app}/spotlight`,
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 export async function sendEmail(
   to: string,
   template: { subject: string; html: string; attachments?: Attachment[] },
-  opts: { transactional?: boolean } = {}
+  opts: { transactional?: boolean; scheduledAt?: string } = {}
 ) {
   if (!opts.transactional && (await isSuppressed(to))) {
     console.log(`[email suppressed] ${to} has opted out. subject="${template.subject}"`);
     return { ok: false as const, error: "suppressed", suppressed: true as const };
   }
-  return send(to, template.subject, template.html, template.attachments);
+  return send(to, template.subject, template.html, template.attachments, opts.scheduledAt);
 }

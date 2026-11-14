@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isEmailAddress } from "@/lib/emailAddress";
 import { resetArtistNudges } from "@/lib/artistNudges";
 import { storyCardAttachment } from "@/lib/artistSharePage";
 import { prisma } from "@/lib/prisma";
@@ -54,6 +55,20 @@ export async function POST(req: NextRequest) {
   // the other's tracks.
   const artistEmail =
     typeof rawArtistEmail === "string" ? rawArtistEmail.trim().toLowerCase() : rawArtistEmail;
+
+  // Checked here and not only in the form: a browser accepts an address with
+  // no top-level domain, and this is the record every later email is sent to.
+  if (artistEmail !== undefined && artistEmail !== null && artistEmail !== "") {
+    if (!isEmailAddress(artistEmail)) {
+      return NextResponse.json(
+        {
+          error:
+            "That email address isn't complete. It needs an ending like .com or .co.uk after the domain.",
+        },
+        { status: 400 }
+      );
+    }
+  }
 
   if (source !== "SPOTIFY" && source !== "APPLE_MUSIC") {
     return NextResponse.json(
