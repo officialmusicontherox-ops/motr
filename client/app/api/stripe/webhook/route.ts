@@ -70,5 +70,28 @@ export async function POST(req: NextRequest) {
     if (code !== "P2002") throw e;
   }
 
+  /**
+   * Keep the email Stripe collected, where the listener has none.
+   *
+   * Most buyers are anonymous: a Fan row and a cookie, no sign-in. Their
+   * Spotlights live on that cookie alone, so clearing a browser, changing
+   * phone, or buying inside Snapchat's in-app browser and later opening
+   * MOTR in Safari loses them with nothing to look them up by. Purchases
+   * are non-refundable, so that is somebody out of pocket with no recourse.
+   *
+   * Stripe takes an email for the receipt regardless, and the checkout page
+   * says what it is for, so this costs the buyer nothing extra.
+   *
+   * Never overwrites an email already on the account, and a clash with
+   * another account is left alone rather than forced: the purchase has
+   * already been credited by this point and must not be undone over it.
+   */
+  const email = session.customer_details?.email?.trim().toLowerCase();
+  if (email) {
+    await prisma.fan
+      .updateMany({ where: { id: fanId, email: null }, data: { email } })
+      .catch(() => {});
+  }
+
   return NextResponse.json({ received: true });
 }

@@ -116,7 +116,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             Stripe handles the whole payment on its own pages. Your card number never reaches
             MOTR and we never store it. We keep a record that a purchase happened, how many
             Spotlights it was for and the amount, so your balance is correct and so we can
-            answer a question about it.
+            answer a question about it. We also keep the email address you give Stripe, and
+            attach it to your account if it has none, so your Spotlights can be restored if you
+            come back on a different phone or browser. The checkout page says so before you pay.
           </li>
           <li>
             <span className="text-ink">Google AdSense</span>: the ads on the site. Google

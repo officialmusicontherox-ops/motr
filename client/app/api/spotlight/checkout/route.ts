@@ -57,6 +57,16 @@ export async function POST(req: NextRequest) {
     // Stripe shows in the dashboard, so a refund can be traced to a listener.
     client_reference_id: fanId,
     metadata: { fanId, bundle: b.id, credits: String(b.credits) },
+    // Stripe collects an email for the receipt either way. Saying what it
+    // is for turns a required field into the thing that makes a purchase
+    // recoverable, which matters most for the listeners who buy without an
+    // account.
+    custom_text: {
+      submit: {
+        message:
+          "We'll save your Spotlights to this email, so you still have them if you come back on another phone or browser.",
+      },
+    },
     success_url: `${base}${back}${back.includes("?") ? "&" : "?"}spotlights=${b.credits}`,
     cancel_url: `${base}${back}`,
   });
