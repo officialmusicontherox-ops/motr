@@ -335,9 +335,10 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
       {/* Sits on the row that already carries the listener's own settings,
           rather than adding a row of its own — the swipe screen has to fit a
-          phone without scrolling. Off means "hide tracks the artist declared
-          as AI"; it can only ever be as good as their answer, which is the
-          same limitation Spotify's own AI credits have. */}
+          phone without scrolling. Off means "hide tracks whose vocals the
+          artist declared as AI"; it can only ever be as good as their
+          answer, which is the same limitation Spotify's own AI credits
+          have. */}
 
       <div className="mb-3 flex w-full max-w-sm shrink-0 items-center justify-between md:max-w-2xl">
         <span className="motr-label">
@@ -350,8 +351,8 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
             aria-pressed={allowAi}
             title={
               allowAi
-                ? "AI music is included. Tap to hide tracks the artist declared as AI."
-                : "AI music is hidden. Tap to include it again."
+                ? "Tracks with AI vocals are included. Tap to hide them."
+                : "Tracks with AI vocals are hidden. Tap to include them again."
             }
             className={`motr-label flex items-center gap-1.5 rounded-full border px-2.5 py-1 transition ${
               allowAi
@@ -363,7 +364,7 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
               aria-hidden
               className={`h-1.5 w-1.5 rounded-full ${allowAi ? "bg-muted" : "bg-gold"}`}
             />
-            AI {allowAi ? "on" : "off"}
+            AI vocals {allowAi ? "on" : "off"}
           </button>
 
           <span className="motr-label flex items-center gap-1.5">

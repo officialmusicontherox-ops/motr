@@ -351,19 +351,29 @@ export default function ArtistsPage() {
               ))}
             </div>
 
-            {/* Asked outright, because nothing else can answer it. Spotify's
+            {/* Asked about the voice specifically, not about AI in general.
+                "Was AI used?" was too wide to answer honestly: artists who
+                used AI mastering, stem separation or an AI-assisted plugin
+                read it as a yes they did not mean, and artists with a wholly
+                synthetic singer justified a no on the grounds that they
+                wrote and produced it themselves. The voice is the thing
+                listeners filter on, and it is a question with one answer.
+
+                Asked outright, because nothing else can answer it. Spotify's
                 own AI credits are declared by the artist through their
                 distributor, and neither Spotify's nor Apple's API exposes a
                 flag anyone could read. No default is pre-selected: an
                 unanswered question must not pass as a quiet "no". */}
             <span className="text-muted mb-2 mt-4 block text-xs">
-              Was generative AI used to create this track? Some listeners filter it out, and
-              answering honestly is the only thing that keeps that filter worth having.
+              Are the vocals on this track AI-generated? Production, mixing and mastering
+              don&apos;t count, only the voice. An instrumental is a no. Some listeners filter
+              these out, and answering honestly is the only thing that keeps that filter worth
+              having.
             </span>
             <div className="flex gap-2">
               {([
-                [false, "No, no AI"],
-                [true, "Yes, AI was used"],
+                [false, "No AI vocals"],
+                [true, "Yes, AI vocals"],
               ] as const).map(([value, label]) => (
                 <button
                   type="button"

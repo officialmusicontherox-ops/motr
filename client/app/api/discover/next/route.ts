@@ -56,13 +56,13 @@ export async function GET(req: NextRequest) {
   const genreClause = genre ? Prisma.sql`AND t."genre" = ${genre}` : Prisma.empty;
 
   /**
-   * Whether to include tracks the artist declared were made with AI.
+   * Whether to include tracks whose vocals the artist declared as AI.
    *
    * On by default: excluding by default would quietly bury the artists who
    * answered honestly, which punishes exactly the behaviour the question is
    * there to encourage.
    *
-   * Null is treated as not-AI. It means nobody was ever asked — every track
+   * Null is treated as no AI vocals. It means nobody was ever asked — every track
    * submitted before the question existed, and the whole seeded catalogue —
    * and hiding those would empty the feed for anyone who switched the toggle.
    */

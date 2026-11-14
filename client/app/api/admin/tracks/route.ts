@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
   }
 
   /**
-   * Label a track as AI, or clear the label.
+   * Label a track as having AI vocals, or clear the label.
    *
    * The question only reaches artists submitting from now on, which leaves
    * every track already in the feed unasked — and the operator knows most of

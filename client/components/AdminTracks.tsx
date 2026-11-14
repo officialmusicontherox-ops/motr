@@ -97,7 +97,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
   }
 
   /**
-   * Label a track as AI, or clear the label.
+   * Label a track as having AI vocals, or clear the label.
    *
    * Three states rather than two: the submit-form question only reaches
    * artists from now on, so everything already in the feed is genuinely
@@ -321,7 +321,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                       the three states, and it read as a status label rather
                       than a control — nobody would think to click it. */}
                   <label className="mt-1.5 flex items-center gap-1.5 text-xs text-muted">
-                    <span className="sr-only">AI status for {t.title}</span>
+                    <span className="sr-only">AI vocals for {t.title}</span>
                     <select
                       value={t.aiGenerated === null ? "" : t.aiGenerated ? "yes" : "no"}
                       disabled={busy === t.id}
@@ -335,9 +335,9 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
                         t.aiGenerated === true ? "border-gold/50 text-gold" : "border-edge"
                       }`}
                     >
-                      <option value="">AI: not asked</option>
-                      <option value="yes">AI: yes</option>
-                      <option value="no">AI: no</option>
+                      <option value="">AI vocals: not asked</option>
+                      <option value="yes">AI vocals: yes</option>
+                      <option value="no">AI vocals: no</option>
                     </select>
                   </label>
                   <p className="mt-0.5 text-xs text-muted">
