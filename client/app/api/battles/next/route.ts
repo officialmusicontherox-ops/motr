@@ -5,9 +5,10 @@ import { nextBattle } from "@/lib/battles";
 /**
  * The listener's next battle.
  *
- * An open battle is two preview clips and a sealed ticket: no titles, no
- * names, no artwork and no id that could be used to look them up. The names
- * arrive only in answer to a vote.
+ * An open battle carries what the Discover card carries, the clip, the
+ * title, the cover and the genre, and a sealed ticket. No artist names and
+ * no id that could be used to look them up. Those arrive only in answer to
+ * a vote.
  *
  * `b` is a battle somebody was sent to by a shared link. It is served first
  * if they can still vote in it, and shown as a result if they already have

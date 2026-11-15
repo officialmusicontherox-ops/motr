@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { leadersBetween, weeklyLeaders } from "@/lib/scoutData";
-import { battleLeadersBetween } from "@/lib/battles";
+import { battleLeadersBetween, battleWeek } from "@/lib/battles";
 import { selectableWeeks, weekFromKey, weekKey } from "@/lib/weekWindow";
 
 /**
@@ -42,7 +42,12 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   const battles = month
     ? await battleLeadersBetween(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), now)
-    : await battleLeadersBetween(week.start, week.end);
+    : await battleLeadersBetween(
+        // The week in progress is asked for by the battle week, so launch
+        // night's battles show on the board they are being fought for.
+        weekKey(week) === weekKey(weekFromKey(null)) ? battleWeek().start : week.start,
+        weekKey(week) === weekKey(weekFromKey(null)) ? battleWeek().end : week.end
+      );
 
   return NextResponse.json(
     {

@@ -34,6 +34,22 @@ import { weekOf } from "./weekWindow";
  * so every win on the board belongs to a MOTR artist.
  */
 
+/**
+ * The week a battle belongs to.
+ *
+ * The chart week, Sunday to Saturday Central, with one exception. Battles
+ * launched on the evening of Saturday 14 November 2026, hours before that
+ * week closed, and a battle that opens and shuts the same night is not a
+ * battle. So launch night counts as part of the first full week: the first
+ * set runs a week and a day, closes on Saturday 21 November, and every week
+ * after that is an ordinary one.
+ */
+const FIRST_WEEK = weekOf(new Date("2026-11-16T00:00:00Z"));
+
+export function battleWeek(at: Date = new Date()) {
+  return at.getTime() < FIRST_WEEK.start.getTime() ? FIRST_WEEK : weekOf(at);
+}
+
 /** Battles one artist can be in during a week. */
 export const PER_ARTIST_PER_WEEK = 1;
 
@@ -124,7 +140,7 @@ function shuffle<T>(xs: T[]): T[] {
  * the artist who has battled most sits the week out.
  */
 export async function pairThisWeek(now = new Date()): Promise<number> {
-  const week = weekOf(now);
+  const week = battleWeek(now);
 
   const unpaired = () => Prisma.sql`
     SELECT t."id", t."genre", ${KEY("t")} AS key,
@@ -205,7 +221,7 @@ export async function pairThisWeek(now = new Date()): Promise<number> {
  * the rows that statement returned.
  */
 export async function settleFinishedWeeks(now = new Date()): Promise<number> {
-  const week = weekOf(now);
+  const week = battleWeek(now);
   const done = await prisma.$queryRaw<
     Array<{ trackAId: string; trackBId: string; winnerId: string | null; votes: number }>
   >(Prisma.sql`
@@ -248,12 +264,20 @@ export async function settleFinishedWeeks(now = new Date()): Promise<number> {
 /* Serving and voting                                                  */
 /* ------------------------------------------------------------------ */
 
-/** What the screen is given before a vote. Nothing that names anybody. */
+/**
+ * What the screen is given before a vote.
+ *
+ * The same things the Discover card shows: the clip, the song's title, its
+ * cover and the genre. Never the artist's name, and never an id that could
+ * be used to look it up. The two screens are blind in the same way, so a
+ * listener is not told one thing here and another there.
+ */
+type OpenSide = { previewUrl: string; title: string; artworkUrl: string | null };
 export type OpenBattle = {
   ticket: string;
   genre: string;
-  a: { previewUrl: string };
-  b: { previewUrl: string };
+  a: OpenSide;
+  b: OpenSide;
 };
 
 type Side = {
@@ -279,6 +303,9 @@ export type Reveal = {
   winner: "A" | "B" | null;
   /** "November 15 - November 21" */
   week: string;
+  /** The day voting ends, as "Saturday, November 21". */
+  closes: string;
+  genre: string;
 };
 
 export class BattleGoneError extends Error {
@@ -290,6 +317,7 @@ export class BattleGoneError extends Error {
 
 type BattleRow = {
   id: string;
+  genre: string;
   weekStart: Date;
   trackAId: string;
   trackBId: string;
@@ -342,7 +370,7 @@ export async function revealBattle(battle: BattleRow, pick: "A" | "B" | null): P
 
   const total = battle.votesA + battle.votesB;
   const a = total ? Math.round((battle.votesA / total) * 100) : 0;
-  const closed = battle.weekStart.getTime() < weekOf().start.getTime();
+  const closed = battle.weekStart.getTime() < battleWeek().start.getTime();
 
   return {
     id: battle.id,
@@ -359,6 +387,8 @@ export async function revealBattle(battle: BattleRow, pick: "A" | "B" | null): P
           : null
       : null,
     week: weekOf(battle.weekStart).label,
+    closes: `Saturday, ${weekOf(battle.weekStart).label.split(" - ")[1]}`,
+    genre: battle.genre,
   };
 }
 
@@ -381,22 +411,22 @@ export async function nextBattle(
 ): Promise<{ battle: OpenBattle | null; reveal: Reveal | null; viaShare: boolean }> {
   await settleFinishedWeeks();
   await pairThisWeek();
-  const week = weekOf();
+  const week = battleWeek();
 
-  const open = async (b: BattleRow & { genre: string }): Promise<OpenBattle | null> => {
+  const open = async (b: BattleRow): Promise<OpenBattle | null> => {
     const tracks = await prisma.track.findMany({
       where: { id: { in: [b.trackAId, b.trackBId] }, status: "DISCOVERY" },
-      select: { id: true, previewUrl: true },
+      select: { id: true, previewUrl: true, title: true, artworkUrl: true },
     });
     const ta = tracks.find((t) => t.id === b.trackAId);
     const tb = tracks.find((t) => t.id === b.trackBId);
     if (!ta || !tb) return null;
-    return {
-      ticket: sealBattleId(b.id),
-      genre: b.genre,
-      a: { previewUrl: ta.previewUrl },
-      b: { previewUrl: tb.previewUrl },
-    };
+    const side = (t: typeof ta): OpenSide => ({
+      previewUrl: t.previewUrl,
+      title: t.title,
+      artworkUrl: t.artworkUrl,
+    });
+    return { ticket: sealBattleId(b.id), genre: b.genre, a: side(ta), b: side(tb) };
   };
 
   if (asked) {
@@ -417,7 +447,7 @@ export async function nextBattle(
     }
   }
 
-  const rows = await prisma.$queryRaw<Array<BattleRow & { genre: string }>>(Prisma.sql`
+  const rows = await prisma.$queryRaw<Array<BattleRow>>(Prisma.sql`
     SELECT b.*
     FROM "Battle" b
     JOIN "Track" ta ON ta."id" = b."trackAId"
@@ -459,7 +489,7 @@ export async function decideBattle(
 
   const battle = await prisma.battle.findUnique({ where: { id } });
   if (!battle) throw new BattleGoneError();
-  if (battle.weekStart.getTime() !== weekOf().start.getTime()) {
+  if (battle.weekStart.getTime() !== battleWeek().start.getTime()) {
     throw new BattleGoneError("That battle has closed");
   }
 

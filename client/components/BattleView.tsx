@@ -4,16 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
-import { NEON, NeonText } from "./Neon";
 import { Cross, Pause, Play, Share } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
 import { bumpSavedCount } from "@/lib/savedCount";
 
+type OpenSide = { previewUrl: string; title: string; artworkUrl: string | null };
+
 type Open = {
   ticket: string;
   genre: string;
-  a: { previewUrl: string };
-  b: { previewUrl: string };
+  a: OpenSide;
+  b: OpenSide;
 };
 
 type Side = {
@@ -33,14 +34,16 @@ type Reveal = {
   closed: boolean;
   winner: "A" | "B" | null;
   week: string;
+  closes: string;
+  genre: string;
 };
 
 type Letter = "A" | "B";
 
 /** Each side keeps one colour, before and after the reveal. */
-const TUBE: Record<Letter, { edge: string; glow: string; pair: string[] }> = {
-  A: { edge: "#b45cff", glow: "180, 92, 255", pair: [NEON.pink, "#b45cff"] },
-  B: { edge: "#38c6f4", glow: "56, 198, 244", pair: [NEON.blue, "#5ee6e6"] },
+const TUBE: Record<Letter, { edge: string; glow: string }> = {
+  A: { edge: "#b45cff", glow: "180, 92, 255" },
+  B: { edge: "#38c6f4", glow: "56, 198, 244" },
 };
 
 const APP = "https://app.musicontherox.com";
@@ -56,9 +59,10 @@ const APP = "https://app.musicontherox.com";
  * heard. The play buttons belong to the listener: either song, as many
  * times as they like, in any order.
  *
- * Nothing on screen names anybody until the vote is in. The browser is not
- * sent the names before then, nor an id it could look them up with. A skip
- * moves on without a reveal, because the reveal is what a vote earns.
+ * Blind in the same way Discover is: the cover, the title and the genre are
+ * shown, and the artist is not. The browser is not sent the artist's name
+ * before the vote, nor an id it could look one up with. A skip moves on
+ * without a reveal, because the reveal is what a vote earns.
  */
 export default function BattleView() {
   /** undefined while loading, null when there is nothing left to vote on. */
@@ -207,9 +211,9 @@ export default function BattleView() {
             ? reveal.closed
               ? `Final result · ${reveal.week}`
               : reveal.pct
-                ? "Your pick is in Saved. Voting closes Saturday at midnight Central."
-                : "Your pick is in Saved. Voting closes Saturday at midnight Central."
-            : "Two songs, no names. Pick the one you would play again."}
+                ? `Your pick is in Saved. Voting closes ${reveal.closes} at midnight Central.`
+                : `Your pick is in Saved. Voting closes ${reveal.closes} at midnight Central.`
+            : "Two songs, head to head. The artists are shown after you vote."}
         </p>
 
         {battle === undefined && !reveal && (
@@ -246,8 +250,11 @@ export default function BattleView() {
 
         {(battle || reveal) && (
           <>
-            <p className="motr-label text-muted mt-2 h-4 shrink-0 text-center">
-              {battle ? battle.genre.split(" /")[0] : ""}
+            {/* The same pill the Discover card carries. */}
+            <p className="mt-2 flex shrink-0 justify-center">
+              <span className="border-gold/40 text-gold rounded-full border px-3 py-0.5 text-[0.68rem] font-semibold uppercase tracking-widest">
+                {(battle?.genre ?? reveal?.genre ?? "").split(" /")[0]}
+              </span>
             </p>
 
             <div className="relative mt-2 grid min-h-0 flex-1 grid-cols-2 gap-3 md:gap-6">
@@ -255,6 +262,7 @@ export default function BattleView() {
                 <Panel
                   key={side}
                   side={side}
+                  open={battle ? (side === "A" ? battle.a : battle.b) : null}
                   revealed={reveal ? (side === "A" ? reveal.a : reveal.b) : null}
                   pct={reveal?.pct ? (side === "A" ? reveal.pct.a : reveal.pct.b) : null}
                   // Lit means "the one that matters here": your pick while
@@ -341,6 +349,7 @@ export default function BattleView() {
 
 function Panel({
   side,
+  open,
   revealed,
   pct,
   lit,
@@ -353,6 +362,7 @@ function Panel({
   onChoose,
 }: {
   side: Letter;
+  open: OpenSide | null;
   revealed: Side | null;
   pct: number | null;
   lit: boolean;
@@ -430,33 +440,43 @@ function Panel({
                 </div>
               </>
             ) : (
-              <button
-                type="button"
-                onClick={onPlay}
-                aria-label={playing ? `Pause song ${side}` : `Play song ${side}`}
-                className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3"
-              >
-                <NeonText
-                  text={side}
-                  width={56}
-                  height={84}
-                  fontSize={76}
-                  colors={tube.pair}
-                  className="h-16 md:h-24"
-                />
-                <span
-                  className="flex h-14 w-14 items-center justify-center rounded-full border-2 text-white transition md:h-16 md:w-16"
-                  style={{ borderColor: tube.edge, boxShadow: `0 0 12px rgba(${tube.glow}, 0.5)` }}
+              <>
+                {/* The cover is the play button, with the control drawn on
+                    it. Tap it as often as you like. */}
+                <button
+                  type="button"
+                  onClick={onPlay}
+                  aria-label={
+                    playing ? `Pause ${open?.title ?? "song"}` : `Play ${open?.title ?? "song"}`
+                  }
+                  className="relative aspect-square w-full shrink-0 bg-black"
                 >
-                  {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                </span>
-                <span className="h-1 w-2/3 overflow-hidden rounded-full bg-white/10">
-                  <span
-                    className="block h-full rounded-full"
-                    style={{ width: `${Math.round(progress * 100)}%`, background: tube.edge }}
-                  />
-                </span>
-              </button>
+                  {open?.artworkUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={open.artworkUrl} alt="" className="h-full w-full object-cover" />
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+                    <span
+                      className="flex h-14 w-14 items-center justify-center rounded-full border-2 bg-black/60 text-white md:h-16 md:w-16"
+                      style={{ borderColor: tube.edge, boxShadow: `0 0 14px rgba(${tube.glow}, 0.6)` }}
+                    >
+                      {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                    </span>
+                  </span>
+                  <span className="absolute inset-x-0 bottom-0 h-1 bg-white/10">
+                    <span
+                      className="block h-full"
+                      style={{ width: `${Math.round(progress * 100)}%`, background: tube.edge }}
+                    />
+                  </span>
+                </button>
+                <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-2 text-white">
+                  <p className="line-clamp-2 text-sm font-semibold leading-snug">{open?.title}</p>
+                  {/* Said out loud, as on Discover, because a missing name
+                      otherwise reads as something broken. */}
+                  <p className="mt-1 text-[0.68rem] text-neutral-500">Artist shown after you vote</p>
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -476,6 +496,7 @@ function Panel({
           type="button"
           onClick={onChoose}
           disabled={!canChoose}
+          aria-label={open ? `Vote for ${open.title}` : "Vote"}
           className="mt-2.5 rounded-full border-2 py-2.5 text-sm font-bold uppercase tracking-widest transition disabled:opacity-35"
           style={{
             borderColor: tube.edge,
@@ -483,7 +504,7 @@ function Panel({
             boxShadow: canChoose ? `0 0 14px rgba(${tube.glow}, 0.45)` : "none",
           }}
         >
-          Choose {side}
+          Vote
         </button>
       )}
     </div>

@@ -230,7 +230,7 @@ export async function GET(req: NextRequest) {
           </div>
           {!done && (
             <div style={{ display: "flex", marginTop: story ? 24 : 12, fontSize: story ? 28 : 22, color: "#8b8b93" }}>
-              Voting closes Saturday at midnight Central
+              Voting closes {battle.closes} at midnight Central
             </div>
           )}
         </div>

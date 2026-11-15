@@ -2,8 +2,7 @@ import { prisma } from "./prisma";
 import { battleOpenEmail, sendEmail } from "./email";
 import { isEmailAddress } from "./emailAddress";
 import { artistUnsubscribeUrl } from "./nudges";
-import { pairThisWeek, settleFinishedWeeks } from "./battles";
-import { weekOf } from "./weekWindow";
+import { battleWeek, pairThisWeek, settleFinishedWeeks } from "./battles";
 
 /**
  * Telling artists their song is in a battle this week.
@@ -36,7 +35,7 @@ type Pending = {
 
 /** Every account still to be told, with the songs to tell them about. */
 export async function pendingBattleNotices(): Promise<Pending[]> {
-  const week = weekOf();
+  const week = battleWeek();
   const battles = await prisma.battle.findMany({
     where: { weekStart: week.start, OR: [{ notifiedAAt: null }, { notifiedBAt: null }] },
     orderBy: { createdAt: "asc" },
@@ -93,7 +92,7 @@ export type BattleNoticeProgress = {
 export async function previewBattleNotice() {
   await settleFinishedWeeks();
   await pairThisWeek();
-  const week = weekOf();
+  const week = battleWeek();
   const pending = await pendingBattleNotices();
   const battles = await prisma.battle.count({ where: { weekStart: week.start } });
   const reachable = pending.filter((p) => !p.optedOut && isEmailAddress(p.email)).length;

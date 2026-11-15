@@ -68,7 +68,7 @@ async function fan() {
 async function main() {
   const parked = await prisma.track.findMany({ where: { status: "DISCOVERY" }, select: { id: true } });
   await prisma.track.updateMany({ where: { id: { in: parked.map((p) => p.id) } }, data: { status: "VETTING" } });
-  const week = weekOf();
+  const week = B.battleWeek();
 
   try {
     // Four human artists and two AI ones in one genre, one artist alone in
@@ -135,8 +135,8 @@ async function main() {
     const f1 = await fan();
     const f2 = await fan();
     const first = await B.nextBattle(f1.id, false);
-    const leaked = JSON.stringify(first.battle).match(/title|artist|artwork|"id"|trackAId/i);
-    check(!!first.battle && !leaked, "an open battle carries a sealed ticket and no names or ids", `leaked ${leaked}`);
+    const leaked = JSON.stringify(first.battle).match(/artist|"id"|trackAId|spotify/i);
+    check(!!first.battle && !leaked && !!first.battle.a.title, "an open battle shows the title and cover, and no artist name or id", `leaked ${leaked}`);
     const firstId = B.openBattleTicket(first.battle!.ticket);
     check(!!firstId && B.openBattleTicket("x" + first.battle!.ticket) === null, "the ticket opens on the server and a tampered one does not");
 

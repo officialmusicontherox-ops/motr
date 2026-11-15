@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
-import { battleLeadersBetween, battleTotals, pairThisWeek, settleFinishedWeeks } from "@/lib/battles";
-import { weekOf } from "@/lib/weekWindow";
+import { battleLeadersBetween, battleTotals, battleWeek, pairThisWeek, settleFinishedWeeks } from "@/lib/battles";
 
 /**
  * The full battle record, for the admin panel.
@@ -22,7 +21,7 @@ export async function GET() {
   await settleFinishedWeeks();
   await pairThisWeek();
 
-  const week = weekOf();
+  const week = battleWeek();
   const [battles, votes, skips, shared, voters, totals, leaders, closed] = await Promise.all([
     prisma.battle.findMany({ where: { weekStart: week.start }, orderBy: { createdAt: "asc" } }),
     prisma.battleVote.count({ where: { pick: { not: "SKIP" } } }),
