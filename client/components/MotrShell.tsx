@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
-import { Bookmark, Disc, Menu, Waveform, Note } from "./icons";
+import { Bolt, Bookmark, Disc, Menu, Waveform, Note } from "./icons";
 import PullToRefresh from "./PullToRefresh";
 import SideRail from "./SideRail";
 import { useUnseenSaves } from "@/lib/savedCount";
@@ -28,6 +28,10 @@ const ADSENSE_RAIL_LEFT = process.env.NEXT_PUBLIC_ADSENSE_RAIL_LEFT;
 // it sits in the menu rather than taking a quarter of the main navigation.
 const TABS = [
   { href: "/", label: "Discover", Icon: Disc },
+  // Second, next to the other way of judging music. Six items is the most
+  // a phone's bottom bar holds, which is why the labels below are set a
+  // little tighter than they were at five.
+  { href: "/battles", label: "Battles", Icon: Bolt },
   { href: "/saved", label: "Saved", Icon: Bookmark },
   { href: "/charts", label: "Charts", Icon: Waveform },
   { href: "/spotlight", label: "Spotlight", Icon: Note },
@@ -156,7 +160,7 @@ export default function MotrShell({
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.15em] transition ${
+                className={`flex items-center gap-2 rounded-full px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.12em] transition ${
                   active ? "bg-surface-2 text-gold" : "text-muted hover:text-ink"
                 }`}
               >
@@ -173,7 +177,7 @@ export default function MotrShell({
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
             aria-expanded={menuOpen}
-            className={`flex items-center gap-2 rounded-full px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.15em] transition ${
+            className={`flex items-center gap-2 rounded-full px-3 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.12em] transition ${
               menuOpen ? "bg-surface-2 text-gold" : "text-muted hover:text-ink"
             }`}
           >
@@ -266,7 +270,7 @@ export default function MotrShell({
                 <Link
                   href={href}
                   aria-current={active ? "page" : undefined}
-                  className={`flex flex-col items-center gap-1.5 py-3 text-[0.62rem] font-semibold uppercase tracking-[0.15em] transition ${
+                  className={`flex flex-col items-center gap-1.5 py-3 text-[0.56rem] font-semibold uppercase tracking-[0.06em] transition ${
                     active ? "text-gold" : "text-muted hover:text-ink"
                   }`}
                 >
@@ -292,7 +296,7 @@ export default function MotrShell({
               onClick={() => setMenuOpen(true)}
               aria-label="Open menu"
               aria-expanded={menuOpen}
-              className={`flex w-full flex-col items-center gap-1.5 py-3 text-[0.62rem] font-semibold uppercase tracking-[0.15em] transition ${
+              className={`flex w-full flex-col items-center gap-1.5 py-3 text-[0.56rem] font-semibold uppercase tracking-[0.06em] transition ${
                 menuOpen ? "text-gold" : "text-muted hover:text-ink"
               }`}
             >

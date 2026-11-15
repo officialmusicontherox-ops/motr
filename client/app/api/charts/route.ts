@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { leadersBetween, weeklyLeaders } from "@/lib/scoutData";
+import { battleLeadersBetween } from "@/lib/battles";
 import { selectableWeeks, weekFromKey, weekKey } from "@/lib/weekWindow";
 
 /**
@@ -35,6 +36,14 @@ export async function GET(req: NextRequest) {
   const week = weekFromKey(req.nextUrl.searchParams.get("week"));
   const weekly = month ? await weeklyLeaders(30) : await leadersBetween(week.start, week.end);
 
+  // Battle Wins over the same window as the other two boards. Its own list:
+  // a battle is not a save, so it never feeds the song or artist chart, the
+  // weekly winner, or the write-up that goes with it.
+  const now = new Date();
+  const battles = month
+    ? await battleLeadersBetween(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000), now)
+    : await battleLeadersBetween(week.start, week.end);
+
   return NextResponse.json(
     {
       songs: weekly.songs.map((s, i) => ({
@@ -52,6 +61,9 @@ export async function GET(req: NextRequest) {
         id: a.artistId,
         name: a.name,
       })),
+      // Rank and name, like the others. The complete totals are on the
+      // reveal after a vote and in the admin panel.
+      battles: battles.map((b, i) => ({ rank: i + 1, id: b.key, name: b.name })),
       since: weekly.since,
       days: month ? 30 : 7,
       // What the heading should say above the list.

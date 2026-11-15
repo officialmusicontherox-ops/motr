@@ -259,3 +259,21 @@ export function Share({ className = "h-5 w-5" }: IconProps) {
     </svg>
   );
 }
+
+/** Battles: a bolt, the mark between the two sides of a versus card. */
+export function Bolt({ className = "h-5 w-5" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M13 2 5 13.5h6L10 22l9-12h-6l1-8Z" />
+    </svg>
+  );
+}

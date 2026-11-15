@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 const EMAIL = "officialmusicontherox@gmail.com";
-const UPDATED = "November 12, 2026";
+const UPDATED = "November 14, 2026";
 
 /**
  * Written against what the product actually does.
@@ -189,6 +189,46 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             {EMAIL}
           </a>
         </address>
+      </>
+    ),
+  },
+  {
+    title: "Battles",
+    body: (
+      <>
+        <p>
+          A <strong className="text-ink">Battle</strong> puts two songs from the same genre in
+          front of a listener with no names attached. The listener chooses one, and only then
+          are both artists shown. Battles are free to take part in, for listeners and for
+          artists.
+        </p>
+        <ul>
+          <li>
+            <strong className="text-ink">Any song in the feed can be drawn into a battle.</strong>{" "}
+            By submitting music you agree it may be. Songs are paired at random within a genre,
+            and an artist is never matched against their own song.
+          </li>
+          <li>
+            <strong className="text-ink">A win is a Battle Win and nothing else.</strong> Battle
+            Wins are counted on their own board. They have no effect on the song chart, the
+            artist chart, the weekly winner, or any write-up, feature or prize that goes with
+            the weekly winner. Those are decided by saves alone.
+          </li>
+          <li>
+            <strong className="text-ink">Totals are kept.</strong> The board shows a week or a
+            month, but an artist&apos;s full count of Battle Wins is kept and does not reset.
+          </li>
+          <li>
+            <strong className="text-ink">Battle Wins have no cash value</strong> and promise no
+            outcome. Losing a battle, or not being drawn into one, is not a failure of the
+            service.
+          </li>
+          <li>
+            <strong className="text-ink">We may remove votes that were not honest.</strong>{" "}
+            Votes made by automated means, from duplicate accounts, or arranged to inflate a
+            total may be discounted, and the wins they produced taken off.
+          </li>
+        </ul>
       </>
     ),
   },

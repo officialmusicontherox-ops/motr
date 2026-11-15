@@ -18,6 +18,8 @@ type ChartArtist = { rank: number; id: string; name: string };
 type Charts = {
   songs: ChartSong[];
   artists: ChartArtist[];
+  /** Battle Wins, by artist. Optional so an older cached payload still renders. */
+  battles?: ChartArtist[];
   since: string;
   days: number;
   /** "October 4 - October 10", or "Last 30 days". */
@@ -30,7 +32,7 @@ type Charts = {
 };
 
 type Range = "week" | "month";
-type Board = "songs" | "artists";
+type Board = "songs" | "artists" | "battles";
 
 /** Often enough to feel live, and only while someone is watching. */
 const POLL_MS = 60_000;
@@ -178,6 +180,7 @@ export default function ChartsView() {
             [
               ["songs", "Songs"],
               ["artists", "Artists"],
+              ["battles", "Battle Wins"],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -265,6 +268,30 @@ export default function ChartsView() {
               ) : (
                 <ol className="space-y-1.5">
                   {data.artists.map((artist) => (
+                    <li
+                      key={artist.id}
+                      className="border-edge bg-surface flex items-center gap-3 rounded-xl border px-3 py-2"
+                    >
+                      <Rank n={artist.rank} />
+                      <span className="min-w-0 flex-1 truncate font-medium">{artist.name}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+
+            <section hidden={board !== "battles"}>
+              <h2 className="motr-label text-gold mb-3">Battle wins</h2>
+              <p className="text-muted mb-3 text-xs leading-relaxed">
+                Two songs from one genre, no names, and a listener picks one. Every pick is a
+                win. This board stands alone: it has no effect on the song or artist charts or
+                on the weekly winner.
+              </p>
+              {(data.battles ?? []).length === 0 ? (
+                <Empty />
+              ) : (
+                <ol className="space-y-1.5">
+                  {(data.battles ?? []).map((artist) => (
                     <li
                       key={artist.id}
                       className="border-edge bg-surface flex items-center gap-3 rounded-xl border px-3 py-2"

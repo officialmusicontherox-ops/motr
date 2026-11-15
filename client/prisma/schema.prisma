@@ -394,6 +394,12 @@ model Track {
   // already in rotation quietly disappears.
   aiGenerated Boolean?
 
+  /// All-time battle record. Weekly and monthly boards are counted from the
+  /// dated Battle rows; these are the complete totals, so joining Battles in
+  /// its first week never costs anybody their wins.
+  battles    Int @default(0)
+  battleWins Int @default(0)
+
   swipes        Swipe[]
   fanSwipes     FanSwipe[]
   notifications ArtistNotification[]
@@ -916,6 +922,29 @@ model SuppressedEmail {
 /// Bought by a listener for an artist they want others to hear. The tab is a
 /// promo surface and nothing on it is a verdict, so it cannot touch the
 /// chart or the blind A&R data.
+/// Two blind songs from one genre, and the one a listener picked.
+model Battle {
+  id    String @id @default(cuid())
+  fanId String
+
+  /// Left and right as shown, randomised when the battle is made so neither
+  /// side of the screen has an edge.
+  trackAId String
+  trackBId String
+  genre    String
+
+  /// Null on a decided battle means it was skipped, which counts for nobody.
+  winnerId  String?
+  /// Null while the listener still has it open.
+  decidedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([fanId, decidedAt])
+  @@index([trackAId])
+  @@index([trackBId])
+  @@index([winnerId, decidedAt])
+}
+
 /// Every bundle of Spotlights bought. The unique session id is what makes
 /// the webhook safe to receive twice, which Stripe will do whenever a reply
 /// is slow.

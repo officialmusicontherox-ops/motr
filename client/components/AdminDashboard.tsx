@@ -21,6 +21,7 @@ import AdminShareBlast from "./AdminShareBlast";
 import AdminScouts from "./AdminScouts";
 import AdminPromotion from "./AdminPromotion";
 import AdminSpotlights from "./AdminSpotlights";
+import AdminBattles from "./AdminBattles";
 import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
@@ -58,6 +59,10 @@ const VIEWS = [
   { key: "artists", label: "Artists" },
   { key: "listeners", label: "Listeners" },
   { key: "charts", label: "Charts" },
+  // Their own tabs. Spotlights is money and Battles is a second verdict on
+  // the music, and neither belongs under a heading about listeners.
+  { key: "spotlights", label: "Spotlights" },
+  { key: "battles", label: "Battles" },
  // Everything that sends mail, in one place. These were spread across the
  // Artists and Listeners tabs, so pressing a button meant first remembering
  // which screen it lived on.
@@ -215,9 +220,12 @@ export default function AdminDashboard({
 
  {view === "artists" && <AdminArtistShare />}
 
+ {view === "spotlights" && <AdminSpotlights />}
+
+ {view === "battles" && <AdminBattles />}
+
  {view === "listeners" && (
  <>
- <AdminSpotlights />
  <AdminReferrals />
  <AdminTraffic />
  <AdminAudience />

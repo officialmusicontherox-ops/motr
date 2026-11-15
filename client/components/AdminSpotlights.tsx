@@ -86,7 +86,7 @@ export default function AdminSpotlights() {
             <Tile label="on the tab now" value={`${data.live} of ${data.slots}`} sub={data.queued > 0 ? `${data.queued} waiting` : "none waiting"} />
             <Tile
               label="unspent"
-              value={String(data.purchases.reduce((n, p) => n + 0, 0) + unspent(data))}
+              value={String(unspent(data))}
               sub="credits people hold"
             />
           </div>
