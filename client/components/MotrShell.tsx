@@ -80,8 +80,17 @@ export default function MotrShell({
   children,
   clip,
   fill = false,
+  logo = true,
 }: {
   children: React.ReactNode;
+  /**
+   * False on a page that carries its own lettering, to leave the logo off
+   * on a phone. Battles has the BATTLES mark in the same neon, and on a
+   * phone the two stack directly on top of each other, which was one piece
+   * of neon too many. On a laptop the nav row sits between them and the
+   * logo stays.
+   */
+  logo?: boolean;
   clip?: { currentTime: number; duration: number } | null;
   /**
    * Locks the page to exactly one screen with no scrolling. The swipe feed
@@ -139,7 +148,7 @@ export default function MotrShell({
           fill ? "pt-2" : ""
         }`}
       >
-        <Link href="/" aria-label="MOTR home">
+        <Link href="/" aria-label="MOTR home" className={logo ? "" : "hidden md:block"}>
           <Image
             src="/motr-logo.png"
             alt="MOTR"

@@ -194,7 +194,7 @@ export default function BattleView() {
   const other = (s: Letter): Letter => (s === "A" ? "B" : "A");
 
   return (
-    <MotrShell fill>
+    <MotrShell fill logo={false}>
       <div className="flex min-h-0 w-full max-w-3xl flex-1 flex-col">
         {/* The brush lettering itself, made to match the MOTR logo, with its
             black ground turned into transparency so it sits on either theme. */}
@@ -204,7 +204,7 @@ export default function BattleView() {
           width={1000}
           height={296}
           priority
-          className="mx-auto h-12 w-auto shrink-0 md:h-16"
+          className="mx-auto h-16 w-auto shrink-0 md:h-16"
         />
         <p className="text-muted mx-auto mt-1.5 max-w-md shrink-0 text-center text-xs md:text-sm">
           {reveal
