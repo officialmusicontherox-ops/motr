@@ -7,6 +7,7 @@ import MotrShell from "./MotrShell";
 import { Cross, Pause, Play, Share } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
 import { bumpSavedCount } from "@/lib/savedCount";
+import { safeLocal } from "@/lib/storage";
 
 type OpenSide = { previewUrl: string; title: string; artworkUrl: string | null };
 
@@ -94,7 +95,7 @@ export default function BattleView() {
         const q = new URLSearchParams();
         // The same switch the swipe feed honours.
         try {
-          if (localStorage.getItem("motr_allow_ai") === "0") q.set("ai", "0");
+          if (safeLocal.getItem("motr_allow_ai") === "0") q.set("ai", "0");
         } catch {
           // Storage refused. Everything is included, which is the default.
         }

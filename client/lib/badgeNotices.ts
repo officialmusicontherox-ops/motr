@@ -11,6 +11,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { safeLocal } from "./storage";
 
 const KEY = "motr_badges_seen";
 /** Badges earned but not yet looked at, for the dot on the tab. */
@@ -31,7 +32,7 @@ function announce(): void {
 function readCount(): number {
   if (typeof window === "undefined") return 0;
   try {
-    const n = Number(localStorage.getItem(UNSEEN));
+    const n = Number(safeLocal.getItem(UNSEEN));
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
   } catch {
     return 0;
@@ -40,7 +41,7 @@ function readCount(): number {
 
 function writeCount(n: number): void {
   try {
-    localStorage.setItem(UNSEEN, String(Math.max(0, Math.floor(n))));
+    safeLocal.setItem(UNSEEN, String(Math.max(0, Math.floor(n))));
   } catch {
     // Private windows refuse storage; the dot simply never shows.
   }
@@ -71,7 +72,7 @@ export function useUnseenBadges(): number {
 function read(): string[] | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = safeLocal.getItem(KEY);
     if (raw === null) return null;
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === "string") : [];
@@ -82,7 +83,7 @@ function read(): string[] | null {
 
 function write(ids: string[]): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(ids));
+    safeLocal.setItem(KEY, JSON.stringify(ids));
   } catch {
     // Private windows refuse storage. The notice simply never fires, which is
     // better than firing on every save.

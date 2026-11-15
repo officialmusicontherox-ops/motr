@@ -13,6 +13,7 @@
  */
 
 import { clipPlayer } from "./clipPlayer";
+import { safeLocal } from "./storage";
 
 const KEY = "motr_feedback";
 
@@ -81,7 +82,7 @@ function audio(): AudioContext | null {
 export function feedbackEnabled(): boolean {
   if (typeof window === "undefined") return true;
   try {
-    return localStorage.getItem(KEY) !== "off";
+    return safeLocal.getItem(KEY) !== "off";
   } catch {
     // A private window can refuse storage. Defaulting to on matches what
     // someone who has never changed the setting expects.
@@ -91,7 +92,7 @@ export function feedbackEnabled(): boolean {
 
 export function setFeedbackEnabled(on: boolean): void {
   try {
-    localStorage.setItem(KEY, on ? "on" : "off");
+    safeLocal.setItem(KEY, on ? "on" : "off");
   } catch {
     // Applies for this session even when it cannot be remembered.
   }

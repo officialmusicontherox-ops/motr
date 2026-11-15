@@ -19,6 +19,7 @@
  */
 
 import { useSyncExternalStore } from "react";
+import { safeLocal } from "./storage";
 
 const TOTAL = "motr_saved_count";
 const SEEN = "motr_saved_seen";
@@ -38,7 +39,7 @@ function announce(): void {
 function read(key: string): number {
   if (typeof window === "undefined") return 0;
   try {
-    const n = Number(localStorage.getItem(key));
+    const n = Number(safeLocal.getItem(key));
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
   } catch {
     return 0;
@@ -47,7 +48,7 @@ function read(key: string): number {
 
 function write(key: string, n: number): void {
   try {
-    localStorage.setItem(key, String(Math.max(0, Math.floor(n))));
+    safeLocal.setItem(key, String(Math.max(0, Math.floor(n))));
   } catch {
     // Private windows refuse storage; the badge just stays empty.
   }

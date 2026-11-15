@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Cross, Disc } from "./icons";
+import { safeLocal } from "@/lib/storage";
 
 /**
  * Chrome/Edge/Android fire this instead of showing their own install bar,
@@ -68,7 +69,7 @@ export default function InstallApp({ variant = "banner" }: { variant?: "banner" 
 
   useEffect(() => {
     if (isStandalone()) return;
-    if (variant === "banner" && localStorage.getItem(DISMISSED_KEY)) return;
+    if (variant === "banner" && safeLocal.getItem(DISMISSED_KEY)) return;
 
     // Offer guidance rather than a button that ends in a Play Protect
     // warning about our own app.
@@ -118,7 +119,7 @@ export default function InstallApp({ variant = "banner" }: { variant?: "banner" 
   }
 
   function dismiss() {
-    localStorage.setItem(DISMISSED_KEY, "1");
+    safeLocal.setItem(DISMISSED_KEY, "1");
     setHidden(true);
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { safeSession } from "@/lib/storage";
 
 /**
  * Tells the server a page was viewed.
@@ -18,8 +19,8 @@ export default function VisitCounter() {
     if (!pathname) return;
     const key = `motr.seen:${pathname}`;
     try {
-      if (sessionStorage.getItem(key)) return;
-      sessionStorage.setItem(key, "1");
+      if (safeSession.getItem(key)) return;
+      safeSession.setItem(key, "1");
     } catch {
       // Private browsing. Counting twice beats not counting.
     }

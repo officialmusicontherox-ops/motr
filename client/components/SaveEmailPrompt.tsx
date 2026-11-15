@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { safeLocal } from "@/lib/storage";
 
 /**
  * Asked once, right after a listener keeps their first song.
@@ -16,7 +17,7 @@ const DISMISSED = "motr.savePrompt.dismissed";
 
 export function savePromptDismissed(): boolean {
   try {
-    return localStorage.getItem(DISMISSED) === "1";
+    return safeLocal.getItem(DISMISSED) === "1";
   } catch {
     return false;
   }
@@ -38,7 +39,7 @@ export default function SaveEmailPrompt({
 
   function dismiss() {
     try {
-      localStorage.setItem(DISMISSED, "1");
+      safeLocal.setItem(DISMISSED, "1");
     } catch {
       // Private browsing. Asking again next session is the acceptable failure.
     }
@@ -60,7 +61,7 @@ export default function SaveEmailPrompt({
     if (res?.ok) {
       setDone(true);
       try {
-        localStorage.setItem(DISMISSED, "1");
+        safeLocal.setItem(DISMISSED, "1");
       } catch {
         // See dismiss().
       }

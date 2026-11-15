@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
+import { safeLocal, safeSession } from "@/lib/storage";
 
 const STORAGE_KEY = "md_fan_id";
 
@@ -58,7 +59,7 @@ export default function FanGate({
       entering.current = false;
       throw new Error(data.error ?? "Could not start listening");
     }
-    localStorage.setItem(STORAGE_KEY, data.fan.id);
+    safeLocal.setItem(STORAGE_KEY, data.fan.id);
     setFan(data.fan);
     return data.fan;
   }, []);
@@ -75,7 +76,7 @@ export default function FanGate({
     // A shared link's track id has to outlive the URL tidying below, and
     // the Google round trip, before the feed can act on it.
     const shared = params.get("track");
-    if (shared) sessionStorage.setItem("motr:sharedTrack", shared);
+    if (shared) safeSession.setItem("motr:sharedTrack", shared);
 
     // Confirms the sign-out landed, since the screen it returns to looks
     // identical to a first visit.
@@ -99,7 +100,7 @@ export default function FanGate({
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (!data?.fan) return;
-          localStorage.setItem(STORAGE_KEY, data.fan.id);
+          safeLocal.setItem(STORAGE_KEY, data.fan.id);
           setAnonId(data.fan.id);
           setFan(data.fan);
         })
@@ -108,17 +109,32 @@ export default function FanGate({
       return;
     }
 
-    const savedId = localStorage.getItem(STORAGE_KEY);
+    const savedId = safeLocal.getItem(STORAGE_KEY);
     if (!savedId) {
       // Arriving from an artist's share link means they've already chosen to
       // listen. Making them pick an account first is friction at the worst
       // moment, and it's the artist's own fans who get lost at it. Straight
       // in as an anonymous listener; they can sign in later from the menu.
-      if (shared) {
-        enterAnonymously().catch(() => setChecked(true));
-        return;
-      }
-      setChecked(true);
+      // A link to a battle is the same invitation as a link to a song.
+      const invited = shared || params.get("b");
+
+      // Nothing saved here does not mean a stranger. Where a browser has no
+      // storage, or it has been cleared, the session cookie may still know
+      // them, and asking it first stops one person becoming a new listener
+      // on every visit, with a fresh vote in every battle each time.
+      fetch("/api/fans/me")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.fan) {
+            safeLocal.setItem(STORAGE_KEY, data.fan.id);
+            setAnonId(data.fan.id);
+            setFan(data.fan);
+            return;
+          }
+          if (invited) return enterAnonymously();
+        })
+        .catch(() => {})
+        .finally(() => setChecked(true));
       return;
     }
     setAnonId(savedId);
@@ -127,9 +143,9 @@ export default function FanGate({
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.fan) setFan(data.fan);
-        else localStorage.removeItem(STORAGE_KEY);
+        else safeLocal.removeItem(STORAGE_KEY);
       })
-      .catch(() => localStorage.removeItem(STORAGE_KEY))
+      .catch(() => safeLocal.removeItem(STORAGE_KEY))
       .finally(() => setChecked(true));
   }, [enterAnonymously]);
 

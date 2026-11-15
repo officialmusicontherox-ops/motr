@@ -13,6 +13,7 @@ import type { Fan, Track } from "@/lib/types";
 import { bumpSavedCount, savedTotal } from "@/lib/savedCount";
 import { saveMoment } from "@/lib/saveMoment";
 import { newlyEarned } from "@/lib/badgeNotices";
+import { safeLocal, safeSession } from "@/lib/storage";
 
 const AI_KEY = "motr_allow_ai";
 const GENRE_KEY = "motr:genre";
@@ -58,11 +59,11 @@ async function fetchNextTrack(
 function takeSharedTrack(): string | null {
   if (typeof window === "undefined") return null;
   const fromUrl = new URLSearchParams(window.location.search).get("track");
-  const stashed = sessionStorage.getItem("motr:sharedTrack");
+  const stashed = safeSession.getItem("motr:sharedTrack");
   const id = fromUrl ?? stashed;
   if (fromUrl) window.history.replaceState({}, "", window.location.pathname);
   // Consumed once — a refresh shouldn't replay the same track forever.
-  sessionStorage.removeItem("motr:sharedTrack");
+  safeSession.removeItem("motr:sharedTrack");
   return id;
 }
 
@@ -121,25 +122,25 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(GENRE_KEY);
-      const at = Number(localStorage.getItem(GENRE_AT_KEY) ?? 0);
+      const saved = safeLocal.getItem(GENRE_KEY);
+      const at = Number(safeLocal.getItem(GENRE_AT_KEY) ?? 0);
       // No timestamp means it was stored before this expiry existed, so it
       // is older than the rule and goes.
       if (saved && at && Date.now() - at < GENRE_TTL_MS) {
         setGenre(saved);
       } else if (saved) {
-        localStorage.removeItem(GENRE_KEY);
-        localStorage.removeItem(GENRE_AT_KEY);
+        safeLocal.removeItem(GENRE_KEY);
+        safeLocal.removeItem(GENRE_AT_KEY);
       }
     } catch {
       // Storage refused. The feed just starts on everything.
     }
-    setAllowAi(localStorage.getItem(AI_KEY) !== "0");
+    setAllowAi(safeLocal.getItem(AI_KEY) !== "0");
   }, []);
 
   function chooseAi(next: boolean) {
     setAllowAi(next);
-    localStorage.setItem(AI_KEY, next ? "1" : "0");
+    safeLocal.setItem(AI_KEY, next ? "1" : "0");
     // The card on screen was chosen under the old setting, so it goes.
     setTrack(undefined);
     setExhausted(null);
@@ -149,11 +150,11 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   function chooseGenre(next: string | null) {
     setGenre(next);
     if (next) {
-      localStorage.setItem(GENRE_KEY, next);
-      localStorage.setItem(GENRE_AT_KEY, String(Date.now()));
+      safeLocal.setItem(GENRE_KEY, next);
+      safeLocal.setItem(GENRE_AT_KEY, String(Date.now()));
     } else {
-      localStorage.removeItem(GENRE_KEY);
-      localStorage.removeItem(GENRE_AT_KEY);
+      safeLocal.removeItem(GENRE_KEY);
+      safeLocal.removeItem(GENRE_AT_KEY);
     }
     setTrack(undefined);
     setExhausted(null);

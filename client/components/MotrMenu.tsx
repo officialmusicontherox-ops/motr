@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { ArrowOut, Note } from "./icons";
 import InstallApp from "./InstallApp";
 import { canVibrate, feedbackEnabled, setFeedbackEnabled, swipeFeedback } from "@/lib/feedback";
+import { safeLocal } from "@/lib/storage";
 
 const LINKS = [
   // Moved out of the tab bar on 10 Nov 2026 to make room for Spotlight: five
@@ -49,7 +50,7 @@ export default function MotrMenu({
     // "Sign in" with no sign of whether you already are is the same screen
     // either way, which is why it was impossible to tell.
     try {
-      const id = localStorage.getItem("md_fan_id");
+      const id = safeLocal.getItem("md_fan_id");
       if (!id) return;
       void fetch(`/api/fans/${id}`)
         .then((r) => (r.ok ? r.json() : null))
@@ -76,7 +77,7 @@ export default function MotrMenu({
     if (next) root.removeAttribute("data-theme");
     else root.setAttribute("data-theme", "dark");
     try {
-      localStorage.setItem("motr_theme", next ? "light" : "dark");
+      safeLocal.setItem("motr_theme", next ? "light" : "dark");
     } catch {
       // A private window can refuse storage. The theme still applies for
       // this session; it just won't be remembered.
@@ -100,8 +101,8 @@ export default function MotrMenu({
     // The session is an httpOnly cookie, so only the server can end it.
     // Clearing localStorage alone left it alive for whoever came next.
     await fetch("/api/fans/signout", { method: "POST" }).catch(() => {});
-    localStorage.removeItem("md_fan_id");
-    localStorage.removeItem("md_curator_id");
+    safeLocal.removeItem("md_fan_id");
+    safeLocal.removeItem("md_curator_id");
     // A full document load, and to a *different* URL than the one we may
     // already be on — assigning the current path can be a no-op, which made
     // signing out look like nothing happened. The flag tells the sign-in
