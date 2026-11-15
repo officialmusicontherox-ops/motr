@@ -258,6 +258,65 @@ async function main() {
     check(fresh.length >= 3 && new Set(freshSongs).size === freshSongs.length, "a new week pairs everybody again, once each", `found ${fresh.length}`);
     const card = await B.battleForCard(target.id);
     check(!!card && card.closed && card.pct?.a === 80, "the share card for a finished battle has its result");
+
+    // --- a song is pulled mid-week ------------------------------------------
+    const G3 = "Pulled Genre " + id();
+    const pa = await artist("Pull A " + id());
+    const pb = await artist("Pull B " + id());
+    const pc = await artist("Pull C " + id());
+    const ta = await track(pa, G3);
+    const tb = await track(pb, G3);
+    const tc = await track(pc, G3);
+    await B.pairThisWeek();
+    const g3 = [ta.id, tb.id, tc.id];
+    const before = await prisma.battle.findMany({
+      where: { weekStart: week.start, OR: [{ trackAId: { in: g3 } }, { trackBId: { in: g3 } }] },
+    });
+    check(before.length === 1, "three artists make one battle and leave one waiting");
+    const doomed = before[0];
+    const waiting = g3.find((t) => t !== doomed.trackAId && t !== doomed.trackBId)!;
+    const survivor = doomed.trackBId;
+
+    // Two votes for the song about to be pulled, then pull it.
+    const pv1 = await fan();
+    const pv2 = await fan();
+    for (const f of [pv1, pv2]) {
+      const r = await B.nextBattle(f.id, false, doomed.id);
+      await B.decideBattle(f.id, r.battle!.ticket, "A");
+    }
+    await prisma.track.update({ where: { id: doomed.trackAId }, data: { status: "REJECTED" } });
+    await B.battleHousekeeping();
+
+    const off = await prisma.battle.findUnique({ where: { id: doomed.id } });
+    check(!!off?.cancelledAt && off.winnerId === null, "pulling a song calls its battle off, with no winner");
+    const rematch = await prisma.battle.findFirst({
+      where: { weekStart: week.start, cancelledAt: null, OR: [{ trackAId: survivor }, { trackBId: survivor }] },
+    });
+    check(
+      !!rematch && [rematch.trackAId, rematch.trackBId].includes(waiting),
+      "the other artist is paired again at once, with the artist who was waiting"
+    );
+    try {
+      await B.decideBattle((await fan()).id, B.sealBattleId(doomed.id), "B");
+      fail("a vote landed in a battle that was called off");
+    } catch (e) {
+      check(e instanceof B.BattleGoneError, "a called-off battle takes no votes");
+    }
+    const viaOld = await B.nextBattle((await fan()).id, false, doomed.id);
+    check(
+      !viaOld.battle || B.openBattleTicket(viaOld.battle.ticket) !== doomed.id,
+      "its link carries on to another battle"
+    );
+    const pulledWins = await prisma.track.findUnique({ where: { id: doomed.trackAId }, select: { battleWins: true, battles: true } });
+    check(pulledWins!.battleWins === 0 && pulledWins!.battles === 0, "and the pulled song takes nothing from it, though it was ahead");
+    check((await B.battlePicksFor(pv1.id)).length === 1, "the listeners who voted keep their pick in Saved");
+
+    // A song that breaks through is still on MOTR and finishes its battle.
+    await prisma.track.update({ where: { id: survivor }, data: { status: "VETTING" } });
+    await B.battleHousekeeping();
+    const kept = await prisma.battle.findUnique({ where: { id: rematch!.id } });
+    const served = await B.nextBattle((await fan()).id, false, rematch!.id);
+    check(!kept?.cancelledAt && !!served.battle, "a song that breaks through mid-week keeps its battle");
   } finally {
     const mineB = await prisma.battle.findMany({
       where: { OR: [{ trackAId: { in: made.tracks } }, { trackBId: { in: made.tracks } }] },

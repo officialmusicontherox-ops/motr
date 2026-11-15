@@ -942,6 +942,10 @@ model Battle {
   /// Null after settling means a tie or no votes: nobody takes a win.
   winnerId  String?
 
+  /// Set when a battle is called off because one of its songs was pulled.
+  /// It counts for nobody and frees the other artist to be paired again.
+  cancelledAt DateTime?
+
   /// When each side's artist was told their song is in this battle. Per
   /// side, so a battle paired mid-week can be announced later without
   /// anybody who already heard being written to twice.

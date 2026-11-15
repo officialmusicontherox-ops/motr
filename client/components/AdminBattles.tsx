@@ -5,7 +5,7 @@ import AdminSection from "./AdminSection";
 
 type Data = {
   weekLabel: string;
-  counts: { votes: number; skips: number; shared: number; voters: number; open: number; closed: number };
+  counts: { votes: number; skips: number; shared: number; voters: number; open: number; closed: number; cancelled: number };
   thisWeek: { id: string; genre: string; a: string; b: string; votesA: number; votesB: number; shared: number }[];
   leaders: { key: string; name: string; wins: number }[];
   totals: { key: string; name: string; wins: number; battles: number }[];
@@ -58,6 +58,7 @@ export default function AdminBattles() {
           <Tile label="skipped" value={data.counts.skips} sub="counted for nobody" />
           <Tile label="battles this week" value={data.counts.open} sub={data.weekLabel} />
           <Tile label="battles finished" value={data.counts.closed} sub="in weeks gone by" />
+          <Tile label="called off" value={data.counts.cancelled} sub="a song was pulled" />
         </div>
       </AdminSection>
 

@@ -155,6 +155,7 @@ export async function pairThisWeek(now = new Date()): Promise<number> {
         SELECT 1 FROM "Battle" b
         JOIN "Track" bt ON bt."id" IN (b."trackAId", b."trackBId")
         WHERE b."weekStart" = ${week.start}
+          AND b."cancelledAt" IS NULL
           AND ${KEY("bt")} = ${KEY("t")}
       )`;
 
@@ -209,6 +210,48 @@ export async function pairThisWeek(now = new Date()): Promise<number> {
     });
     return pairs.length;
   });
+}
+
+/**
+ * Call off any open battle with a song that has been pulled.
+ *
+ * Without this the other artist is stranded: their battle stops being
+ * shown, and because they still count as being in one, they are not paired
+ * again until Sunday. Calling it off frees them at once, so the pairing
+ * that runs next gives them a new opponent if anybody in their genre is
+ * waiting.
+ *
+ * They are not handed the win. A Battle Win nobody voted for would make
+ * every other one worth less.
+ *
+ * Only a pulled song does this. One that has broken through is still on
+ * MOTR, and finishes the battle it is in.
+ *
+ * Runs as part of the housekeeping on every visit rather than from each
+ * place a song can be pulled, of which there are several, so no way of
+ * pulling one can forget to do it.
+ */
+export async function cancelBrokenBattles(): Promise<number> {
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    UPDATE "Battle" b
+    SET "cancelledAt" = NOW(), "settledAt" = NOW()
+    WHERE b."settledAt" IS NULL
+      AND b."cancelledAt" IS NULL
+      AND EXISTS (
+        SELECT 1 FROM "Track" t
+        WHERE t."id" IN (b."trackAId", b."trackBId")
+          AND t."status" = 'REJECTED'::"TrackStatus"
+      )
+    RETURNING b."id"
+  `);
+  return rows.length;
+}
+
+/** Everything that has to be true before battles are read or served. */
+export async function battleHousekeeping() {
+  await settleFinishedWeeks();
+  await cancelBrokenBattles();
+  await pairThisWeek();
 }
 
 /**
@@ -319,6 +362,7 @@ type BattleRow = {
   id: string;
   genre: string;
   weekStart: Date;
+  cancelledAt?: Date | null;
   trackAId: string;
   trackBId: string;
   votesA: number;
@@ -409,13 +453,12 @@ export async function nextBattle(
   excludeAi: boolean,
   asked?: string | null
 ): Promise<{ battle: OpenBattle | null; reveal: Reveal | null; viaShare: boolean }> {
-  await settleFinishedWeeks();
-  await pairThisWeek();
+  await battleHousekeeping();
   const week = battleWeek();
 
   const open = async (b: BattleRow): Promise<OpenBattle | null> => {
     const tracks = await prisma.track.findMany({
-      where: { id: { in: [b.trackAId, b.trackBId] }, status: "DISCOVERY" },
+      where: { id: { in: [b.trackAId, b.trackBId] }, status: { not: "REJECTED" } },
       select: { id: true, previewUrl: true, title: true, artworkUrl: true },
     });
     const ta = tracks.find((t) => t.id === b.trackAId);
@@ -431,7 +474,8 @@ export async function nextBattle(
 
   if (asked) {
     const b = await prisma.battle.findUnique({ where: { id: asked } });
-    if (b) {
+    // A link to a battle that was called off carries on to the next one.
+    if (b && !b.cancelledAt) {
       const vote = await prisma.battleVote.findUnique({
         where: { battleId_fanId: { battleId: b.id, fanId } },
       });
@@ -453,8 +497,9 @@ export async function nextBattle(
     JOIN "Track" ta ON ta."id" = b."trackAId"
     JOIN "Track" tb ON tb."id" = b."trackBId"
     WHERE b."weekStart" = ${week.start}
-      AND ta."status" = 'DISCOVERY'::"TrackStatus"
-      AND tb."status" = 'DISCOVERY'::"TrackStatus"
+      AND b."cancelledAt" IS NULL
+      AND ta."status" <> 'REJECTED'::"TrackStatus"
+      AND tb."status" <> 'REJECTED'::"TrackStatus"
       ${
         excludeAi
           ? Prisma.sql`AND NOT (COALESCE(ta."aiGenerated", false) OR COALESCE(tb."aiGenerated", false))`
@@ -488,7 +533,7 @@ export async function decideBattle(
   if (!id) throw new BattleGoneError();
 
   const battle = await prisma.battle.findUnique({ where: { id } });
-  if (!battle) throw new BattleGoneError();
+  if (!battle || battle.cancelledAt) throw new BattleGoneError();
   if (battle.weekStart.getTime() !== battleWeek().start.getTime()) {
     throw new BattleGoneError("That battle has closed");
   }
@@ -543,6 +588,7 @@ export async function battleLeadersBetween(
       FROM "Battle" b
       WHERE b."weekStart" >= ${start}
         AND b."weekStart" < ${end}
+        AND b."cancelledAt" IS NULL
         AND b."votesA" <> b."votesB"
     )
     SELECT ${KEY("t")} AS key,

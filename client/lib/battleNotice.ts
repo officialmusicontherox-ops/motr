@@ -2,7 +2,7 @@ import { prisma } from "./prisma";
 import { battleOpenEmail, sendEmail } from "./email";
 import { isEmailAddress } from "./emailAddress";
 import { artistUnsubscribeUrl } from "./nudges";
-import { battleWeek, pairThisWeek, settleFinishedWeeks } from "./battles";
+import { battleHousekeeping, battleWeek } from "./battles";
 
 /**
  * Telling artists their song is in a battle this week.
@@ -37,7 +37,7 @@ type Pending = {
 export async function pendingBattleNotices(): Promise<Pending[]> {
   const week = battleWeek();
   const battles = await prisma.battle.findMany({
-    where: { weekStart: week.start, OR: [{ notifiedAAt: null }, { notifiedBAt: null }] },
+    where: { weekStart: week.start, cancelledAt: null, OR: [{ notifiedAAt: null }, { notifiedBAt: null }] },
     orderBy: { createdAt: "asc" },
   });
   const sides = battles.flatMap((b) => [
@@ -90,19 +90,17 @@ export type BattleNoticeProgress = {
 
 /** What the button would do, without doing it. */
 export async function previewBattleNotice() {
-  await settleFinishedWeeks();
-  await pairThisWeek();
+  await battleHousekeeping();
   const week = battleWeek();
   const pending = await pendingBattleNotices();
-  const battles = await prisma.battle.count({ where: { weekStart: week.start } });
+  const battles = await prisma.battle.count({ where: { weekStart: week.start, cancelledAt: null } });
   const reachable = pending.filter((p) => !p.optedOut && isEmailAddress(p.email)).length;
   return { weekLabel: week.label, battles, toSend: reachable, unreachable: pending.length - reachable };
 }
 
 /** Send one batch, and say how much is left. Called until done. */
 export async function sendBattleNotice(appUrl: string): Promise<BattleNoticeProgress> {
-  await settleFinishedWeeks();
-  await pairThisWeek();
+  await battleHousekeeping();
 
   const pending = await pendingBattleNotices();
   const startedAt = Date.now();

@@ -55,7 +55,7 @@ const FAQS = [
   },
   {
     q: "How are battles put together?",
-    a: "At random, inside a genre. Each artist is in one battle a week, so nobody faces their own song and a bigger catalogue can't win more. Songs with AI vocals are paired with each other. If a genre has an odd number of artists, one sits out that week and goes in first the next. You can share any battle you have voted in, as a link or as an image for a story or a post.",
+    a: "At random, inside a genre. Each artist is in one battle a week, so nobody faces their own song and a bigger catalogue can't win more. Songs with AI vocals are paired with each other. If a genre has an odd number of artists, one sits out that week and goes in first the next. If a song is taken off MOTR during its battle, that battle is called off and the other artist is paired again where possible. You can share any battle you have voted in, as a link or as an image for a story or a post.",
   },
   {
     q: "Do Battles affect the charts or the weekly winner?",

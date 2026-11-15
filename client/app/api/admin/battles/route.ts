@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
-import { battleLeadersBetween, battleTotals, battleWeek, pairThisWeek, settleFinishedWeeks } from "@/lib/battles";
+import { battleHousekeeping, battleLeadersBetween, battleTotals, battleWeek } from "@/lib/battles";
 
 /**
  * The full battle record, for the admin panel.
@@ -18,12 +18,11 @@ export async function GET() {
 
   // The same housekeeping a listener's visit does, so this page is never
   // looking at a week nobody has opened yet.
-  await settleFinishedWeeks();
-  await pairThisWeek();
+  await battleHousekeeping();
 
   const week = battleWeek();
   const [battles, votes, skips, shared, voters, totals, leaders, closed] = await Promise.all([
-    prisma.battle.findMany({ where: { weekStart: week.start }, orderBy: { createdAt: "asc" } }),
+    prisma.battle.findMany({ where: { weekStart: week.start, cancelledAt: null }, orderBy: { createdAt: "asc" } }),
     prisma.battleVote.count({ where: { pick: { not: "SKIP" } } }),
     prisma.battleVote.count({ where: { pick: "SKIP" } }),
     prisma.battleVote.count({ where: { viaShare: true, pick: { not: "SKIP" } } }),
@@ -32,8 +31,9 @@ export async function GET() {
       .then((r) => r.length),
     battleTotals(300),
     battleLeadersBetween(week.start, week.end, 25),
-    prisma.battle.count({ where: { settledAt: { not: null } } }),
+    prisma.battle.count({ where: { settledAt: { not: null }, cancelledAt: null } }),
   ]);
+  const cancelled = await prisma.battle.count({ where: { cancelledAt: { not: null } } });
 
   const ids = [...new Set(battles.flatMap((b) => [b.trackAId, b.trackBId]))];
   const tracks = await prisma.track.findMany({
@@ -56,7 +56,7 @@ export async function GET() {
 
   return NextResponse.json({
     weekLabel: week.label,
-    counts: { votes, skips, shared, voters, open: battles.length, closed },
+    counts: { votes, skips, shared, voters, open: battles.length, closed, cancelled },
     thisWeek: battles
       .map((b) => ({
         id: b.id,

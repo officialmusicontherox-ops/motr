@@ -214,7 +214,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             on Sunday and close on Saturday at midnight Central, whenever in the week they were
             paired. Every listener is given the same battles and may vote once in each. The song
             with the larger share of the vote when it closes takes the win. A tie, or a battle
-            nobody voted in, gives nobody a win.
+            nobody voted in, gives nobody a win. If a song is removed from MOTR while its battle
+            is open, that battle is called off and counts for nobody, and the other artist is
+            paired again where another is available.
           </li>
           <li>
             <strong className="text-ink">A win is a Battle Win and nothing else.</strong> Battle
