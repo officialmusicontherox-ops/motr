@@ -949,6 +949,11 @@ model Spotlight {
   /// it.
   trackId String?
 
+  /// Milliseconds left on a run that was put back in the queue. Null means
+  /// a full run, which is every ordinary purchase. A Spotlight moved back
+  /// resumes with what it had left rather than restarting.
+  remainingMs Int?
+
   createdAt DateTime @default(now())
 
   @@index([startsAt, endsAt])

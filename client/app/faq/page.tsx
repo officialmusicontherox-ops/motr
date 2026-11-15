@@ -1,5 +1,5 @@
 import PageNav from "@/components/PageNav";
-import { BUNDLES, SLOTS, SPOTLIGHT_SPAN, price } from "@/lib/spotlightBundles";
+import { BUNDLES, PER_ARTIST, SLOTS, SPOTLIGHT_SPAN, price } from "@/lib/spotlightBundles";
 import Image from "next/image";
 import Link from "next/link";
 import { Disc } from "@/components/icons";
@@ -51,7 +51,7 @@ const FAQS = [
   },
   {
     q: "What is a Spotlight?",
-    a: `A way to back an artist you love. Swipe up on a track, or tap an artist's name in Saved, and they go on the Spotlight tab for ${SPOTLIGHT_SPAN} — named, with their photo and links to hear more. There are ${SLOTS} places, and if they are all full yours waits and starts the moment one frees, so you never lose time you paid for. Swiping up also saves the track, the same as swiping right.`,
+    a: `A way to back an artist you love. Swipe up on a track, or tap an artist's name in Saved, and they go on the Spotlight tab for ${SPOTLIGHT_SPAN} — named, with their photo and links to hear more. There are ${SLOTS} places, and if they are all full yours waits and starts the moment one frees, so you never lose time you paid for. One artist can hold ${PER_ARTIST} of those places at a time, so the tab is never one name over and over. Swiping up also saves the track, the same as swiping right.`,
   },
   {
     q: "What does a Spotlight cost, and can I get a refund?",

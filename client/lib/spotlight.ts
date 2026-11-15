@@ -2,9 +2,18 @@ import { prisma } from "./prisma";
 import { leadersBetween } from "./scoutData";
 import { weekOf } from "./weekWindow";
 import { refreshProfile } from "./artistProfile";
-import { SLOTS, SPOTLIGHT_DAYS } from "./spotlightBundles";
+import { SLOTS, SPOTLIGHT_DAYS, PER_ARTIST } from "./spotlightBundles";
 
-export { SLOTS, SPOTLIGHT_DAYS };
+export { SLOTS, SPOTLIGHT_DAYS, PER_ARTIST };
+
+const RUN_MS = SPOTLIGHT_DAYS * 24 * 60 * 60 * 1000;
+
+/** How many tiles this artist is holding right now. */
+async function liveFor(artistId: string, now: Date) {
+  return prisma.spotlight.count({
+    where: { artistId, startsAt: { lte: now }, endsAt: { gt: now } },
+  });
+}
 
 /**
  * The Spotlight tab: six tiles, always.
@@ -188,8 +197,22 @@ export async function createSpotlight(
     where: { startsAt: { lte: now }, endsAt: { gt: now } },
   });
 
-  const starts = active < SLOTS ? now : null;
-  const ends = starts ? new Date(starts.getTime() + SPOTLIGHT_DAYS * 24 * 60 * 60 * 1000) : null;
+  /**
+   * Two tiles each, at most.
+   *
+   * Six tiles and no cap means one buyer owns the shelf: on 14 Nov 2026 two
+   * artists held all six between them, four and two, and the buyer with
+   * four still had credits in hand. A cap of two still leaves a dominant
+   * position for anyone who wants it while guaranteeing at least three
+   * different artists are showing.
+   *
+   * Nothing is lost by hitting the cap. The Spotlight queues and takes its
+   * full run when one of that artist's own tiles expires, so the same time
+   * is served over more days rather than stacked on top of itself.
+   */
+  const mine = await liveFor(artistId, now);
+  const starts = active < SLOTS && mine < PER_ARTIST ? now : null;
+  const ends = starts ? new Date(starts.getTime() + RUN_MS) : null;
 
   const row = await prisma.spotlight.create({
     data: {
@@ -222,23 +245,43 @@ export async function startSpotlights() {
   const free = SLOTS - active;
   if (free <= 0) return 0;
 
+  /**
+   * Oldest first, but skipping anyone already holding their two.
+   *
+   * Taking the head of the queue blindly would let one artist's backlog
+   * block everybody else's: with four waiting for the same name, nothing
+   * else would ever be promoted.
+   */
   const waiting = await prisma.spotlight.findMany({
     where: { startsAt: null },
     orderBy: { createdAt: "asc" },
-    take: free,
-    select: { id: true },
+    select: { id: true, artistId: true, remainingMs: true },
   });
 
+  // Counted once and kept up to date as this loop promotes, rather than a
+  // query per candidate.
+  const held = new Map<string, number>();
+  let promoted = 0;
+
   for (const w of waiting) {
+    if (promoted >= free) break;
+    if (!held.has(w.artistId)) held.set(w.artistId, await liveFor(w.artistId, now));
+    if ((held.get(w.artistId) ?? 0) >= PER_ARTIST) continue;
+
+    // A run that was put back in the queue resumes with what it had left.
+    const run = w.remainingMs && w.remainingMs > 0 ? w.remainingMs : RUN_MS;
     await prisma.spotlight.update({
       where: { id: w.id },
       data: {
         startsAt: now,
-        endsAt: new Date(now.getTime() + SPOTLIGHT_DAYS * 24 * 60 * 60 * 1000),
+        endsAt: new Date(now.getTime() + run),
+        remainingMs: null,
       },
     });
+    held.set(w.artistId, (held.get(w.artistId) ?? 0) + 1);
+    promoted++;
   }
-  return waiting.length;
+  return promoted;
 }
 
 

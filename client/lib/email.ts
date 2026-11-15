@@ -1220,6 +1220,51 @@ export function spotlightLaunchEmail(params: {
   };
 }
 
+
+/**
+ * Tells a buyer their Spotlights were rearranged by the new cap.
+ *
+ * Sent because the change happened to music they had already paid for.
+ * Leads with what they get rather than with the rule, because from their
+ * side the outcome is genuinely better: the same hours spread over more
+ * days instead of four tiles competing with each other on one screen.
+ */
+export function spotlightCapEmail(params: {
+  artist: string;
+  live: number;
+  queued: number;
+  unsubscribeUrl: string;
+}) {
+  const { artist, live, queued, unsubscribeUrl } = params;
+  const app = "https://app.musicontherox.com";
+
+  const body = `
+      <p style="margin:0 0 14px">Hi,</p>
+
+      <p style="margin:0 0 14px">A quick note about your Spotlights, and it is good news.</p>
+
+      <p style="margin:0 0 14px">From today an artist can hold <strong style="color:#fff">two</strong> of the six places on the Spotlight tab at a time. You had four up at once for ${artist}, which meant your own tiles were sitting next to each other competing for the same eyes.</p>
+
+      <p style="margin:0 0 14px">So ${live} are running now, and the other ${queued} are in the queue. <strong style="color:#fff">You keep every minute you paid for.</strong> The queued ones carry the exact time that was left on them and start again the moment one of yours finishes. Nothing was taken off and nothing was added.</p>
+
+      <p style="margin:0 0 14px">What it actually means for you: instead of everything finishing at once, ${artist} now stays on that tab for roughly <strong style="color:#fff">a day longer</strong>, in front of people arriving on different days rather than all on the same one. Same money, more days of it.</p>
+
+      <p style="margin:0 0 14px">The reason for the cap is the same reason the tab is worth being on. Six places showing one or two names is not somewhere anyone keeps coming back to, and a tab nobody opens is worth nothing to the artists on it.</p>
+
+      <p style="margin:0 0 14px">Thanks for being one of the first to back this. It genuinely matters.</p>
+  `;
+
+  return {
+    subject: "Your Spotlights: same time, spread over more days",
+    html:
+      shell("A change to your Spotlights", body, {
+        label: "See the Spotlight tab",
+        url: `${app}/spotlight`,
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 export async function sendEmail(
   to: string,
   template: { subject: string; html: string; attachments?: Attachment[] },

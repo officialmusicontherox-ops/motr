@@ -20,6 +20,15 @@ export const SLOTS = 6;
  */
 export const SPOTLIGHT_DAYS = 3;
 
+/**
+ * Most tiles one artist can hold at once.
+ *
+ * Without a cap one buyer owns the shelf. Two still leaves a dominant
+ * position while guaranteeing at least three different artists are showing
+ * across the six tiles.
+ */
+export const PER_ARTIST = 2;
+
 /** The duration in words, so no screen can disagree with the constant. */
 export const SPOTLIGHT_SPAN = `${SPOTLIGHT_DAYS} days`;
 

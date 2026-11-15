@@ -1,5 +1,5 @@
 import PageNav from "@/components/PageNav";
-import { SLOTS, SPOTLIGHT_SPAN } from "@/lib/spotlightBundles";
+import { PER_ARTIST, SLOTS, SPOTLIGHT_SPAN } from "@/lib/spotlightBundles";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -207,6 +207,12 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             {SLOTS} places on the tab. If all of them are taken when you buy, yours waits in line
             and its {SPOTLIGHT_SPAN} start when a place frees, so you never lose time you paid
             for.
+          </li>
+          <li>
+            <strong className="text-ink">An artist can hold {PER_ARTIST} places at a time.</strong>{" "}
+            A further Spotlight for the same artist is not refused and nothing is lost: it waits,
+            and starts its own {SPOTLIGHT_SPAN} when one of that artist&apos;s places ends. The
+            same time is served over more days rather than stacked on top of itself.
           </li>
           <li>
             <strong className="text-ink">It is promotion, not a vote.</strong> A Spotlight has no
