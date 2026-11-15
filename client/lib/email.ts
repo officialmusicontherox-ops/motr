@@ -1330,6 +1330,76 @@ export function battleOpenEmail(params: {
   };
 }
 
+
+/**
+ * What was added to MOTR in the week of 8 November 2026: Spotlights and
+ * Battles, with the winner announcement trailed at the foot.
+ *
+ * One email for artists and listeners alike. Each section says what the
+ * thing is, how to use it, and gives one link. Opens with "Hi," for
+ * everybody.
+ */
+export function spotlightsAndBattlesEmail(params: { unsubscribeUrl: string }) {
+  const { unsubscribeUrl } = params;
+  const app = "https://app.musicontherox.com";
+  const h = (t: string) =>
+    `<p style="margin:22px 0 8px;color:#dcb55f;font-size:13px;letter-spacing:2px;font-weight:700;text-transform:uppercase">${t}</p>`;
+  const link = (url: string, label: string) =>
+    `<a href="${url}" style="color:#dcb55f;font-weight:600">${label}</a>`;
+
+  const body = `
+      <p style="margin:0 0 14px">Hi,</p>
+
+      <p style="margin:0 0 14px">It has been a big week on MOTR. Two new things went live, and both are ready for you to try right now.</p>
+
+      ${h("Spotlights")}
+
+      <p style="margin:0 0 14px">The <strong style="color:#fff">Spotlight</strong> tab puts an artist front and center. Anyone in a Spotlight is shown by name, with their photo, next to links straight to their Spotify and Apple Music pages.</p>
+
+      <p style="margin:0 0 6px"><strong style="color:#fff">How to use one</strong></p>
+      <ul style="margin:0 0 14px;padding-left:18px">
+        <li style="margin:0 0 6px">Swipe <strong style="color:#fff">up</strong> on a song you love, or tap the gold button between <em>Nope</em> and <em>Like</em>.</li>
+        <li style="margin:0 0 6px">Tap an artist's name in <strong style="color:#fff">Saved</strong>, then "Put them in the Spotlight".</li>
+      </ul>
+
+      <p style="margin:0 0 6px"><strong style="color:#fff">How to get them</strong></p>
+      <p style="margin:0 0 14px">Open the Spotlight tab and tap <strong style="color:#fff">Get Spotlights</strong>. They are $2 for one, $5 for three, or $12 for ten. Each Spotlight runs for three days, and an artist can hold two of the six places at a time. If the places are full, yours waits in line and starts its full three days when one opens. Purchases are non-refundable.</p>
+
+      <p style="margin:0 0 14px">A Spotlight is promotion only. It has no effect on the charts.</p>
+
+      <p style="margin:0 0 14px">${link(`${app}/spotlight`, "See the Spotlight tab")}</p>
+
+      ${h("Battles")}
+
+      <p style="margin:0 0 14px"><strong style="color:#fff">Battles</strong> put two songs from the same genre head to head. You see each song's title and cover, play them as often as you like, and vote for the one you would play again. The artists are revealed after you vote, and the song you picked goes into your Saved list.</p>
+
+      <p style="margin:0 0 6px"><strong style="color:#fff">What to expect</strong></p>
+      <ul style="margin:0 0 14px;padding-left:18px">
+        <li style="margin:0 0 6px">Everyone votes on the same battles.</li>
+        <li style="margin:0 0 6px">New battles open every Sunday and close Saturday at midnight Central.</li>
+        <li style="margin:0 0 6px">The song with the bigger share of the vote takes a <strong style="color:#fff">Battle Win</strong>, shown on its own board in the Charts tab.</li>
+        <li style="margin:0 0 6px">Every battle has a share button, with a link and an image for a story or a post.</li>
+      </ul>
+
+      <p style="margin:0 0 14px">If you are an artist, each of you is in one battle a week, and you will get an email with the link to yours. Battles are free, and like Spotlights they have no effect on the charts or the weekly winner.</p>
+
+      <p style="margin:0 0 14px">${link(`${app}/battles`, "Vote in this week's battles")}</p>
+
+      ${h("A brand new week")}
+
+      <p style="margin:0 0 14px">The charts reset on Sunday, so everything is wide open again. Keep an eye on your inbox: we will be sending an email with the winner of last week's Top Artist on the chart, along with the article written about them.</p>
+
+      <p style="margin:0">Thanks for being part of this. See you on the app.</p>
+  `;
+
+  return {
+    subject: "New on MOTR: Spotlights and Battles are live",
+    html:
+      shell("Spotlights and Battles are live", body, { label: "Open MOTR", url: app }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 export async function sendEmail(
   to: string,
   template: { subject: string; html: string; attachments?: Attachment[] },
