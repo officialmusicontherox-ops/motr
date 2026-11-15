@@ -1,11 +1,10 @@
 /**
- * Proves the battle rules against the local database.
+ * Proves the battle rules against the LOCAL database.
  *
  *   npx tsx scripts/test-battles.mts
  *
- * Builds its own genre so nothing already in the database can be paired
- * with the test songs, plays every battle a fresh listener can get, and
- * checks the rules that make a win mean something.
+ * Builds its own genres and artists, pairs a week, votes as several
+ * listeners, then moves the week into the past and settles it.
  */
 import crypto from "node:crypto";
 import { PrismaClient } from "@prisma/client";
@@ -19,9 +18,8 @@ if (!/localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? "")) {
   process.exit(1);
 }
 
-const { nextBattle, decideBattle, battleLeadersBetween, BattleGoneError } = await import(
-  "../lib/battles.ts"
-);
+const B = await import("../lib/battles.ts");
+const { weekOf } = await import("../lib/weekWindow.ts");
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -33,201 +31,244 @@ const fail = (m: string) => {
   console.log("  FAIL  " + m);
   process.exitCode = 1;
 };
+const check = (ok: boolean, good: string, bad = good) => (ok ? pass(good) : fail(bad));
 
 const GENRE = "Test Genre " + id();
 const LONELY = "Lonely Genre " + id();
+const made = { artists: [] as string[], tracks: [] as string[], fans: [] as string[] };
 
 async function artist(name: string) {
-  return prisma.artist.create({ data: { name, email: `${id()}@example.invalid` } });
+  const a = await prisma.artist.create({ data: { name, email: `${id()}@example.invalid` } });
+  made.artists.push(a.id);
+  return a;
 }
-async function track(artistId: string, artistName: string, genre: string, apple?: string) {
-  return prisma.track.create({
+async function track(a: { id: string; name: string }, genre: string, opts: { apple?: string; ai?: boolean; credit?: string } = {}) {
+  const t = await prisma.track.create({
     data: {
       source: "SPOTIFY",
       externalId: "test" + id() + id(),
       title: "Song " + id(),
-      artistName,
+      artistName: opts.credit ?? a.name,
       previewUrl: "https://example.invalid/" + id() + ".m4a",
-      artistId,
+      artistId: a.id,
       genre,
-      appleArtistId: apple ?? null,
+      appleArtistId: opts.apple ?? null,
+      aiGenerated: opts.ai ?? false,
     },
   });
+  made.tracks.push(t.id);
+  return t;
+}
+async function fan() {
+  const f = await prisma.fan.create({ data: { username: "battle-" + id() } });
+  made.fans.push(f.id);
+  return f;
 }
 
-const made: { artists: string[]; tracks: string[]; fans: string[] } = {
-  artists: [],
-  tracks: [],
-  fans: [],
-};
-
 async function main() {
-  // Hide whatever is already in the local database from the picker, so the
-  // only eligible songs are the ones built here.
-  const parked = await prisma.track.findMany({
-    where: { status: "DISCOVERY" },
-    select: { id: true },
-  });
-  await prisma.track.updateMany({
-    where: { id: { in: parked.map((p) => p.id) } },
-    data: { status: "VETTING" },
-  });
+  const parked = await prisma.track.findMany({ where: { status: "DISCOVERY" }, select: { id: true } });
+  await prisma.track.updateMany({ where: { id: { in: parked.map((p) => p.id) } }, data: { status: "VETTING" } });
+  const week = weekOf();
 
   try {
-    // One artist with three songs under one Apple profile but two spellings,
-    // which is the case a name comparison alone would get wrong.
+    // Four human artists and two AI ones in one genre, one artist alone in
+    // another. X has three songs under one Apple profile and two spellings.
     const x = await artist("Artist X " + id());
     const y = await artist("Artist Y " + id());
     const z = await artist("Artist Z " + id());
+    const w = await artist("Artist W " + id());
+    const ai1 = await artist("Synthetic One " + id());
+    const ai2 = await artist("Synthetic Two " + id());
     const solo = await artist("Solo " + id());
-    made.artists.push(x.id, y.id, z.id, solo.id);
-
     const apple = "apple" + id();
-    const x1 = await track(x.id, x.name, GENRE, apple);
-    const x2 = await track(x.id, x.name, GENRE, apple);
-    const x3 = await track(x.id, x.name + " feat. Someone", GENRE, apple);
-    const y1 = await track(y.id, y.name, GENRE);
-    const z1 = await track(z.id, z.name, GENRE);
-    const s1 = await track(solo.id, solo.name, LONELY);
-    made.tracks.push(x1.id, x2.id, x3.id, y1.id, z1.id, s1.id);
-    const xs = new Set([x1.id, x2.id, x3.id]);
+    const xs = [
+      await track(x, GENRE, { apple }),
+      await track(x, GENRE, { apple }),
+      await track(x, GENRE, { apple, credit: x.name + " feat. Someone" }),
+    ];
+    await track(y, GENRE);
+    await track(z, GENRE);
+    await track(w, GENRE);
+    const a1 = await track(ai1, GENRE, { ai: true });
+    const a2 = await track(ai2, GENRE, { ai: true });
+    const s1 = await track(solo, LONELY);
 
-    const fan = await prisma.fan.create({ data: { username: "battle-" + id() } });
-    const other = await prisma.fan.create({ data: { username: "battle-" + id() } });
-    made.fans.push(fan.id, other.id);
-
-    // 1. The same open battle comes back until it is answered.
-    const b1 = await nextBattle(fan.id, false);
-    const again = await nextBattle(fan.id, false);
-    b1 && again && b1.id === again.id
-      ? pass("an unanswered battle is handed back, not replaced")
-      : fail("a second battle was made while the first sat open");
-
-    // 2. Nothing in the payload names anybody.
-    const leaked = JSON.stringify(b1).match(/title|artist|artwork|trackAId|trackBId/i);
-    !leaked ? pass("the open battle carries no names, titles or track ids") : fail(`leaked ${leaked}`);
-
-    // 3. Somebody else cannot answer it.
-    try {
-      await decideBattle(other.id, b1!.id, "A");
-      fail("another listener answered this battle");
-    } catch (e) {
-      e instanceof BattleGoneError ? pass("only the listener it was served to can answer") : fail(String(e));
-    }
-
-    // 4. Play every battle this listener can get.
-    const seen = new Map<string, number>();
-    let sameArtist = 0;
-    let crossGenre = 0;
-    let rounds = 0;
-    let firstReveal: Awaited<ReturnType<typeof decideBattle>> = null;
-
-    for (let guard = 0; guard < 20; guard++) {
-      const b = await nextBattle(fan.id, false);
-      if (!b) break;
-      rounds++;
-      const row = await prisma.battle.findUnique({ where: { id: b.id } });
-      for (const t of [row!.trackAId, row!.trackBId]) seen.set(t, (seen.get(t) ?? 0) + 1);
-      if (xs.has(row!.trackAId) && xs.has(row!.trackBId)) sameArtist++;
-      const pair = await prisma.track.findMany({
-        where: { id: { in: [row!.trackAId, row!.trackBId] } },
-        select: { genre: true },
+    // --- pairing ---------------------------------------------------------
+    const n = await B.pairThisWeek();
+    const mine = () =>
+      prisma.battle.findMany({
+        where: { weekStart: week.start, OR: [{ trackAId: { in: made.tracks } }, { trackBId: { in: made.tracks } }] },
       });
-      if (pair[0].genre !== pair[1].genre) crossGenre++;
-      const r = await decideBattle(fan.id, b.id, "A");
-      firstReveal ??= r;
+    let battles = await mine();
+    check(n === 3 && battles.length === 3, "seven artists made three battles: two human, one AI", `paired ${n}, found ${battles.length}`);
+
+    const again = await B.pairThisWeek();
+    check(again === 0 && (await mine()).length === 3, "pairing again changes nothing");
+
+    const inBattle = battles.flatMap((b) => [b.trackAId, b.trackBId]);
+    check(new Set(inBattle).size === inBattle.length, "no song is in two battles");
+    check(xs.filter((t) => inBattle.includes(t.id)).length === 1, "an artist with three songs is in exactly one battle");
+    check(!inBattle.includes(s1.id), "an artist with nobody to face sits the week out");
+
+    const aiBattle = battles.find((b) => [b.trackAId, b.trackBId].includes(a1.id));
+    check(!!aiBattle && [aiBattle.trackAId, aiBattle.trackBId].includes(a2.id), "AI vocals were paired with AI vocals");
+    const tracks = await prisma.track.findMany({ where: { id: { in: inBattle } }, select: { id: true, genre: true } });
+    check(tracks.every((t) => t.genre === GENRE), "every battle stayed inside one genre");
+
+    // A song that arrives mid-week is paired if somebody is waiting.
+    const late = await artist("Late " + id());
+    await track(late, LONELY);
+    const more = await B.pairThisWeek();
+    battles = await mine();
+    check(more === 1 && battles.length === 4, "a mid-week arrival is paired with the artist who was waiting");
+    check(battles.every((b) => b.weekStart.getTime() === week.start.getTime()), "and its battle belongs to this same week");
+
+    // --- telling artists ---------------------------------------------------
+    const N = await import("../lib/battleNotice.ts");
+    const pend = (await N.pendingBattleNotices()).filter((x) => made.artists.includes(x.artistId));
+    check(pend.length === 8 && pend.every((x) => x.songs.length === 1), "each artist in a battle is to be told once, about their one song", `pending ${pend.length}`);
+    await prisma.battle.updateMany({ where: { id: { in: battles.map((b) => b.id) } }, data: { notifiedAAt: new Date() } });
+    const half = (await N.pendingBattleNotices()).filter((x) => made.artists.includes(x.artistId));
+    check(half.length === 4 && half.every((x) => x.songs[0].side === "B"), "an artist already told is not on the list again");
+
+    // --- serving ---------------------------------------------------------
+    const f1 = await fan();
+    const f2 = await fan();
+    const first = await B.nextBattle(f1.id, false);
+    const leaked = JSON.stringify(first.battle).match(/title|artist|artwork|"id"|trackAId/i);
+    check(!!first.battle && !leaked, "an open battle carries a sealed ticket and no names or ids", `leaked ${leaked}`);
+    const firstId = B.openBattleTicket(first.battle!.ticket);
+    check(!!firstId && B.openBattleTicket("x" + first.battle!.ticket) === null, "the ticket opens on the server and a tampered one does not");
+
+    // Everyone gets the same battles: f2 can be served every battle f1 can.
+    const seen1 = new Set<string>();
+    const seen2 = new Set<string>();
+    for (const [f, seen] of [[f1, seen1], [f2, seen2]] as const) {
+      for (let g = 0; g < 10; g++) {
+        const r = await B.nextBattle(f.id, false);
+        if (!r.battle) break;
+        seen.add(B.openBattleTicket(r.battle.ticket)!);
+        await B.decideBattle(f.id, r.battle.ticket, "SKIP");
+      }
     }
+    const myIds = new Set(battles.map((b) => b.id));
+    const same = [...myIds].every((i) => seen1.has(i) && seen2.has(i));
+    check(same, "two listeners were served the same battles");
+    const afterSkips = await prisma.battle.aggregate({ where: { id: { in: [...myIds] } }, _sum: { votesA: true, votesB: true } });
+    check((afterSkips._sum.votesA ?? 0) + (afterSkips._sum.votesB ?? 0) === 0, "skips counted for nobody");
+    const none = await B.nextBattle(f1.id, false);
+    check(none.battle === null || !myIds.has(B.openBattleTicket(none.battle.ticket)!), "a skipped battle is not served again");
 
-    rounds >= 1 ? pass(`${rounds} battle(s) served from five songs by three artists`) : fail("no battles served");
-    sameArtist === 0
-      ? pass("an artist never faced their own song, even credited under another spelling")
-      : fail(`${sameArtist} battle(s) between one artist's own songs`);
-    crossGenre === 0 ? pass("every battle stayed inside one genre") : fail(`${crossGenre} crossed genres`);
-    [...seen.values()].every((n) => n === 1)
-      ? pass("no song was played to the same listener twice")
-      : fail("a song came back");
-    !seen.has(s1.id)
-      ? pass("a song with nobody to face is passed over, not paired across genres")
-      : fail("the lone song was paired");
+    // AI switch: a listener hiding AI vocals is never served the AI battle.
+    const f3 = await fan();
+    const seen3 = new Set<string>();
+    for (let g = 0; g < 10; g++) {
+      const r = await B.nextBattle(f3.id, true);
+      if (!r.battle) break;
+      const bid = B.openBattleTicket(r.battle.ticket)!;
+      seen3.add(bid);
+      await B.decideBattle(f3.id, r.battle.ticket, "SKIP");
+    }
+    check(!seen3.has(aiBattle!.id) && seen3.size >= 3, "with AI vocals hidden the AI battle is left out and the rest are served");
 
-    // 5. The reveal names both and carries the artist's total.
-    firstReveal && firstReveal.a.title && firstReveal.b.artistName && firstReveal.winner === "A"
-      ? pass("a vote returns the reveal with both songs named")
-      : fail("no reveal");
-    firstReveal && firstReveal.a.wins >= 1
-      ? pass(`the winner's all-time total is on the reveal (${firstReveal.a.wins})`)
-      : fail("winner shows no wins");
+    // --- voting and percentages -----------------------------------------
+    const target = battles.find((b) => b.id !== aiBattle!.id)!;
+    const voters = [];
+    for (let i = 0; i < 5; i++) voters.push(await fan());
 
-    // 6. Counters add up: every decided battle gave one win and two plays.
-    const t = await prisma.track.findMany({
-      where: { id: { in: made.tracks } },
-      select: { battles: true, battleWins: true },
-    });
-    const plays = t.reduce((a, r) => a + r.battles, 0);
-    const wins = t.reduce((a, r) => a + r.battleWins, 0);
-    plays === rounds * 2 && wins === rounds
-      ? pass(`counters add up: ${rounds} battles, ${wins} wins, ${plays} appearances`)
-      : fail(`${rounds} battles but ${wins} wins and ${plays} appearances`);
+    // By shared link: served first, whatever else is open.
+    const viaLink = await B.nextBattle(voters[0].id, false, target.id);
+    check(!!viaLink.battle && B.openBattleTicket(viaLink.battle.ticket) === target.id && viaLink.viaShare, "a shared link serves that battle first");
 
-    // 7. A second answer to the same battle is refused and counts nothing.
-    const done = await prisma.battle.findFirst({ where: { fanId: fan.id }, select: { id: true } });
+    let reveal = await B.decideBattle(voters[0].id, viaLink.battle!.ticket, "A", true);
+    check(!!reveal && reveal.pick === "A" && !!reveal.a.title && !!reveal.b.artistName && reveal.id === target.id, "a vote returns both songs named and the shareable id");
+    check(reveal!.pct === null, "with one vote in, no percentage is shown");
+
     try {
-      await decideBattle(fan.id, done!.id, "B");
-      fail("a decided battle was answered again");
+      await B.decideBattle(voters[0].id, viaLink.battle!.ticket, "B");
+      fail("the same listener voted twice");
     } catch (e) {
-      e instanceof BattleGoneError ? pass("a battle cannot be answered twice") : fail(String(e));
+      check(e instanceof B.BattleGoneError, "one vote per listener per battle");
     }
-    const after = await prisma.track.aggregate({
-      where: { id: { in: made.tracks } },
-      _sum: { battleWins: true },
-    });
-    after._sum.battleWins === wins ? pass("the refused answer changed no totals") : fail("totals moved");
 
-    // 8. A skip counts for nobody and reveals nothing.
-    const b2 = await nextBattle(other.id, false);
-    const skipped = await decideBattle(other.id, b2!.id, "SKIP");
-    const afterSkip = await prisma.track.aggregate({
-      where: { id: { in: made.tracks } },
-      _sum: { battleWins: true, battles: true },
-    });
-    skipped === null && afterSkip._sum.battleWins === wins && afterSkip._sum.battles === plays
-      ? pass("a skip returns no reveal and moves no totals")
-      : fail("a skip counted for something");
+    for (let i = 1; i < 5; i++) {
+      const r = await B.nextBattle(voters[i].id, false, target.id);
+      reveal = await B.decideBattle(voters[i].id, r.battle!.ticket, i < 4 ? "A" : "B");
+    }
+    check(!!reveal!.pct && reveal!.pct.a === 80 && reveal!.pct.b === 20, "at five votes the split appears: 80% to 20%", `pct was ${JSON.stringify(reveal!.pct)}`);
+    check(!("votes" in (reveal as object)) && !JSON.stringify(reveal).match(/votesA|votesB/), "the reveal carries percentages and never the counts");
 
-    // 9. Fewest battles first: the next listener's first song is never one
-    //    that has already battled while another has not.
-    const least = await prisma.track.findMany({
-      where: { id: { in: [x1.id, x2.id, x3.id, y1.id, z1.id] } },
-      select: { id: true, battles: true },
-    });
-    const min = Math.min(...least.map((l) => l.battles));
-    const third = await prisma.fan.create({ data: { username: "battle-" + id() } });
-    made.fans.push(third.id);
-    const b3 = await nextBattle(third.id, false);
-    const row3 = await prisma.battle.findUnique({ where: { id: b3!.id } });
-    const inIt = least.filter((l) => l.id === row3!.trackAId || l.id === row3!.trackBId);
-    inIt.some((l) => l.battles === min)
-      ? pass("the song with the fewest battles is brought in first")
-      : fail("a well-travelled song was picked ahead of a fresh one");
+    // --- saved -------------------------------------------------------------
+    const picks = await B.battlePicksFor(voters[0].id);
+    check(picks.length === 1 && picks[0].trackId === target.trackAId, "the song a listener picked is listed for their Saved");
+    const swipes = await prisma.fanSwipe.count({ where: { fanId: voters[0].id } });
+    const counted = await prisma.track.findUnique({ where: { id: target.trackAId }, select: { fanRightSwipes: true } });
+    check(swipes === 0 && counted!.fanRightSwipes === 0, "and it is not a swipe, so no chart counts it as a save");
+    check((await B.battlePicksFor(f1.id)).length === 0, "a skip puts nothing in Saved");
+    check((await B.hideBattlePicks(voters[0].id, target.trackAId)) === 1 && (await B.battlePicksFor(voters[0].id)).length === 0, "taking it off Saved removes it from the list");
+    const stillCounted = await prisma.battle.findUnique({ where: { id: target.id }, select: { votesA: true } });
+    check(stillCounted!.votesA === 4, "and the vote itself still stands");
 
-    // 10. The weekly board counts the wins that were just recorded.
-    const board = await battleLeadersBetween(new Date(Date.now() - 3600_000), new Date(Date.now() + 3600_000), 50);
-    const mine = board.filter((r) => [x.name, y.name, z.name].some((n) => r.name.startsWith(n.split(" feat.")[0])));
-    mine.reduce((a, r) => a + r.wins, 0) === wins
-      ? pass("the board for this window adds up to the wins recorded")
-      : fail(`board shows ${mine.reduce((a, r) => a + r.wins, 0)}, expected ${wins}`);
-    mine.filter((r) => r.name.startsWith(x.name)).length <= 1
-      ? pass("one artist is one row on the board, whatever the credit says")
-      : fail("the same artist appears twice on the board");
+    const back = await B.nextBattle(voters[0].id, false, target.id);
+    check(back.battle === null && back.reveal?.pick === "A" && back.reveal.pct?.a === 80, "returning by the link shows the standing instead of a second vote");
+
+    // The live board shows who is ahead.
+    const liveBoard = await B.battleLeadersBetween(week.start, week.end, 50);
+    const leader = await prisma.track.findUnique({ where: { id: target.trackAId }, select: { artistName: true } });
+    check(liveBoard.some((r) => leader!.artistName.startsWith(r.name) || r.name.startsWith(leader!.artistName.split(" feat.")[0])), "the artist ahead is on this week's board");
+
+    // --- the week closes --------------------------------------------------
+    // A tie in another battle, then move both into last week and settle.
+    const tied = battles.find((b) => b.id !== target.id && b.id !== aiBattle!.id)!;
+    await prisma.battle.update({ where: { id: tied.id }, data: { votesA: 2, votesB: 2 } });
+    const lastWeek = weekOf(new Date(week.start.getTime() - 1)).start;
+    await prisma.battle.updateMany({ where: { id: { in: [...myIds] } }, data: { weekStart: lastWeek } });
+
+    const settled = await B.settleFinishedWeeks();
+    check(settled >= 4, "closing the week settles its battles");
+    const t = await prisma.track.findMany({
+      where: { id: { in: [target.trackAId, target.trackBId, tied.trackAId, tied.trackBId, aiBattle!.trackAId] } },
+      select: { id: true, battles: true, battleWins: true },
+    });
+    const get = (tid: string) => t.find((r) => r.id === tid)!;
+    check(get(target.trackAId).battleWins === 1 && get(target.trackAId).battles === 1, "the winner takes one Battle Win");
+    check(get(target.trackBId).battleWins === 0 && get(target.trackBId).battles === 1, "the loser has the battle on record and no win");
+    check(get(tied.trackAId).battleWins === 0 && get(tied.trackBId).battleWins === 0 && get(tied.trackAId).battles === 1, "a tie gives nobody a win");
+    check(get(aiBattle!.trackAId).battles === 0, "a battle nobody voted in is on nobody's record");
+    check((await B.settleFinishedWeeks()) === 0, "settling again counts nothing twice");
+
+    try {
+      const stale = B.sealBattleId(target.id);
+      await B.decideBattle((await fan()).id, stale, "B");
+      fail("a vote landed in a closed battle");
+    } catch (e) {
+      check(e instanceof B.BattleGoneError, "a closed battle takes no more votes");
+    }
+    const closed = await B.nextBattle(voters[1].id, false, target.id);
+    check(closed.reveal?.closed === true && closed.reveal.winner === "A", "the link to a closed battle shows the final result");
+
+    // --- next week --------------------------------------------------------
+    // Following the link above already opened the new week, which is the
+    // point: nothing runs on a timer, the first visit does it.
+    await B.pairThisWeek();
+    const fresh = await prisma.battle.findMany({
+      where: { weekStart: week.start, OR: [{ trackAId: { in: made.tracks } }, { trackBId: { in: made.tracks } }] },
+    });
+    const freshSongs = fresh.flatMap((b) => [b.trackAId, b.trackBId]);
+    check(fresh.length >= 3 && new Set(freshSongs).size === freshSongs.length, "a new week pairs everybody again, once each", `found ${fresh.length}`);
+    const card = await B.battleForCard(target.id);
+    check(!!card && card.closed && card.pct?.a === 80, "the share card for a finished battle has its result");
   } finally {
-    await prisma.battle.deleteMany({ where: { fanId: { in: made.fans } } });
+    const mineB = await prisma.battle.findMany({
+      where: { OR: [{ trackAId: { in: made.tracks } }, { trackBId: { in: made.tracks } }] },
+      select: { id: true },
+    });
+    await prisma.battleVote.deleteMany({ where: { OR: [{ fanId: { in: made.fans } }, { battleId: { in: mineB.map((b) => b.id) } }] } });
+    await prisma.battle.deleteMany({ where: { id: { in: mineB.map((b) => b.id) } } });
     await prisma.track.deleteMany({ where: { id: { in: made.tracks } } });
     await prisma.artist.deleteMany({ where: { id: { in: made.artists } } });
     await prisma.fan.deleteMany({ where: { id: { in: made.fans } } });
-    await prisma.track.updateMany({
-      where: { id: { in: parked.map((p) => p.id) } },
-      data: { status: "DISCOVERY" },
-    });
+    await prisma.track.updateMany({ where: { id: { in: parked.map((p) => p.id) } }, data: { status: "DISCOVERY" } });
     console.log("\n  cleaned up");
   }
 }

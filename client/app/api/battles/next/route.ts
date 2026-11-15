@@ -5,9 +5,13 @@ import { nextBattle } from "@/lib/battles";
 /**
  * The listener's next battle.
  *
- * Returns two preview clips and nothing else: no titles, no names, no
- * artwork and no track ids. What the browser is never sent it cannot leak,
- * and the names arrive only in answer to a vote.
+ * An open battle is two preview clips and a sealed ticket: no titles, no
+ * names, no artwork and no id that could be used to look them up. The names
+ * arrive only in answer to a vote.
+ *
+ * `b` is a battle somebody was sent to by a shared link. It is served first
+ * if they can still vote in it, and shown as a result if they already have
+ * or if it has closed.
  */
 export const dynamic = "force-dynamic";
 
@@ -18,7 +22,8 @@ export async function GET(req: NextRequest) {
   // The same switch the swipe feed honours, so somebody who has hidden AI
   // vocals does not meet them here instead.
   const excludeAi = req.nextUrl.searchParams.get("ai") === "0";
+  const asked = req.nextUrl.searchParams.get("b");
 
-  const battle = await nextBattle(fanId, excludeAi);
-  return NextResponse.json({ battle }, { headers: { "cache-control": "no-store" } });
+  const out = await nextBattle(fanId, excludeAi, asked);
+  return NextResponse.json(out, { headers: { "cache-control": "no-store" } });
 }

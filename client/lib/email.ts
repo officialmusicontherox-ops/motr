@@ -1265,6 +1265,71 @@ export function spotlightCapEmail(params: {
   };
 }
 
+
+/**
+ * Tells an artist their song is in a battle this week, with the link.
+ *
+ * One email per account per week, listing every song of theirs that is in
+ * a battle, so a manager who submits for several artists gets one message
+ * and not one per song. It says what a battle is in two sentences, gives
+ * the link, and stops: no statistics, no other artist's results, and no
+ * script for what to post.
+ */
+export function battleOpenEmail(params: {
+  songs: { title: string; artistName: string; url: string }[];
+  unsubscribeUrl: string;
+}) {
+  const { songs, unsubscribeUrl } = params;
+  const one = songs.length === 1;
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const list = songs
+    .map(
+      (s) => `
+      <p style="margin:0 0 12px;padding:14px 16px;border:1px solid #262625;border-radius:14px">
+        <strong style="color:#fff">${esc(s.title)}</strong><br/>
+        <span style="color:#8b8b8b">${esc(s.artistName)}</span><br/>
+        <a href="${s.url}" style="color:#dcb55f;font-weight:600">${s.url}</a>
+      </p>`
+    )
+    .join("");
+
+  const body = `
+      <p style="margin:0 0 14px">Hi,</p>
+
+      <p style="margin:0 0 14px">${
+        one
+          ? `Your song <strong style="color:#fff">${esc(songs[0].title)}</strong> is in a Battle on MOTR this week.`
+          : `${songs.length} of your songs are in Battles on MOTR this week.`
+      }</p>
+
+      <p style="margin:0 0 14px">A Battle plays two songs from the same genre to listeners with no names on them, and they choose the one they would play again. Everyone votes on the same pair, and the song with the bigger share of the vote when voting closes on <strong style="color:#fff">Saturday at midnight Central</strong> takes the win.</p>
+
+      <p style="margin:0 0 8px"><strong style="color:#fff">${one ? "Your battle" : "Your battles"}</strong></p>
+      ${list}
+
+      <p style="margin:0 0 14px">${
+        one ? "That link opens" : "Each link opens"
+      } straight on the battle, so it is the one to send to your listeners if you want them to vote. There is a share button on the battle too, with an image sized for a story or a post.</p>
+
+      <p style="margin:0 0 14px">Battles are separate from the charts. A win is counted as a Battle Win on its own board and has no effect on chart position or the weekly winner.</p>
+
+      <p style="margin:0">Good luck this week.</p>
+  `;
+
+  return {
+    subject: one
+      ? `Your song is in a MOTR Battle this week`
+      : `Your songs are in MOTR Battles this week`,
+    html:
+      shell(one ? "Your song is in a Battle" : "Your songs are in Battles", body, {
+        label: one ? "Open your battle" : "Open Battles",
+        url: one ? songs[0].url : "https://app.musicontherox.com/battles",
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 export async function sendEmail(
   to: string,
   template: { subject: string; html: string; attachments?: Attachment[] },

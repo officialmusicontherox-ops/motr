@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { spotifyLinkFor } from "@/lib/spotifyLink";
 import { getFanSession } from "@/lib/fanAuth";
+import { battlePicksFor, hideBattlePicks } from "@/lib/battles";
 
 // Everything a fan swiped right on and has not removed, newest first.
 export async function GET() {
@@ -39,15 +40,48 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json({
-    saved: swipes.map((s) => ({
-      ...s.track,
-      savedAt: s.createdAt,
-      savedToSpotifyAt: s.savedToSpotifyAt,
-      // Works for every fan, unlike the API save — see lib/spotifyLink.ts.
-      spotifyUrl: spotifyLinkFor(s.track),
-    })),
-  });
+  const saved = swipes.map((s) => ({
+    ...s.track,
+    savedAt: s.createdAt,
+    savedToSpotifyAt: s.savedToSpotifyAt,
+    // Works for every fan, unlike the API save — see lib/spotifyLink.ts.
+    spotifyUrl: spotifyLinkFor(s.track),
+  }));
+
+  // Songs picked in battles belong in the library too. They are listed
+  // from the votes and are not swipes, so they sit here without counting
+  // as a save on any chart. A song that was also swiped right appears once.
+  const have = new Set(saved.map((s) => s.id));
+  const picks = (await battlePicksFor(fanId)).filter((p) => !have.has(p.trackId));
+  if (picks.length > 0) {
+    const tracks = await prisma.track.findMany({
+      where: { id: { in: picks.map((p) => p.trackId) } },
+      select: {
+        id: true,
+        title: true,
+        artistName: true,
+        artworkUrl: true,
+        previewUrl: true,
+        genre: true,
+        status: true,
+        fanRightSwipes: true,
+        externalId: true,
+        source: true,
+        artistId: true,
+      },
+    });
+    const byId = new Map(tracks.map((t) => [t.id, t]));
+    const seen = new Set<string>();
+    for (const p of picks) {
+      const t = byId.get(p.trackId);
+      if (!t || seen.has(t.id)) continue;
+      seen.add(t.id);
+      saved.push({ ...t, savedAt: p.at, savedToSpotifyAt: null, spotifyUrl: spotifyLinkFor(t) });
+    }
+    saved.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
+  }
+
+  return NextResponse.json({ saved });
 }
 
 /**
@@ -82,5 +116,8 @@ export async function PATCH(req: NextRequest) {
     data: { hiddenAt: new Date() },
   });
 
-  return NextResponse.json({ removed: count });
+  // The same song, or everything, where it got here by a battle pick.
+  const picks = await hideBattlePicks(fanId, all === true ? undefined : (trackId as string));
+
+  return NextResponse.json({ removed: count + picks });
 }

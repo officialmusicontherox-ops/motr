@@ -2,14 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
 import { NEON, NeonText } from "./Neon";
-import { Pause, Play } from "./icons";
+import { Cross, Pause, Play, Share } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
+import { bumpSavedCount } from "@/lib/savedCount";
 
 type Open = {
-  id: string;
+  ticket: string;
   genre: string;
   a: { previewUrl: string };
   b: { previewUrl: string };
@@ -23,17 +24,32 @@ type Side = {
   wins: number;
 };
 
-type Reveal = { winner: "A" | "B"; a: Side; b: Side };
+type Reveal = {
+  id: string;
+  pick: "A" | "B" | null;
+  a: Side;
+  b: Side;
+  pct: { a: number; b: number } | null;
+  closed: boolean;
+  winner: "A" | "B" | null;
+  week: string;
+};
+
 type Letter = "A" | "B";
 
-/** Each side keeps one colour from the logo, before and after the reveal. */
+/** Each side keeps one colour, before and after the reveal. */
 const TUBE: Record<Letter, { edge: string; glow: string; pair: string[] }> = {
   A: { edge: "#b45cff", glow: "180, 92, 255", pair: [NEON.pink, "#b45cff"] },
   B: { edge: "#38c6f4", glow: "56, 198, 244", pair: [NEON.blue, "#5ee6e6"] },
 };
 
+const APP = "https://app.musicontherox.com";
+
 /**
  * Battles: two blind songs from one genre, and you pick one.
+ *
+ * Everyone gets the same battles, each one runs for the chart week, and the
+ * song ahead when the week closes takes the win.
  *
  * No swiping here on purpose. A swipe is a reflex, and this is a choice
  * between two things, so it is made with a button after both have been
@@ -41,11 +57,11 @@ const TUBE: Record<Letter, { edge: string; glow: string; pair: string[] }> = {
  * times as they like, in any order.
  *
  * Nothing on screen names anybody until the vote is in. The browser is not
- * even sent the names before then, so there is nothing to peek at. A skip
+ * sent the names before then, nor an id it could look them up with. A skip
  * moves on without a reveal, because the reveal is what a vote earns.
  */
 export default function BattleView() {
-  /** undefined while loading, null when there is nothing left to pair. */
+  /** undefined while loading, null when there is nothing left to vote on. */
   const [battle, setBattle] = useState<Open | null | undefined>(undefined);
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [playing, setPlaying] = useState<Letter | null>(null);
@@ -53,6 +69,9 @@ export default function BattleView() {
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  /** Whether this battle was reached by somebody's shared link. */
+  const viaShare = useRef(false);
 
   const stop = useCallback(() => {
     clipPlayer()?.pause();
@@ -60,31 +79,43 @@ export default function BattleView() {
     setProgress(0);
   }, []);
 
-  const load = useCallback(async () => {
-    stop();
-    setReveal(null);
-    setHeard({ A: false, B: false });
-    setFailed(false);
-    setBattle(undefined);
-    try {
-      // The same switch the swipe feed honours.
-      let ai = "";
+  const load = useCallback(
+    async (asked?: string | null) => {
+      stop();
+      setReveal(null);
+      setHeard({ A: false, B: false });
+      setFailed(false);
+      setBattle(undefined);
       try {
-        if (localStorage.getItem("motr_allow_ai") === "0") ai = "?ai=0";
+        const q = new URLSearchParams();
+        // The same switch the swipe feed honours.
+        try {
+          if (localStorage.getItem("motr_allow_ai") === "0") q.set("ai", "0");
+        } catch {
+          // Storage refused. Everything is included, which is the default.
+        }
+        if (asked) q.set("b", asked);
+        const res = await fetch(`/api/battles/next?${q}`);
+        if (!res.ok) throw new Error(String(res.status));
+        const d = await res.json();
+        viaShare.current = !!d.viaShare;
+        setReveal(d.reveal ?? null);
+        setBattle(d.battle ?? null);
       } catch {
-        // Storage refused. Everything is included, which is the default.
+        setFailed(true);
+        setBattle(null);
       }
-      const res = await fetch(`/api/battles/next${ai}`);
-      if (!res.ok) throw new Error(String(res.status));
-      setBattle((await res.json()).battle ?? null);
-    } catch {
-      setFailed(true);
-      setBattle(null);
-    }
-  }, [stop]);
+    },
+    [stop]
+  );
 
+  // A shared link names its battle. It is served first, and the marker is
+  // taken out of the address bar so "Next battle" and a refresh carry on
+  // through the rest instead of returning here.
   useEffect(() => {
-    void load();
+    const asked = new URLSearchParams(window.location.search).get("b");
+    if (asked) window.history.replaceState({}, "", window.location.pathname);
+    void load(asked);
   }, [load]);
 
   // One shared audio element, the same one the swipe card uses, so the
@@ -133,16 +164,21 @@ export default function BattleView() {
       const res = await fetch("/api/battles/vote", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ battleId: battle.id, pick }),
+        body: JSON.stringify({ ticket: battle.ticket, pick, viaShare: viaShare.current }),
       });
-      // 409 is a battle already answered, from a second tab or a double
-      // tap. Either way the right move is the next one.
+      // 409 is a battle already answered or closed since it was served.
+      // Either way the right move is the next one.
       if (res.status === 409 || pick === "SKIP") {
         await load();
         return;
       }
       if (!res.ok) throw new Error(String(res.status));
-      setReveal((await res.json()).reveal);
+      const d = await res.json();
+      // The song they picked goes into Saved, so the tab's count moves the
+      // way it does for a right swipe.
+      bumpSavedCount();
+      setBattle(null);
+      setReveal(d.reveal);
     } catch {
       setFailed(true);
     } finally {
@@ -151,6 +187,7 @@ export default function BattleView() {
   }
 
   const ready = heard.A && heard.B;
+  const other = (s: Letter): Letter => (s === "A" ? "B" : "A");
 
   return (
     <MotrShell fill>
@@ -167,23 +204,27 @@ export default function BattleView() {
         />
         <p className="text-muted mx-auto mt-1.5 max-w-md shrink-0 text-center text-xs md:text-sm">
           {reveal
-            ? "There they are."
+            ? reveal.closed
+              ? `Final result · ${reveal.week}`
+              : reveal.pct
+                ? "Your pick is in Saved. Voting closes Saturday at midnight Central."
+                : "Your pick is in Saved. Voting closes Saturday at midnight Central."
             : "Two songs, no names. Pick the one you would play again."}
         </p>
 
-        {battle === undefined && (
+        {battle === undefined && !reveal && (
           <p className="text-muted mt-10 text-center text-sm">Finding a battle...</p>
         )}
 
-        {battle === null && (
+        {battle === null && !reveal && (
           <div className="mt-10 flex flex-col items-center gap-3 text-center">
             <p className="font-display text-xl uppercase tracking-wide">
-              {failed ? "Couldn't load a battle" : "You've judged them all"}
+              {failed ? "Couldn't load a battle" : "You've voted in them all"}
             </p>
             <p className="text-muted max-w-xs text-sm">
               {failed
                 ? "Give it a moment and try again."
-                : "Every pairing we can make for you has been decided. New battles appear as artists submit music."}
+                : "That's every battle this week. New ones open Sunday, and the winners are settled Saturday at midnight Central."}
             </p>
             {failed ? (
               <button
@@ -194,19 +235,19 @@ export default function BattleView() {
               </button>
             ) : (
               <Link
-                href="/"
+                href="/charts"
                 className="border-gold/50 text-gold mt-2 rounded-full border px-5 py-2 text-sm font-semibold"
               >
-                Back to Discover
+                See who&apos;s ahead
               </Link>
             )}
           </div>
         )}
 
-        {battle && (
+        {(battle || reveal) && (
           <>
-            <p className="motr-label text-muted mt-2 shrink-0 text-center">
-              {battle.genre.split(" /")[0]}
+            <p className="motr-label text-muted mt-2 h-4 shrink-0 text-center">
+              {battle ? battle.genre.split(" /")[0] : ""}
             </p>
 
             <div className="relative mt-2 grid min-h-0 flex-1 grid-cols-2 gap-3 md:gap-6">
@@ -215,7 +256,20 @@ export default function BattleView() {
                   key={side}
                   side={side}
                   revealed={reveal ? (side === "A" ? reveal.a : reveal.b) : null}
-                  won={reveal?.winner === side}
+                  pct={reveal?.pct ? (side === "A" ? reveal.pct.a : reveal.pct.b) : null}
+                  // Lit means "the one that matters here": your pick while
+                  // voting is open, the winner once it has closed.
+                  lit={
+                    !reveal ||
+                    (reveal.closed ? reveal.winner !== other(side) : reveal.pick !== other(side))
+                  }
+                  badge={
+                    reveal?.closed && reveal.winner === side
+                      ? "Winner"
+                      : reveal?.pick === side
+                        ? "Your pick"
+                        : null
+                  }
                   decided={!!reveal}
                   playing={playing === side}
                   progress={playing === side ? progress : 0}
@@ -243,12 +297,21 @@ export default function BattleView() {
 
             <div className="mt-3 flex shrink-0 flex-col items-center gap-1 pb-1">
               {reveal ? (
-                <button
-                  onClick={() => void load()}
-                  className="bg-gold text-bg w-full max-w-xs rounded-full py-3 text-sm font-bold"
-                >
-                  Next battle
-                </button>
+                <div className="flex w-full max-w-md gap-2">
+                  <button
+                    onClick={() => setSharing(true)}
+                    className="border-gold/60 text-gold hover:bg-gold/10 flex flex-1 items-center justify-center gap-2 rounded-full border py-3 text-sm font-bold transition"
+                  >
+                    <Share className="h-4 w-4" />
+                    Share
+                  </button>
+                  <button
+                    onClick={() => void load()}
+                    className="bg-gold text-bg flex-[1.4] rounded-full py-3 text-sm font-bold"
+                  >
+                    Next battle
+                  </button>
+                </div>
               ) : (
                 <>
                   <p className="text-muted h-4 text-xs">
@@ -270,6 +333,8 @@ export default function BattleView() {
           </>
         )}
       </div>
+
+      {sharing && reveal && <ShareSheet reveal={reveal} onClose={() => setSharing(false)} />}
     </MotrShell>
   );
 }
@@ -277,7 +342,9 @@ export default function BattleView() {
 function Panel({
   side,
   revealed,
-  won,
+  pct,
+  lit,
+  badge,
   decided,
   playing,
   progress,
@@ -287,7 +354,9 @@ function Panel({
 }: {
   side: Letter;
   revealed: Side | null;
-  won: boolean;
+  pct: number | null;
+  lit: boolean;
+  badge: string | null;
   decided: boolean;
   playing: boolean;
   progress: number;
@@ -296,9 +365,6 @@ function Panel({
   onChoose: () => void;
 }) {
   const tube = TUBE[side];
-  // After the vote the loser's tube goes out, which says who won without a
-  // word of copy.
-  const lit = !decided || won;
 
   return (
     <div className="flex min-h-0 flex-col">
@@ -311,78 +377,89 @@ function Panel({
           // A stage, so it is dark in both themes and the tube reads as lit.
           background: "#0c0c10",
           borderColor: lit ? tube.edge : "#2a2a30",
-          boxShadow: lit
-            ? `0 0 18px rgba(${tube.glow}, ${playing ? 0.8 : 0.42})`
-            : "none",
+          boxShadow: lit ? `0 0 18px rgba(${tube.glow}, ${playing ? 0.8 : 0.42})` : "none",
           opacity: lit ? 1 : 0.6,
         }}
       >
-      <div
-        className="flex min-h-0 flex-1 flex-col rounded-[21px] border-2 p-[3px] transition-colors duration-300"
-        style={{ borderColor: lit ? `rgba(${tube.glow}, 0.75)` : "#232328" }}
-      >
-      <div
-        className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300"
-        style={{
-          borderColor: lit ? `rgba(${tube.glow}, 0.55)` : "#1e1e22",
-          boxShadow: lit ? `inset 0 0 22px rgba(${tube.glow}, ${playing ? 0.24 : 0.1})` : "none",
-        }}
-      >
-        {revealed ? (
-          <>
-            {/* The whole cover, square, the way the artist made it. Filling
-                the tall panel edge to edge cropped the lettering off both
-                sides of the artwork. */}
-            <div className="aspect-square w-full shrink-0 bg-black">
-              {revealed.artworkUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={revealed.artworkUrl} alt="" className="h-full w-full object-cover" />
-              )}
-            </div>
-            <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-2.5 text-white">
-              {won && (
-                <span className="bg-gold text-bg mb-1 inline-block rounded-full px-2 py-px text-[0.58rem] font-bold uppercase tracking-widest">
-                  Your pick
-                </span>
-              )}
-              <p className="truncate text-sm font-semibold">{revealed.title}</p>
-              <p className="truncate text-xs text-neutral-400">{revealed.artistName}</p>
-              <p className="mt-1 text-[0.68rem] font-semibold uppercase tracking-widest" style={{ color: tube.edge }}>
-                Battle Wins · {revealed.wins}
-              </p>
-            </div>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={onPlay}
-            aria-label={playing ? `Pause song ${side}` : `Play song ${side}`}
-            className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3"
+        <div
+          className="flex min-h-0 flex-1 flex-col rounded-[21px] border-2 p-[3px] transition-colors duration-300"
+          style={{ borderColor: lit ? `rgba(${tube.glow}, 0.75)` : "#232328" }}
+        >
+          <div
+            className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300"
+            style={{
+              borderColor: lit ? `rgba(${tube.glow}, 0.55)` : "#1e1e22",
+              boxShadow: lit ? `inset 0 0 22px rgba(${tube.glow}, ${playing ? 0.24 : 0.1})` : "none",
+            }}
           >
-            <NeonText
-              text={side}
-              width={56}
-              height={84}
-              fontSize={76}
-              colors={tube.pair}
-              className="h-16 md:h-24"
-            />
-            <span
-              className="flex h-14 w-14 items-center justify-center rounded-full border-2 text-white transition md:h-16 md:w-16"
-              style={{ borderColor: tube.edge, boxShadow: `0 0 12px rgba(${tube.glow}, 0.5)` }}
-            >
-              {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-            </span>
-            <span className="h-1 w-2/3 overflow-hidden rounded-full bg-white/10">
-              <span
-                className="block h-full rounded-full"
-                style={{ width: `${Math.round(progress * 100)}%`, background: tube.edge }}
-              />
-            </span>
-          </button>
-        )}
-      </div>
-      </div>
+            {revealed ? (
+              <>
+                {/* The whole cover, square, the way the artist made it.
+                    Filling the tall panel edge to edge cropped the
+                    lettering off both sides of the artwork. */}
+                <div className="aspect-square w-full shrink-0 bg-black">
+                  {revealed.artworkUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={revealed.artworkUrl} alt="" className="h-full w-full object-cover" />
+                  )}
+                </div>
+                <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-2 text-white">
+                  {badge && (
+                    <span className="bg-gold text-bg mb-1 w-fit rounded-full px-2 py-px text-[0.58rem] font-bold uppercase tracking-widest">
+                      {badge}
+                    </span>
+                  )}
+                  <p className="truncate text-sm font-semibold">{revealed.title}</p>
+                  <p className="truncate text-xs text-neutral-400">{revealed.artistName}</p>
+                  {/* A share of the vote and never a count of it. */}
+                  {pct !== null ? (
+                    <p
+                      className="font-display mt-1 text-3xl leading-none md:text-4xl"
+                      style={{ color: tube.edge }}
+                    >
+                      {pct}%
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[0.68rem] uppercase tracking-widest text-neutral-500">
+                      Voting is open
+                    </p>
+                  )}
+                  <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-widest text-neutral-400">
+                    Battle Wins · {revealed.wins}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={onPlay}
+                aria-label={playing ? `Pause song ${side}` : `Play song ${side}`}
+                className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3"
+              >
+                <NeonText
+                  text={side}
+                  width={56}
+                  height={84}
+                  fontSize={76}
+                  colors={tube.pair}
+                  className="h-16 md:h-24"
+                />
+                <span
+                  className="flex h-14 w-14 items-center justify-center rounded-full border-2 text-white transition md:h-16 md:w-16"
+                  style={{ borderColor: tube.edge, boxShadow: `0 0 12px rgba(${tube.glow}, 0.5)` }}
+                >
+                  {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                </span>
+                <span className="h-1 w-2/3 overflow-hidden rounded-full bg-white/10">
+                  <span
+                    className="block h-full rounded-full"
+                    style={{ width: `${Math.round(progress * 100)}%`, background: tube.edge }}
+                  />
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {decided ? (
@@ -409,6 +486,139 @@ function Panel({
           Choose {side}
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Share a battle: the image for a story or a post, and the link.
+ *
+ * The phone's own share sheet is used where it will take an image, which
+ * is how the card reaches an Instagram story in one step. Everywhere else
+ * the image can be saved and the link copied, so nobody is left with a
+ * button that does nothing on their device.
+ */
+function ShareSheet({ reveal, onClose }: { reveal: Reveal; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const [working, setWorking] = useState(false);
+
+  const url = `${APP}/battles?b=${reveal.id}`;
+  const card = (format: "story" | "post") => `/api/battles/card?b=${reveal.id}&format=${format}`;
+  const text = reveal.closed
+    ? `${reveal.a.artistName} vs ${reveal.b.artistName} on MOTR Battles. Here is how it finished.`
+    : `${reveal.a.artistName} vs ${reveal.b.artistName} on MOTR Battles. Two songs, head to head. Come vote.`;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard refused. The link is printed below, so it can be selected.
+    }
+  }
+
+  async function native() {
+    setWorking(true);
+    try {
+      // With the image where the device takes one, which is what lets it
+      // go straight into a story. With the link alone where it does not.
+      try {
+        const blob = await fetch(card("story")).then((r) => (r.ok ? r.blob() : Promise.reject()));
+        const file = new File([blob], "motr-battle.png", { type: "image/png" });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], text: `${text} ${url}` });
+          return;
+        }
+      } catch {
+        // Fall through to sharing the link by itself.
+      }
+      await navigator.share({ title: "MOTR Battles", text, url });
+    } catch {
+      // Cancelling the share sheet lands here too, and is not a failure.
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  const canNative = typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Share this battle"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="border-edge bg-surface pb-safe w-full max-w-sm rounded-t-3xl border p-5 sm:rounded-3xl"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-display text-xl uppercase tracking-wide">Share this battle</p>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="border-edge text-muted hover:text-ink flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition"
+          >
+            <Cross className="h-3 w-3" />
+          </button>
+        </div>
+
+        {/* The post version, because it is the one that fits a sheet. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={card("post")}
+          alt={`${reveal.a.artistName} versus ${reveal.b.artistName}`}
+          className="border-edge mt-4 aspect-square w-full rounded-2xl border bg-black object-cover"
+        />
+
+        <div className="mt-4 space-y-2">
+          {canNative && (
+            <button
+              onClick={() => void native()}
+              disabled={working}
+              className="bg-gold text-bg flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-bold disabled:opacity-50"
+            >
+              <Share className="h-4 w-4" />
+              {working ? "Getting it ready..." : "Share"}
+            </button>
+          )}
+          <button
+            onClick={() => void copy()}
+            className={`w-full rounded-full border py-3 text-sm font-semibold transition ${
+              copied ? "border-gold text-gold" : "border-edge hover:border-gold"
+            }`}
+          >
+            {copied ? "Link copied" : "Copy link"}
+          </button>
+          <div className="flex gap-2">
+            <a
+              href={card("story")}
+              download="motr-battle-story.png"
+              className="border-edge hover:border-gold flex-1 rounded-full border py-2.5 text-center text-sm transition"
+            >
+              Save for a story
+            </a>
+            <a
+              href={card("post")}
+              download="motr-battle-post.png"
+              className="border-edge hover:border-gold flex-1 rounded-full border py-2.5 text-center text-sm transition"
+            >
+              Save for a post
+            </a>
+          </div>
+        </div>
+
+        <p className="text-muted mt-3 break-all text-center text-xs">{url}</p>
+      </div>
     </div>
   );
 }

@@ -198,21 +198,34 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <>
         <p>
           A <strong className="text-ink">Battle</strong> puts two songs from the same genre in
-          front of a listener with no names attached. The listener chooses one, and only then
-          are both artists shown. Battles are free to take part in, for listeners and for
-          artists.
+          front of listeners with no names attached. A listener chooses one, and only then are
+          both artists shown. Battles are free to take part in, for listeners and for artists.
         </p>
         <ul>
           <li>
             <strong className="text-ink">Any song in the feed can be drawn into a battle.</strong>{" "}
             By submitting music you agree it may be. Songs are paired at random within a genre,
-            and an artist is never matched against their own song.
+            each artist is in no more than one battle a week, and an artist is never matched
+            against their own song. Songs declared as having AI vocals are paired with each
+            other.
+          </li>
+          <li>
+            <strong className="text-ink">A battle runs for the chart week.</strong> Battles open
+            on Sunday and close on Saturday at midnight Central, whenever in the week they were
+            paired. Every listener is given the same battles and may vote once in each. The song
+            with the larger share of the vote when it closes takes the win. A tie, or a battle
+            nobody voted in, gives nobody a win.
           </li>
           <li>
             <strong className="text-ink">A win is a Battle Win and nothing else.</strong> Battle
             Wins are counted on their own board. They have no effect on the song chart, the
             artist chart, the weekly winner, or any write-up, feature or prize that goes with
             the weekly winner. Those are decided by saves alone.
+          </li>
+          <li>
+            <strong className="text-ink">Battles can be shared.</strong> Anyone who has voted in
+            a battle may share it, and the link and image name both songs and both artists. An
+            artist may ask their own listeners to vote.
           </li>
           <li>
             <strong className="text-ink">Totals are kept.</strong> The board shows a week or a

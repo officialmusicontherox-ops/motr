@@ -394,9 +394,9 @@ model Track {
   // already in rotation quietly disappears.
   aiGenerated Boolean?
 
-  /// All-time battle record. Weekly and monthly boards are counted from the
-  /// dated Battle rows; these are the complete totals, so joining Battles in
-  /// its first week never costs anybody their wins.
+  /// All-time battle record, written when a week is settled. The weekly and
+  /// monthly boards are counted from the Battle rows; these are the complete
+  /// totals, so joining Battles in its first week never costs anybody.
   battles    Int @default(0)
   battleWins Int @default(0)
 
@@ -922,27 +922,55 @@ model SuppressedEmail {
 /// Bought by a listener for an artist they want others to hear. The tab is a
 /// promo surface and nothing on it is a verdict, so it cannot touch the
 /// chart or the blind A&R data.
-/// Two blind songs from one genre, and the one a listener picked.
+/// Two blind songs from one genre, the same pair for every listener. Belongs
+/// to a chart week and closes with it, whenever in the week it was paired.
 model Battle {
-  id    String @id @default(cuid())
-  fanId String
+  id String @id @default(cuid())
 
-  /// Left and right as shown, randomised when the battle is made so neither
-  /// side of the screen has an edge.
+  /// The Sunday the week began, midnight Central.
+  weekStart DateTime
+  genre     String
+
+  /// Left and right as shown, a coin toss when paired.
   trackAId String
   trackBId String
-  genre    String
+  votesA   Int    @default(0)
+  votesB   Int    @default(0)
 
-  /// Null on a decided battle means it was skipped, which counts for nobody.
+  /// Set once the week is over and the result has been counted.
+  settledAt DateTime?
+  /// Null after settling means a tie or no votes: nobody takes a win.
   winnerId  String?
-  /// Null while the listener still has it open.
-  decidedAt DateTime?
-  createdAt DateTime  @default(now())
 
-  @@index([fanId, decidedAt])
+  /// When each side's artist was told their song is in this battle. Per
+  /// side, so a battle paired mid-week can be announced later without
+  /// anybody who already heard being written to twice.
+  notifiedAAt DateTime?
+  notifiedBAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([weekStart])
   @@index([trackAId])
   @@index([trackBId])
-  @@index([winnerId, decidedAt])
+}
+
+/// One listener's answer to one battle.
+model BattleVote {
+  id       String @id @default(cuid())
+  battleId String
+  fanId    String
+  /// "A", "B" or "SKIP". A skip counts for nobody.
+  pick     String
+  /// Arrived by a shared link to this battle.
+  viaShare Boolean @default(false)
+  /// The picked song also shows in the listener's Saved list. Set when they
+  /// take it off that list; the vote itself is left alone.
+  hiddenAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([battleId, fanId])
+  @@index([fanId])
 }
 
 /// Every bundle of Spotlights bought. The unique session id is what makes

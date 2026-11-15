@@ -26,7 +26,8 @@ const local = new PrismaClient({
 
 if (process.argv.includes("--clean")) {
   const st = JSON.parse(fs.readFileSync(STATE, "utf8"));
-  await local.battle.deleteMany({ where: { fanId: st.fan } });
+  await local.battleVote.deleteMany({ where: { OR: [{ fanId: st.fan }, { battleId: st.battle }] } });
+  await local.battle.deleteMany({ where: { id: st.battle } });
   await local.track.deleteMany({ where: { id: { in: st.tracks } } });
   await local.artist.deleteMany({ where: { id: { in: st.artists } } });
   await local.fan.deleteMany({ where: { id: st.fan } });
@@ -83,18 +84,28 @@ for (const p of picks) {
       genre: "Rock",
       appleArtistId: p.appleArtistId,
       appleArtistName: p.appleArtistName,
-      // So the reveal shows a believable record rather than 1 and 0.
-      battles: 9 + tracks.length * 4,
-      battleWins: 6 + tracks.length * 1,
+      // So the reveal shows a believable record rather than zero.
+      battles: 5 + tracks.length * 2,
+      battleWins: 3 + tracks.length * 1,
     },
   });
   tracks.push(t.id);
 }
 
 const fan = await local.fan.create({ data: { username: "preview-" + id() } });
-fs.writeFileSync(STATE, JSON.stringify({ fan: fan.id, artists, tracks, parked: parked.map((p) => p.id) }));
+
+// This week's battle between the two, already under way, so a vote lands
+// on a split worth looking at.
+const { weekOf } = await import("../lib/weekWindow.ts");
+const battle = await local.battle.create({
+  data: { weekStart: weekOf().start, genre: "Rock", trackAId: tracks[0], trackBId: tracks[1], votesA: 8, votesB: 5 },
+});
+fs.writeFileSync(
+  STATE,
+  JSON.stringify({ fan: fan.id, artists, tracks, battle: battle.id, parked: parked.map((p) => p.id) })
+);
 
 const { fanSessionCookie } = await import("../lib/fanAuth.ts");
 const c = fanSessionCookie(fan.id);
-console.log(JSON.stringify({ name: c.name, value: c.value, fan: fan.id, songs: picks.map((p) => p.artistName) }));
+console.log(JSON.stringify({ name: c.name, value: c.value, fan: fan.id, battle: battle.id, songs: picks.map((p) => p.artistName) }));
 await local.$disconnect();

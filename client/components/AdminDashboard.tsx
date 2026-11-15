@@ -22,6 +22,7 @@ import AdminScouts from "./AdminScouts";
 import AdminPromotion from "./AdminPromotion";
 import AdminSpotlights from "./AdminSpotlights";
 import AdminBattles from "./AdminBattles";
+import AdminBattleNotice from "./AdminBattleNotice";
 import AdminReports from "./AdminReports";
 import AdminRefused from "./AdminRefused";
 import AdminSecurity from "./AdminSecurity";
@@ -222,7 +223,12 @@ export default function AdminDashboard({
 
  {view === "spotlights" && <AdminSpotlights />}
 
- {view === "battles" && <AdminBattles />}
+ {view === "battles" && (
+ <>
+ <AdminBattleNotice />
+ <AdminBattles />
+ </>
+ )}
 
  {view === "listeners" && (
  <>

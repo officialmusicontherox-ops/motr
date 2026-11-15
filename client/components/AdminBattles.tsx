@@ -5,30 +5,24 @@ import AdminSection from "./AdminSection";
 
 type Data = {
   weekLabel: string;
-  counts: { decided: number; skipped: number; open: number; voters: number };
+  counts: { votes: number; skips: number; shared: number; voters: number; open: number; closed: number };
+  thisWeek: { id: string; genre: string; a: string; b: string; votesA: number; votesB: number; shared: number }[];
+  leaders: { key: string; name: string; wins: number }[];
   totals: { key: string; name: string; wins: number; battles: number }[];
-  thisWeek: { key: string; name: string; wins: number }[];
-  recent: { id: string; at: string; genre: string; a: string; b: string; winner: "A" | "B" | null }[];
 };
-
-const when = (iso: string) =>
-  new Date(iso).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 
 /**
  * The complete battle record.
  *
- * The public board shows rank and name for a week or a month. This is
- * everything behind it, kept for good: an artist's wins never reset, so
- * nobody is worse off for having joined Battles in its first week.
+ * Listeners see percentages and artists see ranks. This is everything
+ * behind them, with the real counts: this week's battles and their links,
+ * how many votes arrived by a shared link, and every artist's all-time
+ * record, which is kept for good and never resets.
  */
 export default function AdminBattles() {
   const [data, setData] = useState<Data | null>(null);
   const [failed, setFailed] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/battles")
@@ -37,49 +31,97 @@ export default function AdminBattles() {
       .catch(() => setFailed(true));
   }, []);
 
-  if (failed) {
+  if (failed || !data) {
     return (
-      <AdminSection title="Battles" description="Couldn't load.">
-        <p className="text-muted text-sm">Try again in a moment.</p>
+      <AdminSection title="Battles" description={failed ? "Couldn't load." : "Loading..."}>
+        <p className="text-muted text-sm">{failed ? "Try again in a moment." : "Loading..."}</p>
       </AdminSection>
     );
   }
-  if (!data) {
-    return (
-      <AdminSection title="Battles" description="Loading...">
-        <p className="text-muted text-sm">Loading...</p>
-      </AdminSection>
-    );
+
+  async function copy(id: string) {
+    try {
+      await navigator.clipboard.writeText(`https://app.musicontherox.com/battles?b=${id}`);
+      setCopied(id);
+      window.setTimeout(() => setCopied(null), 1600);
+    } catch {
+      // Clipboard refused. Nothing to do but leave the button as it was.
+    }
   }
 
   return (
     <>
       <AdminSection title="Battles" description="Every vote cast, and what it added up to">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Tile label="battles decided" value={data.counts.decided} />
-          <Tile label="listeners who voted" value={data.counts.voters} />
-          <Tile label="skipped" value={data.counts.skipped} sub="counted for nobody" />
-          <Tile label="open right now" value={data.counts.open} sub="served, not answered" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          <Tile label="votes cast" value={data.counts.votes} sub={`${data.counts.voters} listeners`} />
+          <Tile label="came by shared link" value={data.counts.shared} sub="of those votes" />
+          <Tile label="skipped" value={data.counts.skips} sub="counted for nobody" />
+          <Tile label="battles this week" value={data.counts.open} sub={data.weekLabel} />
+          <Tile label="battles finished" value={data.counts.closed} sub="in weeks gone by" />
         </div>
       </AdminSection>
 
-      <AdminSection title="This week" description={data.weekLabel}>
+      <AdminSection title="This week's battles" description={`${data.weekLabel} · closes Saturday at midnight Central`}>
         {data.thisWeek.length === 0 ? (
-          <p className="text-muted text-sm">No battles decided yet this week.</p>
+          <p className="text-muted text-sm">No battles paired yet this week.</p>
         ) : (
-          <Table
-            head={["#", "Artist", "Wins this week"]}
-            rows={data.thisWeek.map((r, i) => [String(i + 1), r.name, String(r.wins)])}
-          />
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-muted motr-label">
+                <tr>
+                  <th className="pb-2 pr-3">Genre</th>
+                  <th className="pb-2 pr-3">A</th>
+                  <th className="pb-2 pr-3">B</th>
+                  <th className="pb-2 pr-3">Votes</th>
+                  <th className="pb-2 pr-3">Split</th>
+                  <th className="pb-2 pr-3">By link</th>
+                  <th className="pb-2">Link</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.thisWeek.map((b) => {
+                  const total = b.votesA + b.votesB;
+                  const pa = total ? Math.round((b.votesA / total) * 100) : 0;
+                  return (
+                    <tr key={b.id} className="border-edge border-t">
+                      <td className="text-muted py-2 pr-3">{b.genre.split(" /")[0]}</td>
+                      <td className={`py-2 pr-3 ${b.votesA > b.votesB ? "text-gold font-semibold" : ""}`}>{b.a}</td>
+                      <td className={`py-2 pr-3 ${b.votesB > b.votesA ? "text-gold font-semibold" : ""}`}>{b.b}</td>
+                      <td className="text-muted py-2 pr-3 tabular-nums whitespace-nowrap">
+                        {b.votesA} to {b.votesB}
+                      </td>
+                      <td className="text-muted py-2 pr-3 tabular-nums whitespace-nowrap">
+                        {total ? `${pa}% / ${100 - pa}%` : "-"}
+                      </td>
+                      <td className="text-muted py-2 pr-3 tabular-nums">{b.shared}</td>
+                      <td className="py-2">
+                        <button
+                          onClick={() => void copy(b.id)}
+                          className="border-edge hover:border-gold rounded-full border px-3 py-1 text-xs transition"
+                        >
+                          {copied === b.id ? "Copied" : "Copy"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </AdminSection>
 
-      <AdminSection
-        title="All-time record"
-        description="Complete totals. These never reset."
-      >
+      <AdminSection title="Leading this week" description="Who is ahead in their battle right now">
+        {data.leaders.length === 0 ? (
+          <p className="text-muted text-sm">Nobody is ahead yet.</p>
+        ) : (
+          <Table head={["#", "Artist"]} rows={data.leaders.map((r, i) => [String(i + 1), r.name])} />
+        )}
+      </AdminSection>
+
+      <AdminSection title="All-time record" description="Complete totals from finished weeks. These never reset.">
         {data.totals.length === 0 ? (
-          <p className="text-muted text-sm">Nobody has battled yet.</p>
+          <p className="text-muted text-sm">No week has finished yet. Totals are written when one does.</p>
         ) : (
           <Table
             head={["#", "Artist", "Wins", "Battles", "Win rate"]}
@@ -91,41 +133,6 @@ export default function AdminBattles() {
               r.battles ? `${Math.round((r.wins / r.battles) * 100)}%` : "-",
             ])}
           />
-        )}
-      </AdminSection>
-
-      <AdminSection title="Latest battles" description="Newest first" defaultOpen={false}>
-        {data.recent.length === 0 ? (
-          <p className="text-muted text-sm">None yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="text-muted motr-label">
-                <tr>
-                  <th className="pb-2 pr-3">When</th>
-                  <th className="pb-2 pr-3">Genre</th>
-                  <th className="pb-2 pr-3">A</th>
-                  <th className="pb-2 pr-3">B</th>
-                  <th className="pb-2">Picked</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recent.map((b) => (
-                  <tr key={b.id} className="border-edge border-t">
-                    <td className="text-muted py-2 pr-3 whitespace-nowrap">{when(b.at)}</td>
-                    <td className="text-muted py-2 pr-3">{b.genre.split(" /")[0]}</td>
-                    <td className={`py-2 pr-3 ${b.winner === "A" ? "text-gold font-semibold" : ""}`}>
-                      {b.a}
-                    </td>
-                    <td className={`py-2 pr-3 ${b.winner === "B" ? "text-gold font-semibold" : ""}`}>
-                      {b.b}
-                    </td>
-                    <td className="text-muted py-2">{b.winner ?? "skipped"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         )}
       </AdminSection>
     </>
@@ -159,10 +166,7 @@ function Table({ head, rows }: { head: string[]; rows: string[][] }) {
           {rows.map((r, i) => (
             <tr key={i} className="border-edge border-t">
               {r.map((c, j) => (
-                <td
-                  key={j}
-                  className={`py-2 pr-3 ${j === 1 ? "font-semibold" : "text-muted tabular-nums"}`}
-                >
+                <td key={j} className={`py-2 pr-3 ${j === 1 ? "font-semibold" : "text-muted tabular-nums"}`}>
                   {c}
                 </td>
               ))}

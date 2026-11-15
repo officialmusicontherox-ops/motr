@@ -283,9 +283,9 @@ export default function ChartsView() {
             <section hidden={board !== "battles"}>
               <h2 className="motr-label text-gold mb-3">Battle wins</h2>
               <p className="text-muted mb-3 text-xs leading-relaxed">
-                Two songs from one genre, no names, and a listener picks one. Every pick is a
-                win. This board stands alone: it has no effect on the song or artist charts or
-                on the weekly winner.
+                Two songs from one genre, no names, and listeners pick one. Whoever has the
+                bigger share when the week closes takes the win. This board stands alone: it has
+                no effect on the song or artist charts or on the weekly winner.
               </p>
               {(data.battles ?? []).length === 0 ? (
                 <Empty />

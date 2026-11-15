@@ -51,11 +51,15 @@ const FAQS = [
   },
   {
     q: "What are Battles?",
-    a: "A second way to judge music. You get two songs from the same genre with no names on them, play each one as often as you like, and choose the one you would play again. Once you vote, both artists are revealed. You never get two songs by the same artist, and you never get the same song twice. If you can't stand either, skip it and nobody is counted.",
+    a: "A second way to judge music. You get two songs from the same genre with no names on them, play each one as often as you like, and choose the one you would play again. Once you vote, both artists are revealed along with how the vote is going, and the song you picked goes into your Saved list. Everybody gets the same battles. New ones open every Sunday and they all close Saturday at midnight Central, when the song with the bigger share of the vote takes the win. If you can't stand either song, skip it and nobody is counted.",
+  },
+  {
+    q: "How are battles put together?",
+    a: "At random, inside a genre. Each artist is in one battle a week, so nobody faces their own song and a bigger catalogue can't win more. Songs with AI vocals are paired with each other. If a genre has an odd number of artists, one sits out that week and goes in first the next. You can share any battle you have voted in, as a link or as an image for a story or a post.",
   },
   {
     q: "Do Battles affect the charts or the weekly winner?",
-    a: "No. Every vote in a battle is a Battle Win for that artist, and Battle Wins have a board of their own on the Charts tab, by week and by month. They have no effect on the song chart, the artist chart, the weekly winner or the write-up that goes with it. Those come from saves alone. An artist's Battle Wins are kept for good and never reset.",
+    a: "No. Winning a battle is a Battle Win for that artist, and Battle Wins have a board of their own on the Charts tab, by week and by month. They have no effect on the song chart, the artist chart, the weekly winner or the write-up that goes with it. Those come from saves alone. An artist's Battle Wins are kept for good and never reset.",
   },
   {
     q: "What is a Spotlight?",
