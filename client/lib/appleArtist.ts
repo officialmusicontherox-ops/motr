@@ -33,3 +33,26 @@ export async function knownAppleArtist(
   if (rows.length !== 1 || !rows[0].appleArtistId) return null;
   return { appleArtistId: rows[0].appleArtistId, appleArtistName: rows[0].appleArtistName };
 }
+
+/**
+ * The other direction. A song has just arrived with an Apple artist, and
+ * the same name may already have older songs filed under the name alone
+ * because Apple could not place them at the time. Move those onto the id,
+ * or the artist is split again the moment their second song matches.
+ */
+export async function adoptAppleArtist(
+  appleArtistId: string,
+  appleArtistName: string | null,
+  artistName: string
+): Promise<number> {
+  const names = [artistName, appleArtistName].filter((n): n is string => !!n && !!n.trim());
+  if (!names.length) return 0;
+  const done = await prisma.track.updateMany({
+    where: {
+      appleArtistId: null,
+      OR: names.map((n) => ({ artistName: { equals: n.trim(), mode: "insensitive" as const } })),
+    },
+    data: { appleArtistId, appleArtistName },
+  });
+  return done.count;
+}

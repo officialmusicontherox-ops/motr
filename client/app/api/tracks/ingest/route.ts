@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { knownAppleArtist } from "@/lib/appleArtist";
+import { adoptAppleArtist, knownAppleArtist } from "@/lib/appleArtist";
 import { isEmailAddress } from "@/lib/emailAddress";
 import { resetArtistNudges } from "@/lib/artistNudges";
 import { storyCardAttachment } from "@/lib/artistSharePage";
@@ -303,6 +303,12 @@ export async function POST(req: NextRequest) {
       ...(typeof requiredFanVotes === "number" ? { requiredFanVotes } : {}),
     },
   });
+
+  // And the reverse: older songs under this name that Apple could not place
+  // move onto the id this one came with.
+  if (track.appleArtistId) {
+    await adoptAppleArtist(track.appleArtistId, track.appleArtistName, track.artistName).catch(() => 0);
+  }
 
   // They came back, so the come-back emails start over. Without this an
   // artist who returns after two nudges only ever has one left.
