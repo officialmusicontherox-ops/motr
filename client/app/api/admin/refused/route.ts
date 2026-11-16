@@ -161,12 +161,10 @@ async function addResolvedTrack(
     create: { email, name: resolved.artistName.split(/[,&]/)[0].trim() },
   });
 
-  // The Apple artist this song belongs to: the one the lookup found, or
-  // failing that the one this name already has on file. Without it the same
-  // artist counts as two on the charts and in battles.
-  const borrowed = resolved.appleArtistId
-    ? { appleArtistId: resolved.appleArtistId, appleArtistName: resolved.appleArtistName }
-    : await knownAppleArtist(resolved.artistName);
+  // No Apple artist comes back from this lookup, so file the song under the
+  // one this name already has. Without it the same artist counts as two on
+  // the charts and in battles.
+  const borrowed = await knownAppleArtist(resolved.artistName);
 
   const track = await prisma.track.create({
     data: {
