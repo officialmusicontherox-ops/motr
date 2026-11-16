@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { Pager, usePager } from "./AdminSection";
 
 type Purchase = {
   id: string;
@@ -64,6 +64,10 @@ function remaining(endsAt: string | null): string {
 export default function AdminSpotlights() {
   const [data, setData] = useState<Data | null>(null);
   const [failed, setFailed] = useState(false);
+  // Ten rows a page. One buyer spending ten at once made each list a long
+  // scroll, with the other list somewhere below it.
+  const spendPage = usePager(10);
+  const buyPage = usePager(10);
 
   useEffect(() => {
     fetch("/api/admin/spotlights")
@@ -107,7 +111,7 @@ export default function AdminSpotlights() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.spends.map((s) => {
+                  {spendPage.slice(data.spends).map((s) => {
                     const left = remaining(s.endsAt);
                     return (
                       <tr key={s.id} className="border-edge border-t">
@@ -127,6 +131,12 @@ export default function AdminSpotlights() {
                   })}
                 </tbody>
               </table>
+              <Pager
+                page={spendPage.page}
+                pageSize={spendPage.pageSize}
+                total={data.spends.length}
+                onPage={spendPage.setPage}
+              />
             </div>
           )}
 
@@ -146,7 +156,7 @@ export default function AdminSpotlights() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.purchases.map((p) => (
+                  {buyPage.slice(data.purchases).map((p) => (
                     <tr key={p.id} className="border-edge border-t">
                       <td className="py-2 pr-3 font-semibold">{p.buyer}</td>
                       <td className="text-muted py-2 pr-3">
@@ -159,6 +169,12 @@ export default function AdminSpotlights() {
                   ))}
                 </tbody>
               </table>
+              <Pager
+                page={buyPage.page}
+                pageSize={buyPage.pageSize}
+                total={data.purchases.length}
+                onPage={buyPage.setPage}
+              />
               {/* The reason this section exists: the Stripe id, so a charge
                   in their dashboard can be matched to a person and an
                   artist rather than guessed at against the submission

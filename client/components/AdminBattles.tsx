@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import AdminSection from "./AdminSection";
+import AdminSection, { Pager, usePager } from "./AdminSection";
 
 type Data = {
   weekLabel: string;
@@ -23,6 +23,11 @@ export default function AdminBattles() {
   const [data, setData] = useState<Data | null>(null);
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  // A week is around eighty battles, which was one long scroll with the
+  // other two tables far below it.
+  const weekPage = usePager(10);
+  const leadPage = usePager(10);
+  const totalPage = usePager(15);
 
   useEffect(() => {
     fetch("/api/admin/battles")
@@ -80,7 +85,7 @@ export default function AdminBattles() {
                 </tr>
               </thead>
               <tbody>
-                {data.thisWeek.map((b) => {
+                {weekPage.slice(data.thisWeek).map((b) => {
                   const total = b.votesA + b.votesB;
                   const pa = total ? Math.round((b.votesA / total) * 100) : 0;
                   return (
@@ -108,6 +113,12 @@ export default function AdminBattles() {
                 })}
               </tbody>
             </table>
+            <Pager
+              page={weekPage.page}
+              pageSize={weekPage.pageSize}
+              total={data.thisWeek.length}
+              onPage={weekPage.setPage}
+            />
           </div>
         )}
       </AdminSection>
@@ -116,7 +127,18 @@ export default function AdminBattles() {
         {data.leaders.length === 0 ? (
           <p className="text-muted text-sm">Nobody is ahead yet.</p>
         ) : (
-          <Table head={["#", "Artist"]} rows={data.leaders.map((r, i) => [String(i + 1), r.name])} />
+          <>
+            <Table
+              head={["#", "Artist"]}
+              rows={leadPage.slice(data.leaders.map((r, i) => [String(i + 1), r.name]))}
+            />
+            <Pager
+              page={leadPage.page}
+              pageSize={leadPage.pageSize}
+              total={data.leaders.length}
+              onPage={leadPage.setPage}
+            />
+          </>
         )}
       </AdminSection>
 
@@ -124,16 +146,24 @@ export default function AdminBattles() {
         {data.totals.length === 0 ? (
           <p className="text-muted text-sm">No week has finished yet. Totals are written when one does.</p>
         ) : (
-          <Table
-            head={["#", "Artist", "Wins", "Battles", "Win rate"]}
-            rows={data.totals.map((r, i) => [
-              String(i + 1),
-              r.name,
-              String(r.wins),
-              String(r.battles),
-              r.battles ? `${Math.round((r.wins / r.battles) * 100)}%` : "-",
-            ])}
-          />
+          <>
+            <Table
+              head={["#", "Artist", "Wins", "Battles", "Win rate"]}
+              rows={totalPage.slice(data.totals.map((r, i) => [
+                String(i + 1),
+                r.name,
+                String(r.wins),
+                String(r.battles),
+                r.battles ? `${Math.round((r.wins / r.battles) * 100)}%` : "-",
+              ]))}
+            />
+            <Pager
+              page={totalPage.page}
+              pageSize={totalPage.pageSize}
+              total={data.totals.length}
+              onPage={totalPage.setPage}
+            />
+          </>
         )}
       </AdminSection>
     </>
