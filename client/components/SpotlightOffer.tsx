@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BUNDLES, PER_ARTIST, SPOTLIGHT_SPAN, price } from "@/lib/spotlightBundles";
+import { BUNDLES, CAP_PLACES, SPOTLIGHT_SPAN, price } from "@/lib/spotlightBundles";
 import { Cross } from "./icons";
 
 /**
@@ -107,13 +107,12 @@ export default function SpotlightOffer({
         {/* The one thing that must be said plainly, because the whole app
             rests on it. */}
         {/* The things somebody is owed before they pay. The cap belongs
-            here rather than in a surprise after: spending a third on the
+            here rather than in a surprise after: spending another on the
             same artist queues it instead of putting it up. */}
         <p className="text-muted mt-4 text-xs leading-relaxed">
           A Spotlight is promotion, not a vote. It never counts toward the
-          charts. An artist can hold {PER_ARTIST} places at a time, so a
-          third one for the same artist waits and starts when one of theirs
-          ends. Purchases are non-refundable.
+          charts. An artist can hold {CAP_PLACES} at a time, so another
+          one for the same artist waits and starts when theirs ends. Purchases are non-refundable.
         </p>
       </div>
     </div>

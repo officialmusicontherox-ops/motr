@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Cross, Note } from "./icons";
 import SpotlightOffer from "./SpotlightOffer";
-import { PER_ARTIST, SPOTLIGHT_SPAN } from "@/lib/spotlightBundles";
+import { CAP_PLACES, SPOTLIGHT_SPAN } from "@/lib/spotlightBundles";
 
 type Card = {
   artistId: string;
@@ -184,8 +184,8 @@ export default function ArtistSheet({
 
         {card && !done && (
           <p className="text-muted mt-3 text-xs leading-relaxed">
-            An artist can hold {PER_ARTIST} places at a time. A third waits and starts when one
-            of theirs ends.
+            An artist can hold {CAP_PLACES} at a time. Another one for the same artist waits
+            and starts when theirs ends.
           </p>
         )}
 

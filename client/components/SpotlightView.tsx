@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import MotrShell from "./MotrShell";
-import { PER_ARTIST, SLOTS } from "@/lib/spotlightBundles";
+import { CAP_PLACES, SLOTS } from "@/lib/spotlightBundles";
 import ArtistSheet from "./ArtistSheet";
 import SpotlightOffer from "./SpotlightOffer";
 
@@ -69,7 +69,7 @@ export default function SpotlightView() {
         </h1>
         <p className="text-muted mx-auto mt-1 max-w-md shrink-0 text-center text-xs md:text-sm">
           Artists someone wanted you to hear. Tap one to see who they are.
-          Each artist can hold {PER_ARTIST} of these {SLOTS} places at a time.
+          Each artist can hold {CAP_PLACES} at a time.
         </p>
 
         {/* The only place to get one used to be the moment you reached for a

@@ -1,5 +1,5 @@
 import PageNav from "@/components/PageNav";
-import { PER_ARTIST, SLOTS, SPOTLIGHT_SPAN } from "@/lib/spotlightBundles";
+import { CAP_PLACES, SLOTS, SPOTLIGHT_SPAN } from "@/lib/spotlightBundles";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -264,9 +264,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             for.
           </li>
           <li>
-            <strong className="text-ink">An artist can hold {PER_ARTIST} places at a time.</strong>{" "}
+            <strong className="text-ink">An artist can hold {CAP_PLACES} at a time.</strong>{" "}
             A further Spotlight for the same artist is not refused and nothing is lost: it waits,
-            and starts its own {SPOTLIGHT_SPAN} when one of that artist&apos;s places ends. The
+            and starts its own {SPOTLIGHT_SPAN} when that artist&apos;s current one ends. The
             same time is served over more days rather than stacked on top of itself.
           </li>
           <li>
