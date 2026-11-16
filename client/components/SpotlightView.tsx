@@ -33,12 +33,10 @@ function listeners(n: number) {
  * chart. That separation is the whole reason a Spotlight can be bought
  * without making the chart buyable.
  *
- * All six tiles sit on one screen and the page does not scroll, on a phone
- * or a laptop. Six tiles stacked one per row was a long scroll that only
- * ever showed one artist at a time, which defeats the point of a shelf: you
- * are meant to see the whole shelf and pick. The grid is sized by the space
- * available rather than by a fixed aspect ratio, so the tiles get shorter on
- * a small phone instead of pushing the last row under the fold.
+ * Ten tiles. On a laptop all of them sit on one screen, five by two, and
+ * the page does not scroll: you are meant to see the whole shelf and pick.
+ * On a phone ten cannot fit one screen at a size worth looking at, so the
+ * shelf scrolls there, two across.
  */
 export default function SpotlightView() {
   const [tiles, setTiles] = useState<Tile[] | null>(null);
@@ -63,7 +61,7 @@ export default function SpotlightView() {
 
   return (
     <MotrShell fill>
-      <div className="flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+      <div className="flex min-h-0 w-full max-w-5xl flex-1 flex-col">
         <h1 className="font-display shrink-0 text-center text-xl uppercase tracking-wide md:text-2xl">
           Spotlight
         </h1>
@@ -91,14 +89,15 @@ export default function SpotlightView() {
             Couldn&apos;t load the Spotlight right now. Pull down to try again.
           </p>
         ) : (
-          /* Two by three on a phone, three by two on a laptop, and the rows
-             divide whatever height is left. grid-rows is what keeps it to one
-             screen: without it the rows size to their content and the third
-             row lands under the tab bar. */
-          <div className="mt-3 grid min-h-0 flex-1 grid-cols-2 grid-rows-3 gap-2.5 pb-1 md:grid-cols-3 md:grid-rows-2 md:gap-4">
-            {/* Six placeholders rather than a spinner, so nothing moves when
+          /* Ten places. On a laptop they are five by two and the two rows
+             divide whatever height is left, so the page does not scroll.
+             On a phone ten will not fit one screen at a size worth
+             looking at, so they run two across at a fixed height and the
+             list scrolls inside the page. */
+          <div className="mt-3 grid min-h-0 flex-1 auto-rows-[11.5rem] grid-cols-2 gap-2.5 overflow-y-auto pb-1 md:auto-rows-auto md:grid-cols-5 md:grid-rows-2 md:gap-3 md:overflow-visible">
+            {/* Placeholders rather than a spinner, so nothing moves when
                 the real tiles arrive. */}
-            {(tiles ?? Array.from({ length: 6 }, () => null)).map((t, i) =>
+            {(tiles ?? Array.from({ length: SLOTS }, () => null)).map((t, i) =>
               t ? (
                 <TileCard key={t.artistId} t={t} onOpen={() => setSheet(t)} />
               ) : (
@@ -140,7 +139,7 @@ function TileCard({ t, onOpen }: { t: Tile; onOpen: () => void }) {
             src={t.image}
             alt=""
             fill
-            sizes="(max-width: 768px) 50vw, 256px"
+            sizes="(max-width: 768px) 50vw, 200px"
             // Same as the charts and the swipe card: these come from Spotify
             // and Apple, which are not in the image allowlist, and optimising
             // someone else's CDN buys nothing.

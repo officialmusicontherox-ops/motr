@@ -8,7 +8,7 @@
  * — they buy a few and then spend them the instant something lands.
  */
 /** Tiles on the Spotlight tab. */
-export const SLOTS = 6;
+export const SLOTS = 10;
 
 /**
  * How long a bought Spotlight runs.
