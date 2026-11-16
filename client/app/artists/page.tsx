@@ -55,6 +55,8 @@ export default function ArtistsPage() {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
+            // The server reads which service the link is from. The field
+            // keeps its old name; it carries either kind of link.
             source: "SPOTIFY",
             spotifyUrl: song.url.trim(),
             artistEmail,
@@ -256,8 +258,8 @@ export default function ArtistsPage() {
         </Link>
         <h1 className="font-display mt-6 text-4xl uppercase tracking-wide">Submit your song</h1>
         <p className="text-muted mx-auto mt-2 max-w-md text-sm leading-relaxed">
-          Free to submit, and free to stay in the feed. Paste your Spotify link and listeners
-          start hearing it.
+          Free to submit, and free to stay in the feed. Paste your Spotify or Apple
+          Music link and listeners start hearing it.
         </p>
       </header>
 
@@ -311,16 +313,21 @@ export default function ArtistsPage() {
             and only learning the rule from the refusal. */}
         <div className="border-gold/40 bg-gold/5 -mb-1 rounded-xl border px-4 py-3">
           <p className="text-sm leading-relaxed">
-            <strong className="text-gold">Your song has to be on Apple Music as well as Spotify.</strong>{" "}
+            <strong className="text-gold">Your song has to be on Apple Music.</strong>{" "}
             <span className="text-muted">
-              You paste a Spotify link because it identifies the track, but the 30-second clip we
-              play comes from Apple. A release that is on Spotify only has nothing for us to play,
-              and we won&apos;t substitute someone else&apos;s recording to fill the gap.
+              You can paste a Spotify link or an Apple Music link. Either way, the 30-second clip
+              we play comes from Apple, so a release that is on Spotify only has nothing for us to
+              play, and we won&apos;t substitute someone else&apos;s recording to fill the gap.
             </span>
           </p>
           <p className="text-muted mt-2 text-xs leading-relaxed">
-            It also has to be <strong className="text-ink">already released</strong> on both. In
-            Spotify: Share, then Copy Song Link.
+            It also has to be <strong className="text-ink">already released</strong>, and the link
+            has to be to one song, not an album.
+          </p>
+          <p className="text-muted mt-1 text-xs leading-relaxed">
+            <strong className="text-ink">Spotify:</strong> Share, then Copy Song Link.{" "}
+            <strong className="text-ink">Apple Music:</strong> tap the three dots next to the song,
+            then Share Song, then Copy Link.
           </p>
         </div>
 
@@ -328,7 +335,7 @@ export default function ArtistsPage() {
           <div key={i} className="border-edge bg-surface/40 rounded-2xl border p-4">
             <div className="mb-2 flex items-center justify-between">
               <span className="motr-label">
-                {songs.length > 1 ? `Song ${i + 1}` : "Spotify track link"}
+                {songs.length > 1 ? `Song ${i + 1}` : "Spotify or Apple Music song link"}
               </span>
               {songs.length > 1 && (
                 <button
@@ -344,7 +351,7 @@ export default function ArtistsPage() {
             <input
               value={song.url}
               onChange={(e) => setSong(i, { url: e.target.value })}
-              placeholder="https://open.spotify.com/track/..."
+              placeholder="Spotify or Apple Music song link"
               className="border-edge bg-bg focus:border-gold w-full rounded-xl border px-4 py-3 outline-none transition placeholder:text-neutral-600"
             />
 

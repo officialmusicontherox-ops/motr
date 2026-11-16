@@ -31,3 +31,22 @@ export function spotifyLinkFor(track: {
   const q = encodeURIComponent(`${track.artistName} ${track.title}`);
   return `https://open.spotify.com/search/${q}`;
 }
+
+/**
+ * Where a listener is sent to hear the whole song, and which service that is.
+ *
+ * A song the artist submitted from Apple Music goes to Apple Music, at the
+ * exact song. Everything else goes to Spotify as before.
+ */
+export function listenLinkFor(track: {
+  externalId: string;
+  source: string;
+  title: string;
+  artistName: string;
+  appleTrackId?: string | null;
+}): { listenUrl: string; listenOn: "spotify" | "apple" } {
+  if (track.source === "APPLE_MUSIC" && track.appleTrackId) {
+    return { listenUrl: `https://music.apple.com/us/song/${track.appleTrackId}`, listenOn: "apple" };
+  }
+  return { listenUrl: spotifyLinkFor(track), listenOn: "spotify" };
+}

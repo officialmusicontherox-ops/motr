@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { spotifyLinkFor } from "@/lib/spotifyLink";
+import { listenLinkFor } from "@/lib/spotifyLink";
 import { getFanSession } from "@/lib/fanAuth";
 import { battlePicksFor, hideBattlePicks } from "@/lib/battles";
 
@@ -32,6 +32,7 @@ export async function GET() {
           fanRightSwipes: true,
           externalId: true,
           source: true,
+          appleTrackId: true,
           // For the artist sheet in Saved. Null for the seeded catalogue,
           // which has no artist record and therefore no profile to show.
           artistId: true,
@@ -45,7 +46,7 @@ export async function GET() {
     savedAt: s.createdAt,
     savedToSpotifyAt: s.savedToSpotifyAt,
     // Works for every fan, unlike the API save — see lib/spotifyLink.ts.
-    spotifyUrl: spotifyLinkFor(s.track),
+    ...listenLinkFor(s.track),
   }));
 
   // Songs picked in battles belong in the library too. They are listed
@@ -67,6 +68,7 @@ export async function GET() {
         fanRightSwipes: true,
         externalId: true,
         source: true,
+        appleTrackId: true,
         artistId: true,
       },
     });
@@ -76,7 +78,7 @@ export async function GET() {
       const t = byId.get(p.trackId);
       if (!t || seen.has(t.id)) continue;
       seen.add(t.id);
-      saved.push({ ...t, savedAt: p.at, savedToSpotifyAt: null, spotifyUrl: spotifyLinkFor(t) });
+      saved.push({ ...t, savedAt: p.at, savedToSpotifyAt: null, ...listenLinkFor(t) });
     }
     saved.sort((a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime());
   }

@@ -610,9 +610,82 @@ export async function resolveSpotifyTrack(trackId: string): Promise<ResolvedTrac
     `We found "${displayTitle}" on Spotify but couldn't find a matching preview from Apple for ` +
       `${spotifyArtist}, so we haven't added it. We won't put another artist's audio under your ` +
       `name. This almost always means the release is on Spotify but not yet on Apple Music. ` +
-      `Once it's live there, submit it again, or email the link to ${CONTACT_EMAIL} and we'll ` +
-      `add it by hand.`
+      `If it is on Apple Music, paste its Apple Music link instead and it goes straight in. ` +
+      `Otherwise submit it again once it's live there, or email the link to ${CONTACT_EMAIL} ` +
+      `and we'll add it by hand.`
   );
+}
+
+/**
+ * A song submitted as an Apple Music link.
+ *
+ * The link carries Apple's own id for the recording, so there is nothing to
+ * match and nothing to guess: one lookup returns the exact song, its clip,
+ * its artwork and the artist it is filed under.
+ */
+export async function resolveAppleTrack(
+  appleTrackId: string,
+  country: string | null
+): Promise<ResolvedTrack> {
+  const ask = async (cc: string | null) => {
+    const res = await fetch(
+      `https://itunes.apple.com/lookup?id=${appleTrackId}${cc ? `&country=${cc}` : ""}`
+    );
+    if (res.status === 403 || res.status === 429) return "throttled" as const;
+    if (!res.ok) return null;
+    const data = (await res.json().catch(() => ({}))) as {
+      results?: (ItunesResult & { kind?: string; wrapperType?: string })[];
+    };
+    return (data.results ?? []).find((r) => r.wrapperType === "track") ?? null;
+  };
+
+  // The store the link came from first, then the US one. An id that is in
+  // neither does not exist as far as we can play it.
+  let hit: Awaited<ReturnType<typeof ask>> = null;
+  try {
+    hit = await ask(country);
+    if (!hit && country && country !== "us") hit = await ask(null);
+  } catch {
+    hit = null;
+  }
+
+  if (hit === "throttled") {
+    throw new TrackLookupError(
+      "Apple limits how often we can ask about a track, and we reached that limit just now. " +
+        "Nothing is wrong with your link. Give it a minute and send it again."
+    );
+  }
+  if (!hit) {
+    throw new TrackLookupError(
+      `We couldn't find that song on Apple Music. Check the link opens the song itself, then ` +
+        `send it again, or email it to ${CONTACT_EMAIL} and we'll add it by hand.`
+    );
+  }
+  if (hit.kind && hit.kind !== "song") {
+    throw new TrackLookupError(
+      "That link is a music video rather than a song. In Apple Music, open the song itself, " +
+        "tap the three dots, then Share Song and Copy Link."
+    );
+  }
+  if (!hit.previewUrl) {
+    throw new TrackLookupError(
+      `Apple has "${hit.trackName}" but no 30-second clip for it yet, so there is nothing for ` +
+        `listeners to hear. That usually clears a day or two after release. Send it again then, ` +
+        `or email the link to ${CONTACT_EMAIL}.`
+    );
+  }
+
+  return {
+    title: hit.trackName,
+    artistName: hit.artistName,
+    albumName: hit.collectionName ?? null,
+    artworkUrl: upscaleArtwork(hit.artworkUrl100),
+    previewUrl: hit.previewUrl,
+    durationMs: hit.trackTimeMillis ?? null,
+    appleTrackId,
+    appleArtistId: hit.artistId ? String(hit.artistId) : null,
+    appleArtistName: hit.artistName ?? null,
+  };
 }
 
 /** Used by the backfill, where all we have is what's already in the row. */

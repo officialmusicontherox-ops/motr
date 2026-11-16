@@ -10,7 +10,13 @@ import {
   sendEmail,
   submissionReceivedEmail,
 } from "@/lib/email";
-import { TrackLookupError, resolveSpotifyTrack, trackIdentity } from "@/lib/trackLookup";
+import {
+  TrackLookupError,
+  resolveAppleTrack,
+  resolveSpotifyTrack,
+  trackIdentity,
+} from "@/lib/trackLookup";
+import { appleLinkProblem, isAppleMusicLink, parseAppleMusicLink } from "@/lib/appleMusicUrl";
 import {
   describeSpotifyLink,
   parseSpotifyTrackId,
@@ -78,19 +84,44 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // The one link field takes either service. An Apple Music link is read
+  // here and never reaches the Spotify handling below.
+  const pasted = typeof body.spotifyUrl === "string" ? body.spotifyUrl.trim() : "";
+  const apple = pasted && isAppleMusicLink(pasted) ? parseAppleMusicLink(pasted) : null;
+
+  // Every refusal leaves a row, so an artist who tried and failed shows up
+  // in the admin queue instead of vanishing.
+  const recordRefusal = async (reason: string) => {
+    if (!pasted || !artistEmail) return;
+    await prisma.refusedSubmission
+      .upsert({
+        where: { spotifyUrl_artistEmail: { spotifyUrl: pasted, artistEmail: String(artistEmail) } },
+        update: { attempts: { increment: 1 }, reason, status: "PENDING" },
+        create: { spotifyUrl: pasted, artistEmail: String(artistEmail), genre: genre ?? null, reason },
+      })
+      .catch(() => {});
+  };
+
+  if (apple && apple.kind !== "song") {
+    const reason = appleLinkProblem(apple.kind);
+    await recordRefusal(reason);
+    return NextResponse.json({ error: reason }, { status: 400 });
+  }
+
   // Artists paste a share link; accept the raw id or a spotify: URI too.
-  let spotifyTrackId =
-    body.spotifyTrackId ?? (body.spotifyUrl ? parseSpotifyTrackId(body.spotifyUrl) : null);
+  let spotifyTrackId = apple
+    ? null
+    : (body.spotifyTrackId ?? (body.spotifyUrl ? parseSpotifyTrackId(body.spotifyUrl) : null));
 
   // Sharing from the Spotify iPhone app often produces a spotify.link short
   // URL, which carries no id and has to be followed to find one. Artists were
   // pasting exactly what Spotify handed them and being told it wasn't a track
   // link.
-  if (!spotifyTrackId && source === "SPOTIFY" && body.spotifyUrl) {
+  if (!apple && !spotifyTrackId && source === "SPOTIFY" && body.spotifyUrl) {
     spotifyTrackId = await resolveSpotifyShortLink(String(body.spotifyUrl));
   }
 
-  if (source === "SPOTIFY" && body.spotifyUrl && !spotifyTrackId) {
+  if (!apple && source === "SPOTIFY" && body.spotifyUrl && !spotifyTrackId) {
     const problem = describeSpotifyLink(String(body.spotifyUrl));
     const reason =
       problem === "album"
@@ -103,7 +134,7 @@ export async function POST(req: NextRequest) {
               ? "That's a podcast episode rather than a song."
               : problem === "short"
                 ? "We couldn't follow that spotify.link short link. Open the song in Spotify, choose Share, then Copy Song Link, and paste that instead."
-                : "That doesn't look like a Spotify track link. Open the song in Spotify, choose Share, then Copy Song Link.";
+                : "That doesn't look like a Spotify or Apple Music song link. In Spotify, open the song, choose Share, then Copy Song Link. In Apple Music, tap the three dots next to the song, then Share Song and Copy Link.";
 
     // Recorded like any other refusal. These used to return a 400 and leave
     // nothing behind: no track, no refusal row, no error. An artist would try
@@ -130,7 +161,39 @@ export async function POST(req: NextRequest) {
   }
 
   let normalized;
-  if (source === "SPOTIFY" && spotifyTrackId && !body.previewUrl) {
+  if (apple && apple.kind === "song") {
+    try {
+      // The link names the exact recording, so this is one lookup with
+      // nothing to match.
+      const resolved = await resolveAppleTrack(apple.id, apple.country);
+      normalized = {
+        source: "APPLE_MUSIC" as const,
+        externalId: apple.id,
+        isrc: null,
+        ...resolved,
+      };
+    } catch (e) {
+      if (e instanceof TrackLookupError) {
+        await recordRefusal(e.message);
+        if (process.env.EMAIL_REPLY_TO && artistEmail) {
+          await sendEmail(
+            process.env.EMAIL_REPLY_TO,
+            refusedSubmissionEmail({
+              spotifyUrl: pasted,
+              artistEmail: String(artistEmail),
+              reason: e.message,
+            }),
+            { transactional: true }
+          );
+        }
+        return NextResponse.json({ error: e.message }, { status: 422 });
+      }
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Track lookup failed" },
+        { status: 502 }
+      );
+    }
+  } else if (source === "SPOTIFY" && spotifyTrackId && !body.previewUrl) {
     try {
       // Spotify's own catalog API can't supply a preview to new apps, so the
       // playable clip and artwork are assembled from public sources instead.
@@ -220,6 +283,28 @@ export async function POST(req: NextRequest) {
   });
   if (existing) {
     return NextResponse.json({ track: existing, alreadyExisted: true });
+  }
+
+  // The same recording by its other link. A song already in from Spotify
+  // carries the Apple id it was matched to, so pasting its Apple Music link
+  // (or the reverse) is caught here exactly, whatever the titles say.
+  if (normalized.appleTrackId) {
+    const twin = await prisma.track.findFirst({
+      where: {
+        appleTrackId: normalized.appleTrackId,
+        status: { in: ["DISCOVERY", "VETTING", "GRADUATED"] },
+      },
+      select: { title: true, artistName: true },
+    });
+    if (twin) {
+      return NextResponse.json(
+        {
+          error: `"${twin.title}" by ${twin.artistName} is already in the feed. Every track gets one entry, so it isn't competing against itself for swipes.`,
+          alreadyExisted: true,
+        },
+        { status: 409 }
+      );
+    }
   }
 
   // An artist record is what a fee request/payment later attaches to, so
@@ -317,14 +402,12 @@ export async function POST(req: NextRequest) {
   // The track is live, so any earlier refusal of it is history, not a job.
   // Without this a successful retry left the failure sitting in the admin
   // queue asking to be dealt with — a track can't be both live and refused.
-  if (normalized.source === "SPOTIFY") {
-    await prisma.refusedSubmission
-      .updateMany({
-        where: { status: "PENDING", spotifyUrl: { contains: normalized.externalId } },
-        data: { status: "ADDED" },
-      })
-      .catch(() => {});
-  }
+  await prisma.refusedSubmission
+    .updateMany({
+      where: { status: "PENDING", spotifyUrl: { contains: normalized.externalId } },
+      data: { status: "ADDED" },
+    })
+    .catch(() => {});
 
   // The artist hears back, and is asked to share while they're most
   // motivated to. Never awaited into failure: a mail problem must not turn a

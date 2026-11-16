@@ -66,7 +66,13 @@ export async function fetchProfile(artistId: string): Promise<FetchedProfile> {
     orderBy: { createdAt: "desc" },
   });
   const track = tracks.find((t) => t.source === "SPOTIFY");
-  if (!track) return empty;
+
+  // Nothing of theirs came in from Spotify, so there is no Spotify page to
+  // read. Their Apple Music page carries a photo and is the link out.
+  if (!track) {
+    const appleArtistUrl = await appleLink(tracks);
+    return { ...empty, appleArtistUrl, photoUrl: appleArtistUrl ? await applePhoto(appleArtistUrl) : null };
+  }
 
   const out = { ...empty };
 
@@ -89,7 +95,37 @@ export async function fetchProfile(artistId: string): Promise<FetchedProfile> {
 
   out.appleArtistUrl = await appleLink(tracks);
 
+  // Spotify gave no picture, which happens when its page changes shape or
+  // the artist has not set one. Apple's will do.
+  if (!out.photoUrl && out.appleArtistUrl) out.photoUrl = await applePhoto(out.appleArtistUrl);
+
   return out;
+}
+
+/**
+ * The artist's picture from their Apple Music page.
+ *
+ * Apple only puts the meta tags on the page for something that looks like a
+ * browser, and serves the picture as a wide banner. The same image exists
+ * square, which is what a tile wants. Never throws.
+ */
+async function applePhoto(appleArtistUrl: string): Promise<string | null> {
+  try {
+    const page = await fetch(appleArtistUrl, {
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        accept: "text/html",
+      },
+    }).then((r) => (r.ok ? r.text() : ""));
+    const img = page.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
+    if (!img || !/mzstatic\.com/.test(img)) return null;
+    // Where the artist has set no picture Apple offers their latest cover
+    // here, which is still theirs and better than an empty tile.
+    return img.replace(/\/\d+x\d+[a-z]*\.(png|jpg|jpeg|webp)$/i, "/600x600cc.$1");
+  } catch {
+    return null;
+  }
 }
 
 

@@ -336,7 +336,7 @@ export function refusedSubmissionEmail(params: {
       `<p style="margin:0 0 12px">Someone submitted a track and we refused it rather than risk attaching the wrong audio.</p>
        <p style="margin:0 0 12px;color:#a3a3a3">From: ${artistEmail}<br/>Link: <a href="${spotifyUrl}" style="color:#dcb55f">${spotifyUrl}</a></p>
        <p style="margin:0 0 12px;color:#a3a3a3">Reason: ${reason}</p>
-       <p style="margin:0;color:#8b8b8b;font-size:13px">If the link is right, add it from the dashboard: Tracks, then Replace audio, and paste this Spotify link.</p>`,
+       <p style="margin:0;color:#8b8b8b;font-size:13px">If the link is right, add it from the dashboard: Tracks, then Replace audio, and paste this link.</p>`,
       { label: "Open the dashboard", url: `${APP_URL}/admin` }
     ),
   };
@@ -721,7 +721,7 @@ export function whatsNewListenerEmail(params: { appUrl?: string } = {}) {
        ${point(
          2,
          "You don't see who made it any more",
-         `The artist's name is gone from the card while you're deciding. You get the artwork, the title and thirty seconds. Keep it and the name appears in Saved, one tap from Spotify. The whole point is that you decide on the song before you know whose it is.`
+         `The artist's name is gone from the card while you're deciding. You get the artwork, the title and thirty seconds. Keep it and the name appears in Saved, one tap from Spotify or Apple Music. The whole point is that you decide on the song before you know whose it is.`
        )}
        ${point(
          3,
@@ -974,7 +974,7 @@ export function whatMotrIsEmail(params: { unsubscribeUrl: string }) {
          <p style="margin:0 0 14px">There's now a Charts tab showing the tracks listeners backed hardest this week and this month. Every position on it was earned by people keeping the song, which makes it a genuinely different chart from the ones you already see.</p>
          <p style="margin:0 0 14px">At the end of every week we'll email you the week's Top Artists. If you want your favorite to make the cut, the way to do it is to play their track and swipe right.</p>
          <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">IF YOU MAKE MUSIC</p>
-         <p style="margin:0 0 14px">Submitting is free and always will be. Paste a Spotify link and your song goes into the same blind rotation as everyone else's, judged on how it sounds rather than on how many followers you have.</p>
+         <p style="margin:0 0 14px">Submitting is free and always will be. Paste a Spotify or Apple Music link and your song goes into the same blind rotation as everyone else's, judged on how it sounds rather than on how many followers you have.</p>
          <p style="margin:0 0 14px">One thing worth knowing either way: a listener who hears the full thirty seconds before deciding counts double. Patience is the most useful thing anyone can bring to it.</p>
          <p style="margin:0;color:#8b8b8b;font-size:13px">Thanks for being here early.</p>`,
         { label: "Open MOTR", url: APP_URL }
@@ -1087,7 +1087,7 @@ export function submitMoreMusicEmail(params: {
              ? `Your ${tracks === 1 ? "track" : `${tracks} tracks`} on MOTR ${plural} still in rotation, and ${saves === 1 ? "one listener has" : `${saves} listeners have`} saved ${tracks === 1 ? "it" : "them"} after hearing thirty seconds with no name attached.`
              : `Your ${tracks === 1 ? "track is" : `${tracks} tracks are`} in rotation on MOTR, playing to listeners who hear thirty seconds with no idea who made ${tracks === 1 ? "it" : "them"}.`
          }</p>
-         <p style="margin:0 0 14px"><strong style="color:#fff">If you've released anything since, send it over.</strong> It's free, it always will be, and a second track doubles the chances one of them catches. Paste a Spotify link and it's in the feed the same day.</p>
+         <p style="margin:0 0 14px"><strong style="color:#fff">If you've released anything since, send it over.</strong> It's free, it always will be, and a second track doubles the chances one of them catches. Paste a Spotify or Apple Music link and it's in the feed the same day.</p>
          ${WEEKLY_PRIZE}
          <p style="margin:16px 0 0;color:#8b8b8b;font-size:13px">Nothing to pay, no queue to jump, and no limit on how often you come back.</p>`,
         { label: "Submit another song", url: `${appUrl}/artists` }

@@ -131,9 +131,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           </li>
         </ul>
         <p className="mt-2">
-          The Spotify buttons on your saved tracks are ordinary links. Tapping one opens Spotify
-          with that song; nothing about you is sent to them, and MOTR has no access to your
-          Spotify account.
+          The Spotify and Apple Music buttons on your saved tracks are ordinary links. Tapping
+          one opens that service at the song; nothing about you is sent to them, and MOTR has no
+          access to your Spotify or Apple Music account.
         </p>
         <ul>
         </ul>

@@ -22,7 +22,8 @@ type Side = {
   title: string;
   artistName: string;
   artworkUrl: string | null;
-  spotifyUrl: string;
+  listenUrl: string;
+  listenOn: "spotify" | "apple";
   wins: number;
 };
 
@@ -494,12 +495,12 @@ function Panel({
 
       {decided ? (
         <a
-          href={revealed?.spotifyUrl}
+          href={revealed?.listenUrl}
           target="_blank"
           rel="noopener"
           className="border-edge text-muted hover:text-ink mt-2.5 rounded-full border py-2.5 text-center text-sm transition"
         >
-          Open in Spotify
+          {revealed?.listenOn === "apple" ? "Open in Apple Music" : "Open in Spotify"}
         </a>
       ) : (
         <button
