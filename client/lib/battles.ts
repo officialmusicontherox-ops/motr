@@ -237,10 +237,20 @@ export async function cancelBrokenBattles(): Promise<number> {
     SET "cancelledAt" = NOW(), "settledAt" = NOW()
     WHERE b."settledAt" IS NULL
       AND b."cancelledAt" IS NULL
-      AND EXISTS (
-        SELECT 1 FROM "Track" t
-        WHERE t."id" IN (b."trackAId", b."trackBId")
-          AND t."status" = 'REJECTED'::"TrackStatus"
+      AND (
+        EXISTS (
+          SELECT 1 FROM "Track" t
+          WHERE t."id" IN (b."trackAId", b."trackBId")
+            AND t."status" = 'REJECTED'::"TrackStatus"
+        )
+        -- Or both songs turn out to be the same artist. Pairing never
+        -- makes one knowingly, but a song filed under a credit line can
+        -- be matched to its artist after the battle was drawn.
+        OR EXISTS (
+          SELECT 1 FROM "Track" ta, "Track" tb
+          WHERE ta."id" = b."trackAId" AND tb."id" = b."trackBId"
+            AND ${KEY("ta")} = ${KEY("tb")}
+        )
       )
     RETURNING b."id"
   `);
