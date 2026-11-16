@@ -408,20 +408,24 @@ function Panel({
                 {/* The whole cover, square, the way the artist made it.
                     Filling the tall panel edge to edge cropped the
                     lettering off both sides of the artwork. */}
-                <div className="aspect-square w-full shrink-0 bg-black">
+                <div className="relative aspect-square w-full shrink-0 bg-black">
                   {revealed.artworkUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={revealed.artworkUrl} alt="" className="h-full w-full object-cover" />
                   )}
-                </div>
-                <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-2 text-white">
+                  {/* On the cover, not in the text below it. As a line of
+                      its own it left the picked panel one line short, and
+                      the title and artist were squeezed until they
+                      overlapped. */}
                   {badge && (
-                    <span className="bg-gold text-bg mb-1 w-fit rounded-full px-2 py-px text-[0.58rem] font-bold uppercase tracking-widest">
+                    <span className="bg-gold text-bg absolute left-2 top-2 rounded-full px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-widest shadow-md">
                       {badge}
                     </span>
                   )}
-                  <p className="truncate text-sm font-semibold">{revealed.title}</p>
-                  <p className="truncate text-xs text-neutral-400">{revealed.artistName}</p>
+                </div>
+                <div className="flex flex-1 flex-col justify-center px-3 py-2 text-white [&>*]:shrink-0">
+                  <p className="truncate text-sm font-semibold leading-snug">{revealed.title}</p>
+                  <p className="truncate text-xs leading-snug text-neutral-400">{revealed.artistName}</p>
                   {/* A share of the vote and never a count of it. */}
                   {pct !== null ? (
                     <p
