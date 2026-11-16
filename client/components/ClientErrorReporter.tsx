@@ -20,7 +20,15 @@ import { useEffect } from "react";
  */
 export default function ClientErrorReporter() {
   useEffect(() => {
+    // Thrown by the phone app the page was opened inside, not by MOTR. An
+    // Android in-app browser (Facebook, Instagram and the like) injects its
+    // own script into every page, and when the app closes that view its
+    // script fails with this message. Nothing on the page breaks and there
+    // is nothing here to change, so it is kept out of the log.
+    const NOT_OURS = /Java object is gone|Error invoking postMessage/i;
+
     const send = (message: string, stack?: string) => {
+      if (NOT_OURS.test(message)) return;
       // keepalive so a report still goes out if the error killed the page.
       fetch("/api/errors", {
         method: "POST",
