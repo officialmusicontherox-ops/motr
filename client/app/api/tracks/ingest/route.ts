@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { knownAppleArtist } from "@/lib/appleArtist";
 import { isEmailAddress } from "@/lib/emailAddress";
 import { resetArtistNudges } from "@/lib/artistNudges";
 import { storyCardAttachment } from "@/lib/artistSharePage";
@@ -285,9 +286,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // No Apple match for this song: file it under the Apple artist this
+  // name already has, so one artist never counts as two.
+  const borrowed = normalized.appleArtistId ? null : await knownAppleArtist(normalized.artistName);
+
   const track = await prisma.track.create({
     data: {
       ...normalized,
+      ...(borrowed ?? {}),
       submittedById: submittedById ?? null,
       artistId,
       genre: genre ?? null,

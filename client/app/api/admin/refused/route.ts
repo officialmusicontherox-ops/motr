@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { knownAppleArtist } from "@/lib/appleArtist";
 import { prisma } from "@/lib/prisma";
 import { getAdminSession } from "@/lib/adminAuth";
 import {
@@ -160,8 +161,16 @@ async function addResolvedTrack(
     create: { email, name: resolved.artistName.split(/[,&]/)[0].trim() },
   });
 
+  // The Apple artist this song belongs to: the one the lookup found, or
+  // failing that the one this name already has on file. Without it the same
+  // artist counts as two on the charts and in battles.
+  const borrowed = resolved.appleArtistId
+    ? { appleArtistId: resolved.appleArtistId, appleArtistName: resolved.appleArtistName }
+    : await knownAppleArtist(resolved.artistName);
+
   const track = await prisma.track.create({
     data: {
+      ...(borrowed ?? {}),
       source: "SPOTIFY",
       externalId: trackId,
       title: resolved.title,
