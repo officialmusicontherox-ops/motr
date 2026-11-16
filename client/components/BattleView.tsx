@@ -324,15 +324,20 @@ export default function BattleView() {
               ) : (
                 <>
                   <p className="text-muted h-4 text-xs">
-                    {ready ? "" : "Play both to unlock your vote."}
+                    {ready ? "" : "Play both to vote or skip."}
                   </p>
                   {/* Counts for nobody and shows nothing. A forced pick
                       between two songs somebody dislikes is a coin toss,
-                      and a coin toss is worse data than no vote. */}
+                      and a coin toss is worse data than no vote.
+
+                      Locked until both have been played, like the vote.
+                      Open from the start, skips ran three to one over
+                      votes: it was a next button, and battles were being
+                      passed over unheard. */}
                   <button
                     onClick={() => void answer("SKIP")}
-                    disabled={busy}
-                    className="text-muted hover:text-ink text-xs underline underline-offset-4 transition disabled:opacity-40"
+                    disabled={busy || !ready}
+                    className="text-muted hover:text-ink text-xs underline underline-offset-4 transition disabled:no-underline disabled:opacity-40"
                   >
                     Skip this one
                   </button>
