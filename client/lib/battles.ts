@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
-import { listenLinkFor } from "./spotifyLink";
+import { listenLinksFor } from "./spotifyLink";
 import { weekOf } from "./weekWindow";
 
 /**
@@ -340,8 +340,8 @@ type Side = {
   artistName: string;
   artworkUrl: string | null;
   /** Out to the whole song, on the service the artist submitted it from. */
-  listenUrl: string;
-  listenOn: "spotify" | "apple";
+  spotifyUrl: string;
+  appleUrl: string | null;
   /** Everything this artist has ever won, across all their songs. */
   wins: number;
 };
@@ -422,7 +422,7 @@ export async function revealBattle(battle: BattleRow, pick: "A" | "B" | null): P
       // the primary artist, but the song is shown as it was released.
       artistName: t.artistName,
       artworkUrl: t.artworkUrl,
-      ...listenLinkFor(t),
+      ...listenLinksFor(t),
       wins: wins.get(id) ?? 0,
     };
   };

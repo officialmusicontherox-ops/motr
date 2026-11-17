@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
 import SponsoredCard from "./SponsoredCard";
+import { AppleMusicMark, SpotifyMark } from "./ServiceMarks";
 import { Pause, Play, Share } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
 import { bumpSavedCount } from "@/lib/savedCount";
@@ -23,8 +24,8 @@ type Side = {
   title: string;
   artistName: string;
   artworkUrl: string | null;
-  listenUrl: string;
-  listenOn: "spotify" | "apple";
+  spotifyUrl: string;
+  appleUrl: string | null;
   wins: number;
 };
 
@@ -561,14 +562,34 @@ function Panel({
       </div>
 
       {decided ? (
-        <a
-          href={revealed?.listenUrl}
-          target="_blank"
-          rel="noopener"
-          className="border-edge text-muted hover:text-ink mt-2.5 rounded-full border py-2.5 text-center text-sm transition"
-        >
-          {revealed?.listenOn === "apple" ? "Open in Apple Music" : "Open in Spotify"}
-        </a>
+        // Both services under every song, so each listener opens the one
+        // they use. Logos only on a phone, where the panel is narrow.
+        <div className="mt-2.5 flex gap-2">
+          {revealed && (
+            <a
+              href={revealed.spotifyUrl}
+              target="_blank"
+              rel="noopener"
+              aria-label={`Open ${revealed.title} in Spotify`}
+              className="border-edge text-muted hover:text-ink flex flex-1 items-center justify-center gap-2 rounded-full border py-2.5 text-sm transition"
+            >
+              <SpotifyMark className="h-4 w-4 text-[#1DB954]" />
+              <span className="hidden md:inline">Spotify</span>
+            </a>
+          )}
+          {revealed?.appleUrl && (
+            <a
+              href={revealed.appleUrl}
+              target="_blank"
+              rel="noopener"
+              aria-label={`Open ${revealed.title} in Apple Music`}
+              className="border-edge text-muted hover:text-ink flex flex-1 items-center justify-center gap-2 rounded-full border py-2.5 text-sm transition"
+            >
+              <AppleMusicMark className="h-4 w-4 text-[#FA2D48]" />
+              <span className="hidden md:inline">Apple Music</span>
+            </a>
+          )}
+        </div>
       ) : (
         <button
           type="button"

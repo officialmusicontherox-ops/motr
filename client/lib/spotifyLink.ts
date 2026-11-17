@@ -33,20 +33,26 @@ export function spotifyLinkFor(track: {
 }
 
 /**
- * Where a listener is sent to hear the whole song, and which service that is.
+ * Where a listener can hear the whole song, on both services.
  *
- * A song the artist submitted from Apple Music goes to Apple Music, at the
- * exact song. Everything else goes to Spotify as before.
+ * Both, on every song, so each listener taps the one they use. One button
+ * chosen by how the artist submitted sent Spotify listeners to Apple Music
+ * and the reverse.
+ *
+ * Apple: the exact recording, which nearly every song carries, including
+ * those submitted from Spotify. Spotify: the exact track where the artist
+ * submitted from Spotify; otherwise a search for it, because Spotify will
+ * not answer MOTR's lookups to find the match.
  */
-export function listenLinkFor(track: {
+export function listenLinksFor(track: {
   externalId: string;
   source: string;
   title: string;
   artistName: string;
   appleTrackId?: string | null;
-}): { listenUrl: string; listenOn: "spotify" | "apple" } {
-  if (track.source === "APPLE_MUSIC" && track.appleTrackId) {
-    return { listenUrl: `https://music.apple.com/us/song/${track.appleTrackId}`, listenOn: "apple" };
-  }
-  return { listenUrl: spotifyLinkFor(track), listenOn: "spotify" };
+}): { spotifyUrl: string; appleUrl: string | null } {
+  return {
+    spotifyUrl: spotifyLinkFor(track),
+    appleUrl: track.appleTrackId ? `https://music.apple.com/us/song/${track.appleTrackId}` : null,
+  };
 }
