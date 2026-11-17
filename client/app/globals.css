@@ -292,3 +292,42 @@ html {
   78%  { opacity: 0.92; }
   100% { opacity: 0; }
 }
+
+
+/*
+ * The battle panel, laid out by its own shape rather than the screen's.
+ *
+ * Tall and narrow (a phone, a tall window): the cover across the top and
+ * the text under it. Wide or short (most laptops): the cover beside the
+ * text, as large a square as fits, on the side next to the VS. Deciding by
+ * screen width put a tall laptop window into the side-by-side layout with
+ * the cover lost in a black strip.
+ *
+ * Stacked needs roughly the panel's width again plus the text, so anything
+ * at or past 3:4 goes side by side.
+ */
+.battle-box {
+  container-type: size;
+}
+@container (min-aspect-ratio: 3/4) {
+  .battle-stage {
+    flex-direction: row;
+  }
+  .battle-stage.from-right {
+    flex-direction: row-reverse;
+  }
+  .battle-cover {
+    width: min(100cqh, 58cqw);
+    height: min(100cqh, 58cqw);
+    aspect-ratio: auto;
+    align-self: center;
+    flex: none;
+  }
+  .battle-text {
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
+    gap: 0.5rem;
+    padding-inline: 1rem;
+  }
+}

@@ -36,17 +36,26 @@ export default function SponsoredCard({
   slot,
   onDismiss,
   nextLabel = "Keep swiping",
+  swipe = true,
 }: {
   client: string;
   slot: string;
   onDismiss: () => void;
   /** Under "Next": where it takes them. Battles has no swiping. */
   nextLabel?: string;
+  /** False on Battles, where nothing is swiped: buttons only. */
+  swipe?: boolean;
 }) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
   const dragStartX = useRef(0);
   const pushed = useRef(false);
+  // Larger on a laptop, where 300x250 looked lost on the card. Read once,
+  // before the slot is filled, because the size asked for is the size
+  // Google serves.
+  const [big] = useState(
+    () => typeof window !== "undefined" && window.matchMedia?.("(min-width: 768px)").matches
+  );
 
   useEffect(() => {
     // Strict mode mounts twice in development; pushing the same slot twice
@@ -67,6 +76,7 @@ export default function SponsoredCard({
   }
 
   function onPointerDown(e: React.PointerEvent) {
+    if (!swipe) return;
     setDragging(true);
     dragStartX.current = e.clientX;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -89,7 +99,7 @@ export default function SponsoredCard({
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col select-none md:max-w-2xl md:justify-center">
-      <div className="relative flex min-h-0 flex-1 flex-col md:max-h-[26rem] md:flex-none">
+      <div className="relative flex min-h-0 flex-1 flex-col md:max-h-[28rem] md:flex-none">
         <div
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -100,7 +110,9 @@ export default function SponsoredCard({
             transition: dragging ? "none" : "transform 180ms ease-out",
             touchAction: "pan-y",
           }}
-          className="border-edge bg-surface relative flex min-h-0 flex-1 cursor-grab flex-col overflow-hidden rounded-[28px] border shadow-2xl active:cursor-grabbing"
+          className={`border-edge bg-surface relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border shadow-2xl ${
+            swipe ? "cursor-grab active:cursor-grabbing" : ""
+          }`}
         >
           <div className="border-edge flex shrink-0 items-center justify-between border-b px-4 py-2.5">
             <span className="motr-label text-muted">Sponsored</span>
@@ -123,15 +135,15 @@ export default function SponsoredCard({
                 live edges have to be visible. They brighten as the card
                 moves, which confirms the drag is working the moment it
                 starts. */}
-            <SwipeRail side="left" active={drift} />
-            <SwipeRail side="right" active={drift} />
+            {swipe && <SwipeRail side="left" active={drift} />}
+            {swipe && <SwipeRail side="right" active={drift} />}
 
             <ins
               className="adsbygoogle"
               style={{
                 display: "block",
-                width: 300,
-                height: 250,
+                width: big ? 336 : 300,
+                height: big ? 280 : 250,
                 maxWidth: "100%",
               }}
               data-ad-client={client}
@@ -145,7 +157,9 @@ export default function SponsoredCard({
             className="text-muted/70 shrink-0 px-4 pb-3 text-center text-[0.65rem] leading-relaxed transition-opacity"
             style={{ opacity: 1 - drift }}
           >
-            Swipe from either edge, or use the buttons below. Tap the ad only if it interests you.
+            {swipe
+              ? "Swipe from either edge, or use the buttons below. Tap the ad only if it interests you."
+              : "Use the buttons below to carry on. Tap the ad only if it interests you."}
           </p>
         </div>
       </div>

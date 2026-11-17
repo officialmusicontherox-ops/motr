@@ -242,6 +242,7 @@ export default function BattleView() {
             client={ADSENSE_CLIENT}
             slot={ADSENSE_SLOT}
             nextLabel="Next battle"
+            swipe={false}
             onDismiss={() => setShowAd(false)}
           />
         )}
@@ -458,27 +459,25 @@ function Panel({
           style={{ borderColor: lit ? `rgba(${tube.glow}, 0.75)` : "#232328" }}
         >
           <div
-            // On a laptop each cover sits on the inner side, next to the VS,
-            // so the VS overlaps artwork and never a title.
-            className={`relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300 ${
-              side === "A" ? "md:flex-row-reverse" : "md:flex-row"
-            }`}
+            // Sized by the space it is given, and measured as a container,
+            // so the layout inside follows the panel's real shape rather
+            // than the screen's: see .battle-box in globals.css.
+            className="battle-box relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300"
             style={{
               borderColor: lit ? `rgba(${tube.glow}, 0.55)` : "#1e1e22",
               boxShadow: lit ? `inset 0 0 22px rgba(${tube.glow}, ${playing ? 0.24 : 0.1})` : "none",
             }}
           >
+            <div className={`battle-stage flex h-full w-full flex-col ${side === "A" ? "from-right" : ""}`}>
             {revealed ? (
               <>
                 {/* The whole cover, square, the way the artist made it, and
-                    nothing laid over it. On a laptop the panel is short and
-                    wide, so the cover sits on the left at the panel's full
-                    height and the result goes beside it. Stacked, there was
-                    not the height for both. */}
-                <div className="relative aspect-square w-full shrink-0 bg-black md:aspect-square md:h-full md:w-auto md:max-w-[55%] md:flex-none">
+                    nothing laid over it. In a tall panel it sits on top with
+                    the result under it; in a wide one, beside it. */}
+                <div className="relative aspect-square w-full shrink-0 bg-black battle-cover">
                   {revealed.artworkUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={revealed.artworkUrl} alt="" className="h-full w-full object-cover md:object-contain" />
+                    <img src={revealed.artworkUrl} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
 
@@ -486,7 +485,7 @@ function Panel({
                     the top, the score in the middle, the record at the
                     bottom. On a phone that space is tall, and one group
                     centred in it floated in an empty box. */}
-                <div className="flex min-h-0 flex-1 flex-col justify-between gap-1.5 px-3 py-2.5 text-white md:min-w-0 md:justify-center md:gap-2 md:px-4">
+                <div className="flex min-h-0 flex-1 flex-col justify-between gap-1.5 px-3 py-2.5 text-white battle-text">
                   <div className="min-w-0">
                     {badge && (
                       <span className="bg-gold text-bg mb-1.5 inline-block rounded-full px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-widest">
@@ -527,11 +526,11 @@ function Panel({
                   aria-label={
                     playing ? `Pause ${open?.title ?? "song"}` : `Play ${open?.title ?? "song"}`
                   }
-                  className="relative aspect-square w-full shrink-0 bg-black md:aspect-square md:h-full md:w-auto md:max-w-[55%] md:flex-none"
+                  className="relative aspect-square w-full shrink-0 bg-black battle-cover"
                 >
                   {open?.artworkUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={open.artworkUrl} alt="" className="h-full w-full object-cover md:object-contain" />
+                    <img src={open.artworkUrl} alt="" className="h-full w-full object-cover" />
                   )}
                   <span className="absolute inset-0 flex items-center justify-center bg-black/35">
                     <span
@@ -548,7 +547,7 @@ function Panel({
                     />
                   </span>
                 </button>
-                <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-2 text-white md:min-w-0 md:px-4">
+                <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-2 text-white battle-text">
                   <p className="line-clamp-2 text-sm font-semibold leading-snug">{open?.title}</p>
                   {/* Said out loud, as on Discover, because a missing name
                       otherwise reads as something broken. */}
@@ -556,6 +555,7 @@ function Panel({
                 </div>
               </>
             )}
+            </div>
           </div>
         </div>
       </div>
