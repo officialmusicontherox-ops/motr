@@ -212,9 +212,7 @@ export default function BattleView() {
           {reveal
             ? reveal.closed
               ? `Final result · ${reveal.week}`
-              : reveal.pct
-                ? `Your pick is in Saved. Voting closes ${reveal.closes} at midnight Central.`
-                : `Your pick is in Saved. Voting closes ${reveal.closes} at midnight Central.`
+              : `Your pick is in Saved. Voting closes ${reveal.closes} at midnight Central.`
             : "Two songs, head to head. The artists are shown after you vote."}
         </p>
 
@@ -428,19 +426,27 @@ function Panel({
                       {badge}
                     </span>
                   )}
+                  {/* The score sits on the cover, lit in the panel's own
+                      colour, so it reads at a glance and adds no height to
+                      the text below, which is already tight on a phone. */}
+                  {pct !== null && (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-2 pt-10">
+                      <p
+                        className="font-display text-2xl leading-none md:text-3xl"
+                        style={{ color: tube.edge, textShadow: `0 0 12px rgba(${tube.glow}, 0.85)` }}
+                      >
+                        {pct}%
+                      </p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-1 flex-col justify-center px-3 py-2 text-white [&>*]:shrink-0">
                   <p className="truncate text-sm font-semibold leading-snug">{revealed.title}</p>
                   <p className="truncate text-xs leading-snug text-neutral-400">{revealed.artistName}</p>
-                  {/* A share of the vote and never a count of it. */}
-                  {pct !== null ? (
-                    <p
-                      className="font-display mt-1 text-3xl leading-none md:text-4xl"
-                      style={{ color: tube.edge }}
-                    >
-                      {pct}%
-                    </p>
-                  ) : (
+                  {/* A share of the vote and never a count of it, shown on
+                      the cover above. Only a battle nobody has voted in
+                      has no score. */}
+                  {pct === null && (
                     <p className="mt-1 text-[0.68rem] uppercase tracking-widest text-neutral-500">
                       Voting is open
                     </p>

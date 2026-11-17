@@ -56,10 +56,12 @@ export const PER_ARTIST_PER_WEEK = 1;
 /**
  * Votes a battle needs before its split is shown.
  *
- * One vote reads as 100% to 0%, which looks decided and is nothing of the
- * kind. Below this the screen says voting is open and leaves it there.
+ * One. It was five, and with most battles on two or three votes almost
+ * nobody saw a score after voting, which is the payoff for voting at all.
+ * The split is shown as it stands; an early one moving is part of watching
+ * a battle while it is open.
  */
-export const MIN_VOTES_TO_SHOW = 5;
+export const MIN_VOTES_TO_SHOW = 1;
 
 /**
  * Who an artist is, for the purposes of a battle.
