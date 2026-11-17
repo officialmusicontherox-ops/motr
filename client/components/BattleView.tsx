@@ -441,7 +441,11 @@ function Panel({
           style={{ borderColor: lit ? `rgba(${tube.glow}, 0.75)` : "#232328" }}
         >
           <div
-            className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300"
+            // On a laptop each cover sits on the inner side, next to the VS,
+            // so the VS overlaps artwork and never a title.
+            className={`relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border-2 transition-all duration-300 ${
+              side === "A" ? "md:flex-row-reverse" : "md:flex-row"
+            }`}
             style={{
               borderColor: lit ? `rgba(${tube.glow}, 0.55)` : "#1e1e22",
               boxShadow: lit ? `inset 0 0 22px rgba(${tube.glow}, ${playing ? 0.24 : 0.1})` : "none",
@@ -449,49 +453,49 @@ function Panel({
           >
             {revealed ? (
               <>
-                {/* The whole cover, square, the way the artist made it.
-                    Filling the tall panel edge to edge cropped the
-                    lettering off both sides of the artwork. */}
-                <div className="relative aspect-square w-full shrink-0 bg-black">
+                {/* The whole cover, square, the way the artist made it, and
+                    nothing laid over it. On a laptop the panel is short and
+                    wide, so the cover sits on the left at the panel's full
+                    height and the result goes beside it. Stacked, there was
+                    not the height for both. */}
+                <div className="relative aspect-square w-full shrink-0 bg-black md:aspect-square md:h-full md:w-auto md:max-w-[55%] md:flex-none">
                   {revealed.artworkUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={revealed.artworkUrl} alt="" className="h-full w-full object-cover" />
-                  )}
-                  {/* On the cover, not in the text below it. As a line of
-                      its own it left the picked panel one line short, and
-                      the title and artist were squeezed until they
-                      overlapped. */}
-                  {badge && (
-                    <span className="bg-gold text-bg absolute left-2 top-2 rounded-full px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-widest shadow-md">
-                      {badge}
-                    </span>
-                  )}
-                  {/* The score sits on the cover, lit in the panel's own
-                      colour, so it reads at a glance and adds no height to
-                      the text below, which is already tight on a phone. */}
-                  {pct !== null && (
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-3 pb-2 pt-10">
-                      <p
-                        className="font-display text-2xl leading-none md:text-3xl"
-                        style={{ color: tube.edge, textShadow: `0 0 12px rgba(${tube.glow}, 0.85)` }}
-                      >
-                        {pct}%
-                      </p>
-                    </div>
+                    <img src={revealed.artworkUrl} alt="" className="h-full w-full object-cover md:object-contain" />
                   )}
                 </div>
-                <div className="flex flex-1 flex-col justify-center px-3 py-2 text-white [&>*]:shrink-0">
-                  <p className="truncate text-sm font-semibold leading-snug">{revealed.title}</p>
-                  <p className="truncate text-xs leading-snug text-neutral-400">{revealed.artistName}</p>
-                  {/* A share of the vote and never a count of it, shown on
-                      the cover above. Only a battle nobody has voted in
-                      has no score. */}
-                  {pct === null && (
-                    <p className="mt-1 text-[0.68rem] uppercase tracking-widest text-neutral-500">
+
+                {/* Three groups down the space under the cover: who it is at
+                    the top, the score in the middle, the record at the
+                    bottom. On a phone that space is tall, and one group
+                    centred in it floated in an empty box. */}
+                <div className="flex min-h-0 flex-1 flex-col justify-between gap-1.5 px-3 py-2.5 text-white md:min-w-0 md:justify-center md:gap-2 md:px-4">
+                  <div className="min-w-0">
+                    {badge && (
+                      <span className="bg-gold text-bg mb-1.5 inline-block rounded-full px-2 py-0.5 text-[0.58rem] font-bold uppercase tracking-widest">
+                        {badge}
+                      </span>
+                    )}
+                    <p className="truncate text-sm font-semibold leading-snug">{revealed.title}</p>
+                    <p className="truncate text-xs leading-snug text-neutral-400">{revealed.artistName}</p>
+                  </div>
+
+                  {/* A share of the vote and never a count of it. Only a
+                      battle nobody has voted in has no score. */}
+                  {pct !== null ? (
+                    <p
+                      className="font-display text-3xl leading-none md:text-3xl"
+                      style={{ color: tube.edge, textShadow: `0 0 12px rgba(${tube.glow}, 0.7)` }}
+                    >
+                      {pct}%
+                    </p>
+                  ) : (
+                    <p className="text-[0.68rem] uppercase tracking-widest text-neutral-500">
                       Voting is open
                     </p>
                   )}
-                  <p className="mt-1 text-[0.62rem] font-semibold uppercase tracking-widest text-neutral-400">
+
+                  <p className="text-[0.62rem] font-semibold uppercase tracking-widest text-neutral-400">
                     Battle Wins · {revealed.wins}
                   </p>
                 </div>
@@ -506,11 +510,11 @@ function Panel({
                   aria-label={
                     playing ? `Pause ${open?.title ?? "song"}` : `Play ${open?.title ?? "song"}`
                   }
-                  className="relative aspect-square w-full shrink-0 bg-black"
+                  className="relative aspect-square w-full shrink-0 bg-black md:aspect-square md:h-full md:w-auto md:max-w-[55%] md:flex-none"
                 >
                   {open?.artworkUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={open.artworkUrl} alt="" className="h-full w-full object-cover" />
+                    <img src={open.artworkUrl} alt="" className="h-full w-full object-cover md:object-contain" />
                   )}
                   <span className="absolute inset-0 flex items-center justify-center bg-black/35">
                     <span
@@ -527,7 +531,7 @@ function Panel({
                     />
                   </span>
                 </button>
-                <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-2 text-white">
+                <div className="flex min-h-0 flex-1 flex-col justify-center px-3 py-2 text-white md:min-w-0 md:px-4">
                   <p className="line-clamp-2 text-sm font-semibold leading-snug">{open?.title}</p>
                   {/* Said out loud, as on Discover, because a missing name
                       otherwise reads as something broken. */}
