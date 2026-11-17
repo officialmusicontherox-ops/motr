@@ -46,6 +46,10 @@ const FAQS = [
     a: "No, and this is the one thing we will not bend on. Every track is heard with no artist name attached, and the only thing that moves it up is whether people keep it. A Spotlight is advertising on its own tab and counts for nothing on the chart, the weekly winner, or any figure an artist is measured by.",
   },
   {
+    q: "How are Top Artists and the weekly winner decided?",
+    a: "By saves, from listeners who don't know whose song they are hearing. Each artist's two best songs of the week are added together, the same two-song limit the song chart uses. You can send as many songs as you like and every one stays in the feed, but only your best two count toward the chart. The weekly winner is the artist at number one on Top Artists when the week closes, Saturday at midnight Central.",
+  },
+  {
     q: "What if my track doesn't break through?",
     a: "That's a real outcome, and it costs you nothing. Entry is free, the crowd decides, and a track that doesn't connect simply stays in the feed for the next listener.",
   },

@@ -248,7 +248,7 @@ function letter(body: string, cta?: { label: string; url: string }) {
 const WEEKLY_PRIZE = `
   <p style="margin:16px 0 0;padding:14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
     <strong style="color:#dcb55f">New: a weekly winner.</strong>
-    Every week, the artist whose music gets saved the most on MOTR wins a full
+    Every week, the artist whose two best songs get saved the most on MOTR wins a full
     write-up on Music On The Rox: a real piece of editorial on a real site,
     not a playlist slot. Your own fans swiping is what decides it, so the most
     useful thing you can do is send them over.

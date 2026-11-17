@@ -221,8 +221,7 @@ export default function ChartsView() {
               {/* Said out loud, because an artist who has three songs doing
                   well and sees two will otherwise assume the chart is wrong. */}
               <p className="text-muted mb-3 text-xs leading-relaxed">
-                Two songs per artist, so one catalogue cannot fill the list. Everything an
-                artist earns still counts in full on Top artists.
+                Two songs per artist, so one catalogue cannot fill the list.
               </p>
               {data.songs.length === 0 ? (
                 <Empty />
@@ -261,7 +260,12 @@ export default function ChartsView() {
             <section hidden={board !== "artists"}>
               <h2 className="motr-label text-gold mb-3">Top artists</h2>
               <p className="text-muted mb-3 text-xs leading-relaxed">
-                Every song an artist has, added together. No cap here.
+                {/* The weeks before 15 November were counted on every song,
+                    and keep that count, so the line says which rule a week
+                    was decided under. */}
+                {range === "week" && (data.week ?? "") < "2026-11-15"
+                  ? "Every song an artist had, added together. That was the rule for weeks before November 15."
+                  : "Each artist's two best songs, added together."}
               </p>
               {data.artists.length === 0 ? (
                 <Empty />

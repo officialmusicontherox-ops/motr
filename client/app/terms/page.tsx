@@ -110,6 +110,12 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           counts in full.
         </p>
         <p className="mt-3">
+          Top Artists and the weekly winner count each artist&apos;s two best songs for the week,
+          added together. Artists can submit as many songs as they like, and every song stays in
+          the feed, but only the best two count toward those. This applies from the week that
+          began on November 15, 2026. Earlier weeks keep the results they were announced with.
+        </p>
+        <p className="mt-3">
           <span className="text-ink">If you sign in, we may email you.</span> That means things
           like a reminder when you haven&apos;t swiped in a while, or news about tracks you
           saved, not adverts for anyone else. Every one carries an unsubscribe link that ends them

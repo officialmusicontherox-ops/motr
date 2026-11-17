@@ -441,8 +441,8 @@ export default function ArtistsPage() {
             send, and five strong songs earning two chart slots is better
             learned now than from the chart later. */}
         <p className="text-muted text-center text-xs leading-relaxed">
-          Send as many as you like. The song chart shows at most two per artist so one catalogue
-          cannot fill it, and everything you earn still counts in full on the artist chart.
+          Send as many as you like. Every song stays in the feed, and the charts and the weekly
+          winner count your two best songs each week.
         </p>
 
         <button

@@ -252,6 +252,89 @@ export async function weeklyLeaders(days = 7): Promise<{
  * something an artist is told about and screenshots, so it has to mean the
  * same thing to them on Sunday as it did on Friday.
  */
+/**
+ * The first chart week that counts only an artist's best two songs.
+ *
+ * Sunday 15 November 2026, midnight Central. Before it, Top Artists and the
+ * weekly winner added up every song an artist had, which let a big
+ * catalogue win on volume: each song is another card in the feed, so more
+ * songs meant more saves without any one of them being liked more. From
+ * this week the artist chart counts the same two songs per artist the song
+ * chart allows.
+ *
+ * Weeks that ended before it keep the old count. Their winners were
+ * announced and written up, and a look-back has to show what was true then.
+ */
+export const BEST_TWO_FROM = new Date("2026-11-15T06:00:00Z");
+
+/** Whether a window is counted on an artist's best two songs. */
+export function countsBestTwo(until?: Date): boolean {
+  // An open window (the rolling month) is a live board, so today's rule.
+  return !until || until.getTime() > BEST_TWO_FROM.getTime();
+}
+
+/**
+ * Each artist's total over a window, for Top Artists and the weekly winner.
+ *
+ * Grouped by Apple's artist id, falling back to the credited name, so an
+ * account that posts several artists has each chart on their own. A
+ * feature counts toward the lead artist, because Apple files it there.
+ *
+ * Per song first, then each artist's top songs summed: two from
+ * BEST_TWO_FROM, all of them before it.
+ */
+export function artistTotalsSql(opts: {
+  since: Date;
+  until?: Date;
+  limit: number;
+  /** The weekly winner needs at least one save to count at all. */
+  needSave?: boolean;
+  /** "chart" breaks ties on listens, "winner" on the smaller catalogue. */
+  order?: "chart" | "winner";
+}) {
+  const { since, until, limit } = opts;
+  const upper = until ? Prisma.sql`AND s."createdAt" < ${until}` : Prisma.empty;
+  const perArtist = countsBestTwo(until) ? SONGS_PER_ARTIST : 100000;
+  const having = opts.needSave ? Prisma.sql`HAVING SUM(saves) > 0` : Prisma.empty;
+  const order =
+    opts.order === "winner"
+      ? Prisma.sql`ORDER BY score DESC, tracks ASC`
+      : Prisma.sql`ORDER BY score DESC, verdicts DESC`;
+  return Prisma.sql`
+    WITH per AS (
+      SELECT t."id", t."artistId",
+        COALESCE(t."appleArtistId", 'name:' || t."artistName") AS k,
+        COALESCE(t."appleArtistName", t."artistName") AS name,
+        COUNT(*) FILTER (WHERE s."direction" = 'RIGHT') AS saves,
+        COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0) AS score,
+        COUNT(s."id") AS verdicts
+      FROM "Track" t
+      JOIN "FanSwipe" s ON s."trackId" = t."id"
+      WHERE t."artistId" IS NOT NULL
+        AND t."status" <> 'REJECTED'
+        AND s."createdAt" >= ${since}
+        ${upper}
+      GROUP BY t."id"
+    ),
+    ranked AS (
+      SELECT per.*,
+        ROW_NUMBER() OVER (PARTITION BY k, name ORDER BY score DESC, verdicts DESC) AS r
+      FROM per
+    )
+    SELECT MIN("artistId") AS "artistId", name,
+      SUM(saves)::bigint AS saves,
+      SUM(score)::bigint AS score,
+      SUM(verdicts)::bigint AS verdicts,
+      COUNT(*)::bigint AS tracks
+    FROM ranked
+    WHERE r <= ${perArtist}
+    GROUP BY k, name
+    ${having}
+    ${order}
+    LIMIT ${limit}
+  `;
+}
+
 /** How many songs one artist may hold on the song chart at once. */
 export const SONGS_PER_ARTIST = 2;
 
@@ -269,8 +352,8 @@ export const CHART_SIZE = 10;
  *
  * Grouped by the account that submitted, not the credit on the track, so a
  * collaboration counts against the artist who entered it rather than slipping
- * past the cap as a different name. The artist chart is untouched: that one
- * sums a whole catalogue on purpose, so being prolific still wins there.
+ * past the cap as a different name. From BEST_TWO_FROM the artist chart
+ * counts the same two songs per artist; see artistTotalsSql.
  */
 function capPerArtist<
   T extends { artistId: string | null; id: string; artistName: string; appleArtistId?: string | null },
@@ -328,38 +411,7 @@ export async function leadersBetween(
     `),
     prisma.$queryRaw<
       { artistId: string; name: string; saves: bigint; score: bigint; verdicts: bigint; tracks: bigint }[]
-    >(Prisma.sql`
-      SELECT MIN(t."artistId") AS "artistId",
-        COALESCE(t."appleArtistName", t."artistName") AS name,
-        COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
-        COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
-        COUNT(s."id")::bigint AS verdicts,
-        COUNT(DISTINCT t."id")::bigint AS tracks
-      FROM "Track" t
-      JOIN "FanSwipe" s ON s."trackId" = t."id"
-      WHERE t."artistId" IS NOT NULL
-        AND t."status" <> 'REJECTED'
-        AND s."createdAt" >= ${since}
-        ${upper}
-      -- Grouped by the artist credited on the track, not the account that
-      -- submitted it: one account can legitimately post several artists, a
-      -- manager, a label or a PR company, and each of them charts on their
-      -- own name.
-      --
-      -- By Apple's own artist id, which is the artist's profile on Apple
-      -- Music. Apple already names the primary artist on its own and puts
-      -- collaborators in the track title, so a feature counts toward the
-      -- lead without anything being parsed. That matters: splitting a
-      -- credit on a comma would wreck any name that contains one, and
-      -- Earth, Wind & Fire is not three artists.
-      --
-      -- Tracks Apple has no id for fall back to the credited string, which
-      -- is the seeded catalogue and anything a lookup could not place.
-      GROUP BY COALESCE(t."appleArtistId", 'name:' || t."artistName"),
-               COALESCE(t."appleArtistName", t."artistName")
-      ORDER BY score DESC, verdicts DESC
-      LIMIT 10
-    `),
+    >(artistTotalsSql({ since, until, limit: 10 })),
   ]);
 
   return {

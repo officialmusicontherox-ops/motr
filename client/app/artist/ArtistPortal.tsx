@@ -145,8 +145,9 @@ function Dashboard({ me }: { me: Me }) {
           worth two who skip.
         </p>
         <p className="text-muted text-xs leading-relaxed">
-          The song chart shows at most two songs per artist, so no one catalogue fills it. Your
-          saves all still count in full on the artist chart, which adds up everything you have.
+          The song chart, the artist chart and the weekly winner all count your two best songs
+          each week. Send as many as you like: every one stays in the feed, and each is another
+          chance to be one of your best two.
         </p>
       </div>
 

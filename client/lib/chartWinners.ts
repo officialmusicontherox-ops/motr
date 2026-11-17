@@ -1,5 +1,5 @@
-import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
+import { artistTotalsSql } from "./scoutData";
 
 /**
  * The weekly chart winner: whoever's music was saved most in a given week.
@@ -54,30 +54,11 @@ export type WeekResult = {
 export async function winnerForWeek(weekStart: Date): Promise<WeekResult | null> {
   const weekEnd = weekEndOf(weekStart);
 
+  // The same count as the chart, so the winner is always the artist the
+  // chart shows at number one. Best two songs each from BEST_TWO_FROM.
   const rows = await prisma.$queryRaw<
     { artistId: string; name: string; saves: bigint; tracks: bigint }[]
-  >(Prisma.sql`
-    SELECT MIN(t."artistId") AS "artistId",
-      COALESCE(t."appleArtistName", t."artistName") AS name,
-      COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
-      COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
-      COUNT(DISTINCT t."id")::bigint AS tracks
-    FROM "Track" t
-    JOIN "FanSwipe" s ON s."trackId" = t."id"
-    WHERE t."artistId" IS NOT NULL
-      AND t."status" <> 'REJECTED'
-      AND s."createdAt" >= ${weekStart}
-      AND s."createdAt" < ${weekEnd}
-    -- By Apple's artist id, matching the chart exactly.
-    GROUP BY COALESCE(t."appleArtistId", 'name:' || t."artistName"),
-             COALESCE(t."appleArtistName", t."artistName")
-    HAVING COUNT(*) FILTER (WHERE s."direction" = 'RIGHT') > 0
-    -- Weighted, the same as the chart. The winner of the week has to be the
-    -- artist the chart shows at number one, or the two contradict each other
-    -- in public on the same morning.
-    ORDER BY score DESC, tracks ASC
-    LIMIT 1
-  `);
+  >(artistTotalsSql({ since: weekStart, until: weekEnd, limit: 1, needSave: true, order: "winner" }));
 
   const top = rows[0];
   if (!top) return null;
