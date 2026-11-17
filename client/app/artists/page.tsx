@@ -313,11 +313,12 @@ export default function ArtistsPage() {
             and only learning the rule from the refusal. */}
         <div className="border-gold/40 bg-gold/5 -mb-1 rounded-xl border px-4 py-3">
           <p className="text-sm leading-relaxed">
-            <strong className="text-gold">Your song has to be on Apple Music.</strong>{" "}
+            <strong className="text-gold">Paste a Spotify or Apple Music song link.</strong>{" "}
             <span className="text-muted">
-              You can paste a Spotify link or an Apple Music link. Either way, the 30-second clip
-              we play comes from Apple, so a release that is on Spotify only has nothing for us to
-              play, and we won&apos;t substitute someone else&apos;s recording to fill the gap.
+              If you use a Spotify link, the song also has to be on Apple Music, because that is
+              where the 30-second clip we play comes from. A release that is only on Spotify has
+              nothing for us to play, and we won&apos;t substitute someone else&apos;s recording to
+              fill the gap.
             </span>
           </p>
           <p className="text-muted mt-2 text-xs leading-relaxed">
