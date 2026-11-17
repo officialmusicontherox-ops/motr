@@ -35,10 +35,13 @@ export default function SponsoredCard({
   client,
   slot,
   onDismiss,
+  nextLabel = "Keep swiping",
 }: {
   client: string;
   slot: string;
   onDismiss: () => void;
+  /** Under "Next": where it takes them. Battles has no swiping. */
+  nextLabel?: string;
 }) {
   const [dx, setDx] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -174,7 +177,7 @@ export default function SponsoredCard({
           <span className="text-right leading-tight">
             <span className="motr-verdict block text-lg">Next</span>
             <span className="text-muted block text-[0.6rem] uppercase tracking-widest">
-              Keep swiping
+              {nextLabel}
             </span>
           </span>
           <Cross className="h-5 w-5 rotate-45" />

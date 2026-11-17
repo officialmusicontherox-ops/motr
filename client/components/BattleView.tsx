@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
+import SponsoredCard from "./SponsoredCard";
 import { Cross, Pause, Play, Share } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
 import { bumpSavedCount } from "@/lib/savedCount";
@@ -50,6 +51,12 @@ const TUBE: Record<Letter, { edge: string; glow: string }> = {
 
 const APP = "https://app.musicontherox.com";
 
+const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
+const ADSENSE_SLOT = process.env.NEXT_PUBLIC_ADSENSE_SLOT;
+
+/** An ad after every this many battles answered. */
+const BATTLES_PER_AD = 5;
+
 /**
  * Battles: two blind songs from one genre, and you pick one.
  *
@@ -78,6 +85,9 @@ export default function BattleView() {
   const [sharing, setSharing] = useState(false);
   /** Whether this battle was reached by somebody's shared link. */
   const viaShare = useRef(false);
+  /** Battles answered, vote or skip, since the last ad. */
+  const sinceAd = useRef(0);
+  const [showAd, setShowAd] = useState(false);
 
   const stop = useCallback(() => {
     clipPlayer()?.pause();
@@ -175,7 +185,8 @@ export default function BattleView() {
       // 409 is a battle already answered or closed since it was served.
       // Either way the right move is the next one.
       if (res.status === 409 || pick === "SKIP") {
-        await load();
+        if (pick === "SKIP") sinceAd.current += 1;
+        next();
         return;
       }
       if (!res.ok) throw new Error(String(res.status));
@@ -183,6 +194,7 @@ export default function BattleView() {
       // The song they picked goes into Saved, so the tab's count moves the
       // way it does for a right swipe.
       bumpSavedCount();
+      sinceAd.current += 1;
       setBattle(null);
       setReveal(d.reveal);
     } catch {
@@ -192,12 +204,39 @@ export default function BattleView() {
     }
   }
 
+  /**
+   * On to the next battle, with an ad first after every fifth one answered.
+   *
+   * Counted in battles answered, votes and skips alike, the way Discover
+   * counts swipes. The ad takes the screen while the next battle loads
+   * underneath, so it is ready the moment the ad is passed.
+   */
+  function next() {
+    if (ADSENSE_CLIENT && ADSENSE_SLOT && sinceAd.current >= BATTLES_PER_AD) {
+      sinceAd.current = 0;
+      setShowAd(true);
+    }
+    void load();
+  }
+
   const ready = heard.A && heard.B;
   const other = (s: Letter): Letter => (s === "A" ? "B" : "A");
 
   return (
     <MotrShell fill logo={false}>
       <div className="flex min-h-0 w-full max-w-3xl flex-1 flex-col">
+        {showAd && ADSENSE_CLIENT && ADSENSE_SLOT && (
+          <SponsoredCard
+            client={ADSENSE_CLIENT}
+            slot={ADSENSE_SLOT}
+            nextLabel="Next battle"
+            onDismiss={() => setShowAd(false)}
+          />
+        )}
+
+        {/* Hidden rather than unmounted while an ad is up, so the battle
+            loading underneath keeps its state. */}
+        <div className={showAd ? "hidden" : "contents"}>
         {/* The brush lettering itself, made to match the MOTR logo, with its
             black ground turned into transparency so it sits on either theme. */}
         <Image
@@ -314,7 +353,7 @@ export default function BattleView() {
                     Share
                   </button>
                   <button
-                    onClick={() => void load()}
+                    onClick={next}
                     className="bg-gold text-bg flex-[1.4] rounded-full py-3 text-sm font-bold"
                   >
                     Next battle
@@ -345,6 +384,7 @@ export default function BattleView() {
             </div>
           </>
         )}
+        </div>
       </div>
 
       {sharing && reveal && <ShareSheet reveal={reveal} onClose={() => setSharing(false)} />}
