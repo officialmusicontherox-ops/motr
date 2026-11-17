@@ -196,17 +196,20 @@ function TrackCard({ track }: { track: Track }) {
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <a
             href={`/api/share-card/${track.id}`}
-            download={`motr-${slug(track.title)}-story.png`}
+            // Opened, not downloaded: see the submit page.
+            target="_blank"
+            rel="noreferrer"
             className="bg-gold text-bg rounded-full px-4 py-2.5 text-center text-xs font-bold"
           >
-            Download story card
+            Open story card
           </a>
           <a
             href={`/api/share-card/${track.id}?shape=post`}
-            download={`motr-${slug(track.title)}-post.png`}
+            target="_blank"
+            rel="noreferrer"
             className="border-edge hover:border-gold rounded-full border px-4 py-2.5 text-center text-xs font-semibold transition"
           >
-            Download post card
+            Open post card
           </a>
           <button
             onClick={() =>
@@ -240,10 +243,3 @@ function Stat({ value, label, tone }: { value: number; label: string; tone: "gol
     </div>
   );
 }
-
-const slug = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 40) || "track";

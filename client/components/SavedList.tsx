@@ -277,18 +277,6 @@ export default function SavedList({ fan }: { fan: Fan }) {
                   <Share className="h-4 w-4" />
                 </button>
 
-                {/* Removes it from this list only. The swipe stays counted,
-                    so the artist does not lose a save because someone tidied
-                    up months later. */}
-                <button
-                  onClick={() => remove(t.id)}
-                  disabled={removing !== null}
-                  aria-label={`Remove ${t.title} from your saved list`}
-                  title="Remove from your list"
-                  className="border-edge text-muted hover:border-nope hover:text-nope flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition disabled:opacity-40"
-                >
-                  <Cross className="h-3.5 w-3.5" />
-                </button>
 
                 <a
                   href={t.listenUrl}
@@ -304,6 +292,20 @@ export default function SavedList({ fan }: { fan: Fan }) {
                     <SpotifyMark className="h-4 w-4" />
                   )}
                 </a>
+
+                {/* Last, on the far right, apart from the two that take you somewhere.
+                    Removes it from this list only. The swipe stays counted,
+                    so the artist does not lose a save because someone tidied
+                    up months later. */}
+                <button
+                  onClick={() => remove(t.id)}
+                  disabled={removing !== null}
+                  aria-label={`Remove ${t.title} from your saved list`}
+                  title="Remove from your list"
+                  className="border-edge text-muted hover:border-nope hover:text-nope flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition disabled:opacity-40"
+                >
+                  <Cross className="h-3.5 w-3.5" />
+                </button>
 
                 <audio
                   id={`a-${t.id}`}

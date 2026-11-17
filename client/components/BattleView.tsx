@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
 import SponsoredCard from "./SponsoredCard";
-import { Cross, Pause, Play, Share } from "./icons";
+import { Pause, Play, Share } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
 import { bumpSavedCount } from "@/lib/savedCount";
 import { safeLocal } from "@/lib/storage";
@@ -82,7 +82,7 @@ export default function BattleView() {
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
   /** Whether this battle was reached by somebody's shared link. */
   const viaShare = useRef(false);
   /** Battles answered, vote or skip, since the last ad. */
@@ -99,6 +99,7 @@ export default function BattleView() {
     async (asked?: string | null) => {
       stop();
       setReveal(null);
+      setCopied(false);
       setHeard({ A: false, B: false });
       setFailed(false);
       setBattle(undefined);
@@ -217,6 +218,17 @@ export default function BattleView() {
       setShowAd(true);
     }
     void load();
+  }
+
+  async function copyLink() {
+    if (!reveal) return;
+    try {
+      await navigator.clipboard.writeText(`${APP}/battles?b=${reveal.id}`);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard refused. Nothing else to offer, and nothing broken.
+    }
   }
 
   const ready = heard.A && heard.B;
@@ -346,11 +358,17 @@ export default function BattleView() {
               {reveal ? (
                 <div className="flex w-full max-w-md gap-2">
                   <button
-                    onClick={() => setSharing(true)}
-                    className="border-gold/60 text-gold hover:bg-gold/10 flex flex-1 items-center justify-center gap-2 rounded-full border py-3 text-sm font-bold transition"
+                    // Copies the link and nothing else. Saving or sharing the
+                    // picture sent an iPhone into the Files app with no way
+                    // back. The link still shows the battle's picture when
+                    // it is pasted into a post or a message.
+                    onClick={() => void copyLink()}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-full border py-3 text-sm font-bold transition ${
+                      copied ? "border-gold bg-gold/10 text-gold" : "border-gold/60 text-gold hover:bg-gold/10"
+                    }`}
                   >
                     <Share className="h-4 w-4" />
-                    Share
+                    {copied ? "Link copied" : "Copy link"}
                   </button>
                   <button
                     onClick={next}
@@ -387,7 +405,6 @@ export default function BattleView() {
         </div>
       </div>
 
-      {sharing && reveal && <ShareSheet reveal={reveal} onClose={() => setSharing(false)} />}
     </MotrShell>
   );
 }
@@ -568,139 +585,6 @@ function Panel({
           Vote
         </button>
       )}
-    </div>
-  );
-}
-
-/**
- * Share a battle: the image for a story or a post, and the link.
- *
- * The phone's own share sheet is used where it will take an image, which
- * is how the card reaches an Instagram story in one step. Everywhere else
- * the image can be saved and the link copied, so nobody is left with a
- * button that does nothing on their device.
- */
-function ShareSheet({ reveal, onClose }: { reveal: Reveal; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-  const [working, setWorking] = useState(false);
-
-  const url = `${APP}/battles?b=${reveal.id}`;
-  const card = (format: "story" | "post") => `/api/battles/card?b=${reveal.id}&format=${format}`;
-  const text = reveal.closed
-    ? `${reveal.a.artistName} vs ${reveal.b.artistName} on MOTR Battles. Here is how it finished.`
-    : `${reveal.a.artistName} vs ${reveal.b.artistName} on MOTR Battles. Two songs, head to head. Come vote.`;
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // Clipboard refused. The link is printed below, so it can be selected.
-    }
-  }
-
-  async function native() {
-    setWorking(true);
-    try {
-      // With the image where the device takes one, which is what lets it
-      // go straight into a story. With the link alone where it does not.
-      try {
-        const blob = await fetch(card("story")).then((r) => (r.ok ? r.blob() : Promise.reject()));
-        const file = new File([blob], "motr-battle.png", { type: "image/png" });
-        if (navigator.canShare?.({ files: [file] })) {
-          await navigator.share({ files: [file], text: `${text} ${url}` });
-          return;
-        }
-      } catch {
-        // Fall through to sharing the link by itself.
-      }
-      await navigator.share({ title: "MOTR Battles", text, url });
-    } catch {
-      // Cancelling the share sheet lands here too, and is not a failure.
-    } finally {
-      setWorking(false);
-    }
-  }
-
-  const canNative = typeof navigator !== "undefined" && typeof navigator.share === "function";
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Share this battle"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="border-edge bg-surface pb-safe w-full max-w-sm rounded-t-3xl border p-5 sm:rounded-3xl"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <p className="font-display text-xl uppercase tracking-wide">Share this battle</p>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="border-edge text-muted hover:text-ink flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition"
-          >
-            <Cross className="h-3 w-3" />
-          </button>
-        </div>
-
-        {/* The post version, because it is the one that fits a sheet. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={card("post")}
-          alt={`${reveal.a.artistName} versus ${reveal.b.artistName}`}
-          className="border-edge mt-4 aspect-square w-full rounded-2xl border bg-black object-cover"
-        />
-
-        <div className="mt-4 space-y-2">
-          {canNative && (
-            <button
-              onClick={() => void native()}
-              disabled={working}
-              className="bg-gold text-bg flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-bold disabled:opacity-50"
-            >
-              <Share className="h-4 w-4" />
-              {working ? "Getting it ready..." : "Share"}
-            </button>
-          )}
-          <button
-            onClick={() => void copy()}
-            className={`w-full rounded-full border py-3 text-sm font-semibold transition ${
-              copied ? "border-gold text-gold" : "border-edge hover:border-gold"
-            }`}
-          >
-            {copied ? "Link copied" : "Copy link"}
-          </button>
-          <div className="flex gap-2">
-            <a
-              href={card("story")}
-              download="motr-battle-story.png"
-              className="border-edge hover:border-gold flex-1 rounded-full border py-2.5 text-center text-sm transition"
-            >
-              Save for a story
-            </a>
-            <a
-              href={card("post")}
-              download="motr-battle-post.png"
-              className="border-edge hover:border-gold flex-1 rounded-full border py-2.5 text-center text-sm transition"
-            >
-              Save for a post
-            </a>
-          </div>
-        </div>
-
-        <p className="text-muted mt-3 break-all text-center text-xs">{url}</p>
-      </div>
     </div>
   );
 }

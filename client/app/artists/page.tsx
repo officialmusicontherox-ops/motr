@@ -167,10 +167,14 @@ export default function ArtistsPage() {
                         they have to go and find later is one nobody finds. */}
                     <a
                       href={`/api/share-card/${t.id}`}
-                      download={`motr-${t.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "track"}-story.png`}
+                      // Opened, not downloaded: a download sends an iPhone
+                      // into the Files app with no way back. Open, it can be
+                      // held down and saved to Photos like any picture.
+                      target="_blank"
+                      rel="noreferrer"
                       className="bg-gold text-bg rounded-full px-4 py-2 text-xs font-bold"
                     >
-                      Download story graphic
+                      Open story graphic
                     </a>
                     <button
                       onClick={() =>
