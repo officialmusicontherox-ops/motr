@@ -487,7 +487,10 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
         </div>
       )}
 
-      {!loadFailed && track === undefined && (
+      {/* Not while an ad is up. The next track loads behind the ad, and this
+          placeholder took half the height, so the ad card measured half the
+          room it had and asked for the smaller ad. */}
+      {!loadFailed && !showAd && track === undefined && (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
           <Equalizer className="text-gold/30 h-10 w-10 " />
           {/* Uses time that was already being spent. Fetching the next track
