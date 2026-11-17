@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Cross } from "./icons";
 
 const SWIPE_THRESHOLD = 100;
+
+/** "MOTR Card Laptop" in AdSense: fixed 680x380, laptops only. */
+const LAPTOP_SLOT = "9225328214";
 const EXIT_DISTANCE = 600;
 
 declare global {
@@ -50,17 +53,44 @@ export default function SponsoredCard({
   const [dragging, setDragging] = useState(false);
   const dragStartX = useRef(0);
   const pushed = useRef(false);
-  // Larger on a laptop, where 300x250 looked lost on the card. Read once,
-  // before the slot is filled, because the size asked for is the size
-  // Google serves.
-  const [big] = useState(
-    () => typeof window !== "undefined" && window.matchMedia?.("(min-width: 768px)").matches
-  );
+  // Three sizes, chosen once before the slot is filled, because the size
+  // asked for is the size Google serves:
+  //  - room for it: the 680x380 laptop unit, which responsive ads can fill
+  //    and standard ones compete for, reported separately in AdSense;
+  //  - a laptop without that room: 336x280;
+  //  - a phone: 300x250.
+  // Decided by measuring the space the card actually has, not the screen,
+  // because what sits above it differs between Discover and Battles and a
+  // fixed 380px ad in a shorter card would be cut off with the buttons
+  // pushed off screen.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<"laptop" | "wide" | "phone" | null>(null);
+  const laptop = size === "laptop";
+
+  useEffect(() => {
+    const el = rootRef.current;
+    const frame = requestAnimationFrame(() => {
+      const wideScreen = window.matchMedia?.("(min-width: 768px)").matches ?? false;
+      let fits = false;
+      if (el && wideScreen) {
+        const parent = el.parentElement;
+        const cs = parent ? getComputedStyle(parent) : null;
+        const across = parent && cs
+          ? parent.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+          : 0;
+        // 680 of ad, the card's side padding and border, and its header,
+        // padding, footnote and the Skip/Next row below it.
+        fits = Math.min(across, 768) >= 746 && el.clientHeight >= 590;
+      }
+      setSize(fits ? "laptop" : wideScreen ? "wide" : "phone");
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     // Strict mode mounts twice in development; pushing the same slot twice
     // makes AdSense log "already have ads in them" and render nothing.
-    if (pushed.current) return;
+    if (!size || pushed.current) return;
     pushed.current = true;
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
@@ -68,7 +98,7 @@ export default function SponsoredCard({
       // A blocked or failed ad must never break the feed. The card keeps its
       // frame and its controls, and the listener moves on.
     }
-  }, []);
+  }, [size]);
 
   function leave(direction: -1 | 1) {
     setDx(direction * EXIT_DISTANCE);
@@ -98,8 +128,17 @@ export default function SponsoredCard({
   const drift = Math.min(Math.abs(dx) / SWIPE_THRESHOLD, 1);
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col select-none md:max-w-2xl md:justify-center">
-      <div className="relative flex min-h-0 flex-1 flex-col md:max-h-[28rem] md:flex-none">
+    <div
+      ref={rootRef}
+      className={`mx-auto flex min-h-0 w-full max-w-sm flex-1 flex-col select-none md:justify-center ${
+        laptop ? "md:max-w-3xl" : "md:max-w-2xl"
+      }`}
+    >
+      <div
+        className={`relative flex min-h-0 flex-1 flex-col md:flex-none ${
+          laptop ? "md:max-h-[33rem]" : "md:max-h-[28rem]"
+        }`}
+      >
         <div
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -138,19 +177,24 @@ export default function SponsoredCard({
             {swipe && <SwipeRail side="left" active={drift} />}
             {swipe && <SwipeRail side="right" active={drift} />}
 
+            {size && (
             <ins
               className="adsbygoogle"
               style={{
                 display: "block",
-                width: big ? 336 : 300,
-                height: big ? 280 : 250,
+                width: laptop ? 680 : size === "wide" ? 336 : 300,
+                height: laptop ? 380 : size === "wide" ? 280 : 250,
                 maxWidth: "100%",
               }}
               data-ad-client={client}
-              data-ad-slot={slot}
-              data-ad-format="rectangle"
-              data-full-width-responsive="false"
+              data-ad-slot={laptop ? LAPTOP_SLOT : slot}
+              // The laptop unit is a fixed size in AdSense, so it takes no
+              // format hint; the others are rectangles.
+              {...(laptop
+                ? {}
+                : { "data-ad-format": "rectangle", "data-full-width-responsive": "false" })}
             />
+            )}
           </div>
 
           <p
