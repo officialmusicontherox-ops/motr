@@ -1197,9 +1197,9 @@ export function spotlightLaunchEmail(params: {
 
       <p style="margin:0 0 6px"><strong style="color:#fff">What they cost</strong></p>
       <ul style="margin:0 0 14px;padding-left:18px">
-        <li style="margin:0 0 6px">$2 for one</li>
-        <li style="margin:0 0 6px">$5 for three</li>
-        <li style="margin:0 0 6px">$12 for ten</li>
+        <li style="margin:0 0 6px">$3 for one</li>
+        <li style="margin:0 0 6px">$7 for three</li>
+        <li style="margin:0 0 6px">$18 for ten</li>
       </ul>
 
       <p style="margin:0 0 14px">Each one runs for three days. If all six places are full, yours joins the queue and starts its full three days the moment one frees, so no time is lost. Buy a few and spend them whenever something lands. Purchases are non-refundable.</p>
@@ -1420,7 +1420,7 @@ export function spotlightsAndBattlesEmail(params: { unsubscribeUrl: string }) {
       </ul>
 
       <p style="margin:0 0 6px"><strong style="color:#fff">How to get them</strong></p>
-      <p style="margin:0 0 14px">Open the Spotlight tab and tap <strong style="color:#fff">Get Spotlights</strong>. They are $2 for one, $5 for three, or $12 for ten. Each Spotlight runs for three days, and an artist can hold two of the six places at a time. If the places are full, yours waits in line and starts its full three days when one opens. Purchases are non-refundable.</p>
+      <p style="margin:0 0 14px">Open the Spotlight tab and tap <strong style="color:#fff">Get Spotlights</strong>. They are $3 for one, $7 for three, or $18 for ten. Each Spotlight runs for three days, and an artist can hold two of the six places at a time. If the places are full, yours waits in line and starts its full three days when one opens. Purchases are non-refundable.</p>
 
       <p style="margin:0 0 14px">A Spotlight is promotion only. It has no effect on the charts.</p>
 

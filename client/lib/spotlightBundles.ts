@@ -36,9 +36,9 @@ export const CAP_PLACES = PER_ARTIST === 1 ? "1 place" : `${PER_ARTIST} places`;
 export const SPOTLIGHT_SPAN = `${SPOTLIGHT_DAYS} days`;
 
 export const BUNDLES = [
-  { id: "single", credits: 1, cents: 200, label: "1 Spotlight" },
-  { id: "three", credits: 3, cents: 500, label: "3 Spotlights", note: "Most popular" },
-  { id: "ten", credits: 10, cents: 1200, label: "10 Spotlights", note: "Best value" },
+  { id: "single", credits: 1, cents: 300, label: "1 Spotlight" },
+  { id: "three", credits: 3, cents: 700, label: "3 Spotlights", note: "Most popular" },
+  { id: "ten", credits: 10, cents: 1800, label: "10 Spotlights", note: "Best value" },
 ] as const;
 
 export type BundleId = (typeof BUNDLES)[number]["id"];

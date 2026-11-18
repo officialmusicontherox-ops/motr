@@ -106,7 +106,7 @@ const cards: Card[] = [
   // ------------------------------------------------------------ Spotlight
   { dir: "Spotlight", file: "01-put-an-artist", kind: "hook", accent: GOLD, glow: "rgba(220,181,95,0.18)", kicker: "NEW ON MOTR", lines: ["PUT AN ARTIST", "IN THE", "SPOTLIGHT"], sub: "Back an artist you love. They go on the Spotlight tab for three days, named, with their photo and links to their music.", tag: BACK, sizes: BOTH },
   { dir: "Spotlight", file: "02-swipe-up", kind: "hook", accent: ORANGE, glow: "rgba(255,138,43,0.18)", kicker: "SPOTLIGHT", lines: ["SWIPE UP", "TO SPOTLIGHT"], sub: "Hear something you love on Discover? Swipe up and the artist goes in the Spotlight. It saves the song too.", tag: BACK, sizes: BOTH },
-  { dir: "Spotlight", file: "03-from-two-dollars", kind: "hook", accent: GOLD, glow: "rgba(220,181,95,0.18)", kicker: "SPOTLIGHT", figure: "$2", lines: ["TO SPOTLIGHT", "AN ARTIST"], sub: "$2 for one, $5 for three, $12 for ten. Each puts an artist on the Spotlight tab for three days.", tag: BACK, sizes: BOTH },
+  { dir: "Spotlight", file: "03-from-three-dollars", kind: "hook", accent: GOLD, glow: "rgba(220,181,95,0.18)", kicker: "SPOTLIGHT", figure: "$3", lines: ["TO SPOTLIGHT", "AN ARTIST"], sub: "$3 for one, $7 for three, $18 for ten. Each puts an artist on the Spotlight tab for three days.", tag: BACK, sizes: BOTH },
   { dir: "Spotlight", file: "04-never-a-vote", kind: "hook", accent: PINK, glow: "rgba(255,45,155,0.18)", kicker: "SPOTLIGHT", lines: ["PROMOTION.", "NEVER A VOTE."], sub: "A Spotlight never touches the charts. The charts are decided by blind listening and nothing else.", tag: BACK, sizes: BOTH },
 ];
 
