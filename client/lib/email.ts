@@ -1310,7 +1310,7 @@ export function battleOpenEmail(params: {
 
       <p style="margin:0 0 14px">${
         one ? "That link opens" : "Each link opens"
-      } straight on the battle, so it is the one to send to your listeners if you want them to vote. There is a share button on the battle too, with an image sized for a story or a post.</p>
+      } straight on the battle, so it is the one to send to your listeners if you want them to vote. There is a Copy link button on the battle too, and the link shows a picture of the battle wherever you paste it.</p>
 
       <p style="margin:0 0 14px">Battles are separate from the charts. A win is counted as a Battle Win on its own board and has no effect on chart position or the weekly winner.</p>
 
@@ -1330,6 +1330,63 @@ export function battleOpenEmail(params: {
   };
 }
 
+
+/**
+ * Sent the moment a battle is decided, to the artist whose song won.
+ *
+ * Says only that they won. A battle can be won on the votes at the end of
+ * the week or because the other song was taken off MOTR, and the reason is
+ * left out on purpose: a win is a win, and explaining a forfeit invites
+ * questions about someone else's account.
+ */
+export function battleWonEmail(params: { title: string; unsubscribeUrl: string }) {
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const body = `
+      <p style="margin:0 0 14px">Hi,</p>
+
+      <p style="margin:0 0 14px">Congratulations. Your song <strong style="color:#fff">${esc(params.title)}</strong> won its battle on MOTR this week.</p>
+
+      <p style="margin:0 0 14px">The win has been added to your Battle Wins, and you can see where you stand on the Battle Wins board in the Charts tab.</p>
+
+      <p style="margin:0 0 14px">A new battle starts Sunday with a new opponent.</p>
+
+      <p style="margin:0">Well done.</p>
+  `;
+  return {
+    subject: "You won your MOTR battle",
+    html:
+      shell("You won your battle", body, {
+        label: "See the Battle Wins board",
+        url: "https://app.musicontherox.com/charts",
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${params.unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
+/** Sent the moment a battle is decided, to the artist whose song lost. */
+export function battleLostEmail(params: { title: string; unsubscribeUrl: string }) {
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const body = `
+      <p style="margin:0 0 14px">Hi,</p>
+
+      <p style="margin:0 0 14px">Your song <strong style="color:#fff">${esc(params.title)}</strong> didn't take the win in its battle on MOTR this week. Every vote in a battle came from someone hearing your music with no name attached, judging it on the song alone, and that is exactly the kind of listener MOTR is here to find you.</p>
+
+      <p style="margin:0 0 14px">A new battle starts Sunday with a new opponent and a clean slate. When it opens, send the link to your listeners. Every vote they cast counts.</p>
+
+      <p style="margin:0 0 14px">Battles have no effect on the charts, so your saves this week count exactly the same as before.</p>
+
+      <p style="margin:0">Good luck next week.</p>
+  `;
+  return {
+    subject: "Your MOTR battle result",
+    html:
+      shell("Your battle result", body, {
+        label: "Open Battles",
+        url: "https://app.musicontherox.com/battles",
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${params.unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
 
 /**
  * What was added to MOTR in the week of 8 November 2026: Spotlights and

@@ -221,8 +221,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             paired. Every listener is given the same battles and may vote once in each. The song
             with the larger share of the vote when it closes takes the win. A tie, or a battle
             nobody voted in, gives nobody a win. If a song is removed from MOTR while its battle
-            is open, that battle is called off and counts for nobody, and the other artist is
-            paired again where another is available.
+            is open, the other song wins that battle at that moment, and that is the other
+            artist&apos;s battle for the week. Each artist is emailed their result when their
+            battle is decided.
           </li>
           <li>
             <strong className="text-ink">A win is a Battle Win and nothing else.</strong> Battle

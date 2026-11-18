@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
+import { sendBattleResults } from "@/lib/battleResults";
 import { getFanSession } from "@/lib/fanAuth";
 import { nextBattle } from "@/lib/battles";
 
@@ -26,5 +27,9 @@ export async function GET(req: NextRequest) {
   const asked = req.nextUrl.searchParams.get("b");
 
   const out = await nextBattle(fanId, excludeAi, asked);
+
+  // Any battle just decided, at the week's close or by a pulled song, has
+  // its artists told now, after this answer has gone back to the listener.
+  after(() => sendBattleResults().catch(() => {}));
   return NextResponse.json(out, { headers: { "cache-control": "no-store" } });
 }

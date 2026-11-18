@@ -11,6 +11,8 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 process.loadEnvFile(".env");
+// Never send mail from a test: the test artists have made-up addresses.
+delete process.env.RESEND_API_KEY;
 
 // This parks every live track while it runs. Never against production.
 if (!/localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? "")) {
@@ -182,7 +184,7 @@ async function main() {
 
     let reveal = await B.decideBattle(voters[0].id, viaLink.battle!.ticket, "A", true);
     check(!!reveal && reveal.pick === "A" && !!reveal.a.title && !!reveal.b.artistName && reveal.id === target.id, "a vote returns both songs named and the shareable id");
-    check(reveal!.pct === null, "with one vote in, no percentage is shown");
+    check(reveal!.pct !== null && reveal!.pct.a === 100, "the score shows from the first vote");
 
     try {
       await B.decideBattle(voters[0].id, viaLink.battle!.ticket, "B");
@@ -288,35 +290,56 @@ async function main() {
     await B.battleHousekeeping();
 
     const off = await prisma.battle.findUnique({ where: { id: doomed.id } });
-    check(!!off?.cancelledAt && off.winnerId === null, "pulling a song calls its battle off, with no winner");
-    const rematch = await prisma.battle.findFirst({
-      where: { weekStart: week.start, cancelledAt: null, OR: [{ trackAId: survivor }, { trackBId: survivor }] },
-    });
     check(
-      !!rematch && [rematch.trackAId, rematch.trackBId].includes(waiting),
-      "the other artist is paired again at once, with the artist who was waiting"
+      !off?.cancelledAt && !!off?.forfeitAt && !!off?.settledAt && off.winnerId === survivor,
+      "pulling a song hands its battle to the other song, though the pulled one was ahead"
     );
+    const repaired = await prisma.battle.findFirst({
+      where: { weekStart: week.start, cancelledAt: null, id: { not: doomed.id }, OR: [{ trackAId: survivor }, { trackBId: survivor }] },
+    });
+    check(!repaired, "the winner is not paired again that week, having had their battle");
+    const survivorRec = await prisma.track.findUnique({ where: { id: survivor }, select: { battleWins: true, battles: true } });
+    check(survivorRec!.battleWins === 1 && survivorRec!.battles === 1, "the win goes on the winner's record at once");
+    const pulledWins = await prisma.track.findUnique({ where: { id: doomed.trackAId }, select: { battleWins: true } });
+    check(pulledWins!.battleWins === 0, "and the pulled song takes no win");
     try {
       await B.decideBattle((await fan()).id, B.sealBattleId(doomed.id), "B");
-      fail("a vote landed in a battle that was called off");
+      fail("a vote landed in a battle that was already decided");
     } catch (e) {
-      check(e instanceof B.BattleGoneError, "a called-off battle takes no votes");
+      check(e instanceof B.BattleGoneError, "a decided battle takes no votes");
     }
     const viaOld = await B.nextBattle((await fan()).id, false, doomed.id);
-    check(
-      !viaOld.battle || B.openBattleTicket(viaOld.battle.ticket) !== doomed.id,
-      "its link carries on to another battle"
-    );
-    const pulledWins = await prisma.track.findUnique({ where: { id: doomed.trackAId }, select: { battleWins: true, battles: true } });
-    check(pulledWins!.battleWins === 0 && pulledWins!.battles === 0, "and the pulled song takes nothing from it, though it was ahead");
+    check(!viaOld.battle && viaOld.reveal?.closed === true && viaOld.reveal.winner === "B", "its link shows the result, with the winner");
     check((await B.battlePicksFor(pv1.id)).length === 1, "the listeners who voted keep their pick in Saved");
 
+    // The artist left waiting is paired with nobody new from this group.
+    const lone = await prisma.battle.findFirst({
+      where: { weekStart: week.start, OR: [{ trackAId: waiting }, { trackBId: waiting }] },
+    });
+    check(!lone, "the artist who was waiting still waits, with nobody left to face");
+
+    // Result emails: the winner is claimed and told once; the pulled side is
+    // claimed and not written to.
+    const { sendBattleResults } = await import("../lib/battleResults.ts");
+    await sendBattleResults();
+    const told = await prisma.battle.findUnique({ where: { id: doomed.id } });
+    check(!!told?.resultSentAAt && !!told?.resultSentBAt, "both sides of a decided battle are dealt with");
+    const stamp = told!.resultSentBAt!.getTime();
+    await sendBattleResults();
+    const again2 = await prisma.battle.findUnique({ where: { id: doomed.id } });
+    check(again2!.resultSentBAt!.getTime() === stamp, "and nobody is told twice");
+
     // A song that breaks through is still on MOTR and finishes its battle.
-    await prisma.track.update({ where: { id: survivor }, data: { status: "VETTING" } });
+    const G4 = "Breakout Genre " + id();
+    const ka = await track(await artist("Keep A " + id()), G4);
+    const kb = await track(await artist("Keep B " + id()), G4);
+    await B.pairThisWeek();
+    const pair = await prisma.battle.findFirst({ where: { weekStart: week.start, trackAId: { in: [ka.id, kb.id] } } });
+    await prisma.track.update({ where: { id: ka.id }, data: { status: "VETTING" } });
     await B.battleHousekeeping();
-    const kept = await prisma.battle.findUnique({ where: { id: rematch!.id } });
-    const served = await B.nextBattle((await fan()).id, false, rematch!.id);
-    check(!kept?.cancelledAt && !!served.battle, "a song that breaks through mid-week keeps its battle");
+    const kept = await prisma.battle.findUnique({ where: { id: pair!.id } });
+    const served = await B.nextBattle((await fan()).id, false, pair!.id);
+    check(!kept?.cancelledAt && !kept?.settledAt && !!served.battle, "a song that breaks through mid-week keeps its battle");
   } finally {
     const mineB = await prisma.battle.findMany({
       where: { OR: [{ trackAId: { in: made.tracks } }, { trackBId: { in: made.tracks } }] },

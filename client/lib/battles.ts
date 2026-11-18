@@ -215,39 +215,53 @@ export async function pairThisWeek(now = new Date()): Promise<number> {
 }
 
 /**
- * Call off any open battle with a song that has been pulled.
+ * A song pulled while its battle is open hands the win to the other song.
  *
- * Without this the other artist is stranded: their battle stops being
- * shown, and because they still count as being in one, they are not paired
- * again until Sunday. Calling it off frees them at once, so the pairing
- * that runs next gives them a new opponent if anybody in their genre is
- * waiting.
- *
- * They are not handed the win. A Battle Win nobody voted for would make
- * every other one worth less.
- *
- * Only a pulled song does this. One that has broken through is still on
- * MOTR, and finishes the battle it is in.
- *
- * Runs as part of the housekeeping on every visit rather than from each
- * place a song can be pulled, of which there are several, so no way of
- * pulling one can forget to do it.
+ * Declared there and then, not at the end of the week: the other artist
+ * did nothing wrong, and their week's battle is over. It goes on their
+ * record as a win, they are not paired again that week, and both artists
+ * are sent their result straight away (see lib/battleResults.ts). The
+ * pulled artist is not written to, having left.
+ */
+export async function forfeitBrokenBattles(): Promise<number> {
+  const done = await prisma.$queryRaw<
+    Array<{ trackAId: string; trackBId: string; winnerId: string | null; votes: number }>
+  >(Prisma.sql`
+    UPDATE "Battle" b
+    SET "settledAt" = NOW(),
+        "forfeitAt" = NOW(),
+        "winnerId" = CASE WHEN ta."status" = 'REJECTED'::"TrackStatus" THEN b."trackBId" ELSE b."trackAId" END
+    FROM "Track" ta, "Track" tb
+    WHERE ta."id" = b."trackAId"
+      AND tb."id" = b."trackBId"
+      AND b."settledAt" IS NULL
+      AND b."cancelledAt" IS NULL
+      AND (ta."status" = 'REJECTED'::"TrackStatus") <> (tb."status" = 'REJECTED'::"TrackStatus")
+    RETURNING b."trackAId", b."trackBId", b."winnerId", 1 AS votes
+  `);
+  await recordResults(done);
+  return done.length;
+}
+
+/**
+ * Battles that cannot stand at all, called off for nobody: both songs
+ * pulled, or both turning out to be the same artist. Pairing never makes
+ * the second knowingly, but a song filed under a credit line can be matched
+ * to its artist after the battle was drawn.
  */
 export async function cancelBrokenBattles(): Promise<number> {
+  const forfeits = await forfeitBrokenBattles();
   const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
     UPDATE "Battle" b
     SET "cancelledAt" = NOW(), "settledAt" = NOW()
     WHERE b."settledAt" IS NULL
       AND b."cancelledAt" IS NULL
       AND (
-        EXISTS (
+        NOT EXISTS (
           SELECT 1 FROM "Track" t
           WHERE t."id" IN (b."trackAId", b."trackBId")
-            AND t."status" = 'REJECTED'::"TrackStatus"
+            AND t."status" <> 'REJECTED'::"TrackStatus"
         )
-        -- Or both songs turn out to be the same artist. Pairing never
-        -- makes one knowingly, but a song filed under a credit line can
-        -- be matched to its artist after the battle was drawn.
         OR EXISTS (
           SELECT 1 FROM "Track" ta, "Track" tb
           WHERE ta."id" = b."trackAId" AND tb."id" = b."trackBId"
@@ -256,7 +270,7 @@ export async function cancelBrokenBattles(): Promise<number> {
       )
     RETURNING b."id"
   `);
-  return rows.length;
+  return forfeits + rows.length;
 }
 
 /** Everything that has to be true before battles are read or served. */
@@ -290,13 +304,23 @@ export async function settleFinishedWeeks(now = new Date()): Promise<number> {
     WHERE "settledAt" IS NULL AND "weekStart" < ${week.start}
     RETURNING "trackAId", "trackBId", "winnerId", ("votesA" + "votesB")::int AS votes
   `);
-  if (done.length === 0) return 0;
+  await recordResults(done);
+  return done.length;
+}
 
-  // A battle nobody voted in was not fought, and is on nobody's record.
+/**
+ * Add finished battles to each song's all-time record.
+ *
+ * A battle nobody voted in was not fought, and is on nobody's record. A
+ * forfeit is passed in as fought, because the winner's win is real.
+ */
+export async function recordResults(
+  done: Array<{ trackAId: string; trackBId: string; winnerId: string | null; votes: number }>
+) {
   const fought = new Map<string, number>();
   const won = new Map<string, number>();
   for (const d of done) {
-    if (d.votes === 0) continue;
+    if (Number(d.votes) === 0) continue;
     for (const t of [d.trackAId, d.trackBId]) fought.set(t, (fought.get(t) ?? 0) + 1);
     if (d.winnerId) won.set(d.winnerId, (won.get(d.winnerId) ?? 0) + 1);
   }
@@ -312,7 +336,6 @@ export async function settleFinishedWeeks(now = new Date()): Promise<number> {
   };
   await apply(fought, "battles");
   await apply(won, "battleWins");
-  return done.length;
 }
 
 /* ------------------------------------------------------------------ */
@@ -429,7 +452,7 @@ export async function revealBattle(battle: BattleRow, pick: "A" | "B" | null): P
 
   const total = battle.votesA + battle.votesB;
   const a = total ? Math.round((battle.votesA / total) * 100) : 0;
-  const closed = battle.weekStart.getTime() < battleWeek().start.getTime();
+  const closed = battle.weekStart.getTime() < battleWeek().start.getTime() || !!battle.settledAt;
 
   return {
     id: battle.id,
@@ -494,7 +517,7 @@ export async function nextBattle(
       const vote = await prisma.battleVote.findUnique({
         where: { battleId_fanId: { battleId: b.id, fanId } },
       });
-      const closed = b.weekStart.getTime() < week.start.getTime();
+      const closed = b.weekStart.getTime() < week.start.getTime() || !!b.settledAt;
       if (closed || (vote && vote.pick !== "SKIP")) {
         const pick = vote?.pick === "A" || vote?.pick === "B" ? vote.pick : null;
         return { battle: null, reveal: await revealBattle(b, pick), viaShare: true };
@@ -513,6 +536,7 @@ export async function nextBattle(
     JOIN "Track" tb ON tb."id" = b."trackBId"
     WHERE b."weekStart" = ${week.start}
       AND b."cancelledAt" IS NULL
+      AND b."settledAt" IS NULL
       AND ta."status" <> 'REJECTED'::"TrackStatus"
       AND tb."status" <> 'REJECTED'::"TrackStatus"
       ${
@@ -549,7 +573,7 @@ export async function decideBattle(
 
   const battle = await prisma.battle.findUnique({ where: { id } });
   if (!battle || battle.cancelledAt) throw new BattleGoneError();
-  if (battle.weekStart.getTime() !== battleWeek().start.getTime()) {
+  if (battle.settledAt || battle.weekStart.getTime() !== battleWeek().start.getTime()) {
     throw new BattleGoneError("That battle has closed");
   }
 
@@ -598,22 +622,31 @@ export async function battleLeadersBetween(
 ): Promise<BattleLeader[]> {
   const rows = await prisma.$queryRaw<Array<{ key: string; name: string; wins: number }>>(Prisma.sql`
     WITH led AS (
-      SELECT CASE WHEN b."votesA" > b."votesB" THEN b."trackAId" ELSE b."trackBId" END AS track,
-             GREATEST(b."votesA", b."votesB")::float / (b."votesA" + b."votesB") AS share
+      -- A settled battle counts for its recorded winner, which is how a
+      -- forfeit counts for the song left standing whatever the votes said.
+      -- An open one counts for whoever is ahead.
+      SELECT CASE
+               WHEN b."settledAt" IS NOT NULL THEN b."winnerId"
+               WHEN b."votesA" > b."votesB" THEN b."trackAId"
+               WHEN b."votesB" > b."votesA" THEN b."trackBId"
+             END AS track,
+             CASE WHEN b."votesA" + b."votesB" > 0
+               THEN GREATEST(b."votesA", b."votesB")::float / (b."votesA" + b."votesB")
+             END AS share
       FROM "Battle" b
       WHERE b."weekStart" >= ${start}
         AND b."weekStart" < ${end}
         AND b."cancelledAt" IS NULL
-        AND b."votesA" <> b."votesB"
     )
     SELECT ${KEY("t")} AS key,
            MAX(COALESCE(t."appleArtistName", t."artistName")) AS name,
            COUNT(*)::int AS wins
     FROM led
     JOIN "Track" t ON t."id" = led.track
+    -- (a tie leaves track empty, and the join drops it)
     WHERE t."status" <> 'REJECTED'::"TrackStatus"
     GROUP BY 1
-    ORDER BY wins DESC, AVG(led.share) DESC, name ASC
+    ORDER BY wins DESC, AVG(led.share) DESC NULLS LAST, name ASC
     LIMIT ${limit}
   `);
   return rows.map((r) => ({ key: r.key, name: r.name, wins: Number(r.wins) }));
