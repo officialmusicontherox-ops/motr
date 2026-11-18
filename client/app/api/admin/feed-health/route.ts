@@ -155,6 +155,8 @@ export async function PATCH(req: NextRequest) {
               data: {
                 previewUrl: d.preview,
                 durationMs: d.duration ? d.duration * 1000 : track.durationMs,
+                // Not Apple's recording, so no Apple id to check it against.
+                appleTrackId: null,
                 audioVerdict: null,
                 audioCheckedAt: null,
               },
@@ -187,6 +189,11 @@ export async function PATCH(req: NextRequest) {
       artworkUrl:
         (found.artworkUrl100 ?? "").replace(/\/\d+x\d+bb\./, "/600x600bb.") || track.artworkUrl,
       durationMs: found.trackTimeMillis ?? track.durationMs,
+      // The id goes with the clip. Keeping the old one left the check
+      // looking up a different recording from the one now playing: KP
+      // Meier's "We Will Fly" was repaired to the right clip, kept the id
+      // of a same-titled song by Kip, and was flagged again on every run.
+      appleTrackId: found.trackId ? String(found.trackId) : null,
       // New audio is a new claim, so it has to earn its verdict again.
       audioVerdict: null,
       audioCheckedAt: null,

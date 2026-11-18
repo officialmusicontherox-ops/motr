@@ -263,6 +263,10 @@ export async function POST(req: NextRequest) {
     }
 
     let resolved = raw;
+    // Which Apple recording the new clip is, so the check that runs later
+    // looks up this one and not whatever was matched before. Null for a
+    // clip pasted directly, which has no Apple id to check against.
+    let newAppleId: string | null = null;
 
     // Apple carries the track id in ?i= on an album URL, or as the last path
     // segment of a /song/ URL. Both music.apple.com and the older
@@ -295,6 +299,7 @@ export async function POST(req: NextRequest) {
         );
       }
       resolved = hit.previewUrl;
+      newAppleId = hit.trackId ? String(hit.trackId) : appleId;
     } else if (albumId) {
       const current = await prisma.track.findUnique({
         where: { id: trackId },
@@ -322,6 +327,7 @@ export async function POST(req: NextRequest) {
         );
       }
       resolved = hit.previewUrl;
+      newAppleId = hit.trackId ? String(hit.trackId) : null;
     }
 
     if (!/^https?:\/\//i.test(resolved)) {
@@ -357,7 +363,12 @@ export async function POST(req: NextRequest) {
       // Audio pasted by hand is vouched for, not matched. Marking it null
       // would send it back through the health check, which would fail to
       // find it on Apple and offer to repair over a deliberate choice.
-      data: { previewUrl: resolved, audioVerdict: "VOUCHED", audioCheckedAt: new Date() },
+      data: {
+        previewUrl: resolved,
+        appleTrackId: newAppleId,
+        audioVerdict: "VOUCHED",
+        audioCheckedAt: new Date(),
+      },
     });
     return NextResponse.json({ track: { id: updated.id, previewUrl: updated.previewUrl } });
   }
