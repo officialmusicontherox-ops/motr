@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from "next/server";
 import { sendBattleResults } from "@/lib/battleResults";
+import { sendBattleNotice } from "@/lib/battleNotice";
 import { getFanSession } from "@/lib/fanAuth";
 import { nextBattle } from "@/lib/battles";
 
@@ -28,8 +29,17 @@ export async function GET(req: NextRequest) {
 
   const out = await nextBattle(fanId, excludeAi, asked);
 
-  // Any battle just decided, at the week's close or by a pulled song, has
-  // its artists told now, after this answer has gone back to the listener.
-  after(() => sendBattleResults().catch(() => {}));
+  // After this answer has gone back to the listener: any battle just
+  // decided has its artists told the result, and any battle just paired has
+  // its artists sent their link. Results first, then announcements with
+  // whatever time is left, so the request stays inside its limit.
+  after(async () => {
+    const started = Date.now();
+    await sendBattleResults().catch(() => {});
+    const left = 6000 - (Date.now() - started);
+    if (left > 1000) {
+      await sendBattleNotice("https://app.musicontherox.com", { budgetMs: left, housekeeping: false }).catch(() => {});
+    }
+  });
   return NextResponse.json(out, { headers: { "cache-control": "no-store" } });
 }

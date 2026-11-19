@@ -37,7 +37,12 @@ type Pending = {
 export async function pendingBattleNotices(): Promise<Pending[]> {
   const week = battleWeek();
   const battles = await prisma.battle.findMany({
-    where: { weekStart: week.start, cancelledAt: null, OR: [{ notifiedAAt: null }, { notifiedBAt: null }] },
+    where: {
+      weekStart: week.start,
+      cancelledAt: null,
+      settledAt: null,
+      OR: [{ notifiedAAt: null }, { notifiedBAt: null }],
+    },
     orderBy: { createdAt: "asc" },
   });
   const sides = battles.flatMap((b) => [
@@ -70,14 +75,22 @@ export async function pendingBattleNotices(): Promise<Pending[]> {
   return [...out.values()];
 }
 
-async function mark(songs: Pending["songs"]) {
+/**
+ * Take the songs to be announced, so no other run sends them. Returns the
+ * ones this run won; a song another run already took is left out.
+ */
+async function claim(songs: Pending["songs"]): Promise<Pending["songs"]> {
+  const won: Pending["songs"] = [];
   const now = new Date();
   for (const s of songs) {
-    await prisma.battle.update({
-      where: { id: s.battleId },
-      data: s.side === "A" ? { notifiedAAt: now } : { notifiedBAt: now },
+    const field = s.side === "A" ? "notifiedAAt" : "notifiedBAt";
+    const r = await prisma.battle.updateMany({
+      where: { id: s.battleId, [field]: null },
+      data: { [field]: now },
     });
+    if (r.count === 1) won.push(s);
   }
+  return won;
 }
 
 export type BattleNoticeProgress = {
@@ -99,8 +112,20 @@ export async function previewBattleNotice() {
 }
 
 /** Send one batch, and say how much is left. Called until done. */
-export async function sendBattleNotice(appUrl: string): Promise<BattleNoticeProgress> {
-  await battleHousekeeping();
+/**
+ * Email each artist the link to their battle.
+ *
+ * Runs on its own after Battles requests (see app/api/battles/next), so a
+ * battle is announced as soon as it is paired: the Sunday the week opens,
+ * or mid-week when a new artist is paired. The admin button calls the same
+ * thing and is only needed to hurry it along.
+ */
+export async function sendBattleNotice(
+  appUrl: string,
+  opts: { budgetMs?: number; housekeeping?: boolean } = {}
+): Promise<BattleNoticeProgress> {
+  if (opts.housekeeping !== false) await battleHousekeeping();
+  const budget = opts.budgetMs ?? BATCH_BUDGET_MS;
 
   const pending = await pendingBattleNotices();
   const startedAt = Date.now();
@@ -110,20 +135,27 @@ export async function sendBattleNotice(appUrl: string): Promise<BattleNoticeProg
   let handled = 0;
 
   for (const p of pending.slice(0, BATCH_MAX)) {
+    if (Date.now() - startedAt > budget) break;
+
+    // Taken first, so a second run arriving together cannot send it too.
+    // Taken either way: a failed send is not retried, because the commonest
+    // failure is an address on the suppression list and that must stay
+    // refused.
+    const songs = await claim(p.songs);
+    handled += 1;
+    if (songs.length === 0) continue;
+
     // Somebody who has opted out, or whose address cannot receive mail, is
-    // marked as dealt with so the send can finish. They are simply not
-    // written to.
+    // dealt with and simply not written to.
     if (p.optedOut || !isEmailAddress(p.email)) {
-      await mark(p.songs);
       skipped += 1;
-      handled += 1;
       continue;
     }
 
     const result = await sendEmail(
       p.email,
       battleOpenEmail({
-        songs: p.songs.map((s) => ({
+        songs: songs.map((s) => ({
           title: s.title,
           artistName: s.artistName,
           url: `${appUrl}/battles?b=${s.battleId}`,
@@ -131,14 +163,9 @@ export async function sendBattleNotice(appUrl: string): Promise<BattleNoticeProg
         unsubscribeUrl: artistUnsubscribeUrl(p.artistId, appUrl),
       })
     );
-    // Marked either way. A failure is reported in the count, and is not
-    // retried by pressing the button again, because the commonest failure
-    // is an address on the suppression list and that must stay refused.
-    await mark(p.songs);
-    result.ok ? (sent += 1) : (failed += 1);
-    handled += 1;
+    if (result.ok) sent += 1;
+    else failed += 1;
 
-    if (Date.now() - startedAt > BATCH_BUDGET_MS) break;
     await new Promise((r) => setTimeout(r, PACE_MS));
   }
 
