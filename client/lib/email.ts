@@ -1348,7 +1348,7 @@ export function battleWonEmail(params: { title: string; unsubscribeUrl: string }
 
       <p style="margin:0 0 14px">The win has been added to your Battle Wins, and you can see where you stand on the Battle Wins board in the Charts tab.</p>
 
-      <p style="margin:0 0 14px">A new battle starts Sunday with a new opponent.</p>
+      <p style="margin:0 0 14px">A new week of battles starts every Sunday, with new matchups. If your song is paired this week, you will get a separate email with the link to your battle.</p>
 
       <p style="margin:0">Well done.</p>
   `;
@@ -1371,7 +1371,7 @@ export function battleLostEmail(params: { title: string; unsubscribeUrl: string 
 
       <p style="margin:0 0 14px">Your song <strong style="color:#fff">${esc(params.title)}</strong> didn't take the win in its battle on MOTR this week. Every vote in a battle came from someone hearing your music with no name attached, judging it on the song alone, and that is exactly the kind of listener MOTR is here to find you.</p>
 
-      <p style="margin:0 0 14px">A new battle starts Sunday with a new opponent and a clean slate. When it opens, send the link to your listeners. Every vote they cast counts.</p>
+      <p style="margin:0 0 14px">A new week of battles starts every Sunday, with new matchups and a clean slate. If your song is paired this week, you will get a separate email with the link to your battle. Send it to your listeners: every vote they cast counts.</p>
 
       <p style="margin:0 0 14px">Battles have no effect on the charts, so your saves this week count exactly the same as before.</p>
 
