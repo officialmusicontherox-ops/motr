@@ -60,15 +60,25 @@ export async function GET(req: NextRequest) {
     ];
   }
 
-  const tracks = await prisma.track.findMany({
+  // Paged on the server, 50 at a time, so every track can be reached
+  // without loading the listening stats for hundreds at once. This was a
+  // flat first 200, which left everything past it unreachable except by
+  // searching for it.
+  const PAGE_SIZE = 50;
+  const pageNum = Math.max(0, Number(req.nextUrl.searchParams.get("page") ?? 0) || 0);
+  const [total, tracks] = await Promise.all([
+    prisma.track.count({ where }),
+    prisma.track.findMany({
     where,
     orderBy,
-    take: 200,
+    skip: pageNum * PAGE_SIZE,
+    take: PAGE_SIZE,
     include: {
       artist: { select: { name: true, email: true } },
       _count: { select: { fanSwipes: true, assignments: true } },
     },
-  });
+    }),
+  ]);
 
   const trackIds = tracks.map((t) => t.id);
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -155,6 +165,9 @@ export async function GET(req: NextRequest) {
       votesThisWeek: thisWeek.get(t.id) ?? 0,
     })),
     counts: { live, pulled, submitted, withCurators },
+    total,
+    page: pageNum,
+    pageSize: PAGE_SIZE,
   });
 }
 

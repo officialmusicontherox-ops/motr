@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
+import AdminSection, { Pager } from "./AdminSection";
 import { GENRES } from "@/lib/genres";
 
 type Track = {
@@ -61,26 +61,39 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
   const [flash, setFlash] = useState<string | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const page = useVisibleCount(10);
+  // Paged on the server: every track can be reached, 50 at a time.
+  // The page belongs to the tab, sort and search it was chosen under, so
+  // changing any of them starts again from the first page without an
+  // extra render.
+  const filterKey = `${view}|${sort}|${q.trim()}`;
+  const [paged, setPaged] = useState({ key: filterKey, n: 0 });
+  const pageNum = paged.key === filterKey ? paged.n : 0;
+  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
+  const listTop = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
-    const params = new URLSearchParams({ view, sort });
+    const params = new URLSearchParams({ view, sort, page: String(pageNum) });
     if (q.trim()) params.set("q", q.trim());
     const res = await fetch(`/api/admin/tracks?${params}`);
     if (!res.ok) return;
     const d = await res.json();
     setTracks(d.tracks);
     setCounts(d.counts);
-  }, [view, sort, q]);
+    setTotal(d.total ?? d.tracks.length);
+    setPageSize(d.pageSize ?? 50);
+  }, [view, sort, q, pageNum]);
 
   useEffect(() => {
     setTracks(null);
-    page.reset();
     const t = setTimeout(load, q ? 300 : 0); // debounce typing, not tab switches
     return () => clearTimeout(t);
-    // page.reset is stable enough for this; re-running on it would loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load, q]);
+
+  function goToPage(p: number) {
+    setPaged({ key: filterKey, n: p });
+    listTop.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   function preview(t: Track) {
     if (playing === t.id) {
@@ -241,6 +254,10 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
         </p>
       )}
 
+      {/* Where a new page scrolls back to, so pressing Next at the foot of
+          a long list does not leave you at the foot of the next one. */}
+      <div ref={listTop} className="scroll-mt-4" />
+
       {tracks === null ? (
         <p className="mt-4 text-sm text-muted">Loading...</p>
       ) : tracks.length === 0 ? (
@@ -249,7 +266,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
         </p>
       ) : (
         <ul className="mt-4 space-y-2">
-          {tracks.slice(0, page.visible).map((t) => {
+          {tracks.map((t) => {
             // The gate runs on weighted votes, so progress has to be shown in
             // the same currency — otherwise a track reads as "40 of 75" while
             // the platform considers it 52.
@@ -459,12 +476,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
       )}
 
       {tracks && tracks.length > 0 && (
-        <ShowMore
-          shown={page.visible}
-          total={tracks.length}
-          onMore={page.more}
-          onLess={page.reset}
-        />
+        <Pager page={pageNum} pageSize={pageSize} total={total} onPage={goToPage} />
       )}
 
       {confirming && (
