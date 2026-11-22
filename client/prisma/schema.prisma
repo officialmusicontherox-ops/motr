@@ -1085,3 +1085,19 @@ model ChartWinner {
 
   @@index([weekStart])
 }
+
+/// An email that did not reach someone, so the admin panel can show which
+/// artists cannot be reached. "refused" is Resend declining it at send time;
+/// "bounced", "complained", "failed" and "suppressed" come back later from
+/// Resend's webhook.
+model EmailProblem {
+  id        String   @id @default(cuid())
+  email     String
+  kind      String
+  reason    String?
+  subject   String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+}

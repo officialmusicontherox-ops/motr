@@ -9,6 +9,7 @@ type Data = {
   thisWeek: { id: string; genre: string; a: string; b: string; votesA: number; votesB: number; shared: number }[];
   leaders: { key: string; name: string; wins: number }[];
   totals: { key: string; name: string; wins: number; battles: number }[];
+  waiting: { name: string; genre: string; ai: boolean; account: string | null; reason: string }[];
 };
 
 /**
@@ -28,6 +29,7 @@ export default function AdminBattles() {
   const weekPage = usePager(10);
   const leadPage = usePager(10);
   const totalPage = usePager(15);
+  const waitPage = usePager(15);
 
   useEffect(() => {
     fetch("/api/admin/battles")
@@ -120,6 +122,42 @@ export default function AdminBattles() {
               onPage={weekPage.setPage}
             />
           </div>
+        )}
+      </AdminSection>
+
+      <AdminSection
+        title="Waiting for an opponent"
+        description={
+          data.waiting.length === 0
+            ? "Every eligible artist is in a battle this week"
+            : `${data.waiting.length} artist${data.waiting.length === 1 ? "" : "s"} not in a battle this week. Each is paired as soon as another artist in their genre joins.`
+        }
+      >
+        {data.waiting.length > 0 && (
+          <>
+            <ul className="space-y-2">
+              {waitPage.slice(data.waiting).map((w) => (
+                <li key={`${w.name}|${w.genre}`} className="border-edge bg-surface rounded-xl border p-3">
+                  <p className="text-sm font-semibold">
+                    {w.name}
+                    <span className="text-muted font-normal">
+                      {" "}
+                      · {w.genre}
+                      {w.ai ? " · AI vocals" : ""}
+                    </span>
+                  </p>
+                  <p className="text-muted text-xs">{w.reason}</p>
+                  {w.account && <p className="text-muted break-all text-xs">{w.account}</p>}
+                </li>
+              ))}
+            </ul>
+            <Pager
+              page={waitPage.page}
+              pageSize={waitPage.pageSize}
+              total={data.waiting.length}
+              onPage={waitPage.setPage}
+            />
+          </>
         )}
       </AdminSection>
 

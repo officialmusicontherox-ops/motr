@@ -54,7 +54,57 @@ export async function GET() {
   });
   const sharedBy = new Map(sharedRows.map((r) => [r.battleId, r._count]));
 
+  // Who is not in a battle this week, and why. Pairing takes one song per
+  // artist within a genre (AI vocals in a group of their own), so an artist
+  // waits when they are alone in their group or their group came out odd.
+  // Read the same way pairing reads it, so this answers "why isn't my song
+  // in a battle?" before the email arrives.
+  const eligible = await prisma.track.findMany({
+    where: { status: "DISCOVERY", artistId: { not: null }, genre: { not: null } },
+    select: {
+      artistName: true,
+      appleArtistId: true,
+      appleArtistName: true,
+      genre: true,
+      aiGenerated: true,
+      battles: true,
+      artist: { select: { email: true } },
+    },
+  });
+  const keyOf = (t: { appleArtistId: string | null; artistName: string }) =>
+    t.appleArtistId ?? `name:${t.artistName}`;
+  const chosen = new Map<string, (typeof eligible)[number]>();
+  for (const t of eligible) {
+    const cur = chosen.get(keyOf(t));
+    if (!cur || t.battles < cur.battles) chosen.set(keyOf(t), t);
+  }
+  const groupOf = (t: (typeof eligible)[number]) => `${t.genre}|${t.aiGenerated ? "ai" : "human"}`;
+  const groupSize = new Map<string, number>();
+  for (const t of chosen.values()) groupSize.set(groupOf(t), (groupSize.get(groupOf(t)) ?? 0) + 1);
+
+  const inBattle = new Set<string>();
+  const battleTracks = await prisma.track.findMany({
+    where: { id: { in: ids } },
+    select: { artistName: true, appleArtistId: true },
+  });
+  for (const t of battleTracks) inBattle.add(keyOf(t));
+
+  const waiting = [...chosen.entries()]
+    .filter(([k]) => !inBattle.has(k))
+    .map(([, t]) => ({
+      name: t.appleArtistName ?? t.artistName,
+      genre: (t.genre ?? "").split(" /")[0],
+      ai: !!t.aiGenerated,
+      account: t.artist?.email ?? null,
+      reason:
+        (groupSize.get(groupOf(t)) ?? 0) <= 1
+          ? `The only ${t.aiGenerated ? "AI-vocal " : ""}artist in ${(t.genre ?? "").split(" /")[0]} right now`
+          : `${(t.genre ?? "").split(" /")[0]}${t.aiGenerated ? " (AI vocals)" : ""} had an odd number of artists this week`,
+    }))
+    .sort((a, b) => a.genre.localeCompare(b.genre) || a.name.localeCompare(b.name));
+
   return NextResponse.json({
+    waiting,
     weekLabel: week.label,
     counts: { votes, skips, shared, voters, open: battles.length, closed, cancelled },
     thisWeek: battles

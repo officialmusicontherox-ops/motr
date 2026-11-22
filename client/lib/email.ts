@@ -2,6 +2,7 @@ import { Resend } from "resend";
 import { CARD_VERSION } from "./shareCard";
 import { APP_URL as CANONICAL_APP_URL } from "./appUrl";
 import { isSuppressed } from "./suppression";
+import { recordEmailProblem } from "./emailProblems";
 
 /**
  * Transactional email. Two moments in the product depend on it: telling an
@@ -160,6 +161,8 @@ async function send(
 
     if (error) {
       console.error(`[email failed] to=${to}: ${error.message}`);
+      // Kept, so the admin panel can show who could not be reached.
+      await recordEmailProblem({ email: to, kind: "refused", reason: error.message, subject });
       return { ok: false, error: error.message };
     }
     return { ok: true, id: data?.id };

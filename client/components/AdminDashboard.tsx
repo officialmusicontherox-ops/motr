@@ -30,6 +30,7 @@ import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 import AdminAttention from "./AdminAttention";
 import PullToRefresh from "./PullToRefresh";
 import AdminAiTracks from "./AdminAiTracks";
+import AdminEmailProblems from "./AdminEmailProblems";
 
 type Stats = {
  counts: {
@@ -244,6 +245,7 @@ export default function AdminDashboard({
 
  {view === "email" && (
  <>
+ <AdminEmailProblems />
  <AdminChartBlast />
  <AdminChartBlast variant="midweek" />
  <AdminWinnerAnnounce />
