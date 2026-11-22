@@ -29,6 +29,7 @@ import AdminSecurity from "./AdminSecurity";
 import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 import AdminAttention from "./AdminAttention";
 import PullToRefresh from "./PullToRefresh";
+import AdminAiTracks from "./AdminAiTracks";
 
 type Stats = {
  counts: {
@@ -64,6 +65,7 @@ const VIEWS = [
   // the music, and neither belongs under a heading about listeners.
   { key: "spotlights", label: "Spotlights" },
   { key: "battles", label: "Battles" },
+  { key: "ai", label: "AI Vocals" },
  // Everything that sends mail, in one place. These were spread across the
  // Artists and Listeners tabs, so pressing a button meant first remembering
  // which screen it lived on.
@@ -222,6 +224,8 @@ export default function AdminDashboard({
  {view === "artists" && <AdminArtistShare />}
 
  {view === "spotlights" && <AdminSpotlights />}
+
+ {view === "ai" && <AdminAiTracks />}
 
  {view === "battles" && (
  <>
