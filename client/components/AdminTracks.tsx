@@ -78,11 +78,17 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
     const res = await fetch(`/api/admin/tracks?${params}`);
     if (!res.ok) return;
     const d = await res.json();
+    // The last song on the last page was just pulled or moved: step back a
+    // page rather than sit on an empty one with no way back.
+    if (d.tracks.length === 0 && pageNum > 0) {
+      setPaged({ key: filterKey, n: pageNum - 1 });
+      return;
+    }
     setTracks(d.tracks);
     setCounts(d.counts);
     setTotal(d.total ?? d.tracks.length);
     setPageSize(d.pageSize ?? 50);
-  }, [view, sort, q, pageNum]);
+  }, [view, sort, q, pageNum, filterKey]);
 
   useEffect(() => {
     setTracks(null);

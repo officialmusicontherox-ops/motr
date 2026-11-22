@@ -55,6 +55,10 @@ export default function AdminAiTracks() {
   }
 
   const artists = rows ? new Set(rows.map((r) => r.artistName.toLowerCase())).size : 0;
+  // Never past the last page: re-marking the last song on it would
+  // otherwise leave an empty page with no Back button.
+  const last = rows ? Math.max(0, Math.ceil(rows.length / page.pageSize) - 1) : 0;
+  const shown = Math.min(page.page, last);
 
   return (
     <AdminSection
@@ -72,7 +76,7 @@ export default function AdminAiTracks() {
       ) : (
         <>
           <ul className="space-y-2">
-            {page.slice(rows).map((r) => (
+            {rows.slice(shown * page.pageSize, shown * page.pageSize + page.pageSize).map((r) => (
               <li key={r.id} className="border-edge bg-surface flex items-center gap-3 rounded-xl border p-3">
                 {r.artworkUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -102,7 +106,7 @@ export default function AdminAiTracks() {
               </li>
             ))}
           </ul>
-          <Pager page={page.page} pageSize={page.pageSize} total={rows.length} onPage={page.setPage} />
+          <Pager page={shown} pageSize={page.pageSize} total={rows.length} onPage={page.setPage} />
         </>
       )}
     </AdminSection>
