@@ -107,7 +107,6 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   // Asked after the first save, never before, and never twice.
   const [askEmail, setAskEmail] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [clip, setClip] = useState({ currentTime: 0, duration: 30 });
   const sharedRef = useRef<string | null | undefined>(undefined);
   // Chosen mood, remembered between visits — someone who filtered to Jazz
   // last night probably still wants Jazz, but can switch in one tap.
@@ -163,7 +162,6 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
   useEffect(() => {
     let ignore = false;
-    setClip({ currentTime: 0, duration: 30 });
     // Read once, on the first fetch of the session.
     if (sharedRef.current === undefined) sharedRef.current = takeSharedTrack();
     const startWith = sharedRef.current;
@@ -362,7 +360,9 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
   }
 
   return (
-    <MotrShell fill clip={track && !showAd ? clip : null}>
+    // No clip bar in the header: the ring on the card already shows the
+    // clip's progress, and two timers for one clip read as clutter.
+    <MotrShell fill clip={null}>
       <div className="w-full max-w-sm shrink-0 md:max-w-2xl">
         <GenrePicker value={genre} onChange={chooseGenre} counts={genreCounts} />
       </div>
@@ -376,7 +376,11 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
 
       <div className="mb-3 flex w-full max-w-sm shrink-0 items-center justify-between md:max-w-2xl">
         <span className="motr-label">
-          <span className="text-ink">{fan.username}</span>
+          {/* A generated name ("listener" and a code) reads as an ID, not a
+              name, so anyone who has not chosen one is shown as Guest. */}
+          <span className="text-ink">
+            {/^listener[a-z0-9]+$/i.test(fan.username) ? "Guest" : fan.username}
+          </span>
         </span>
         <div className="flex items-center gap-3">
           <button
@@ -401,10 +405,6 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
             AI vocals {allowAi ? "on" : "off"}
           </button>
 
-          <span className="motr-label flex items-center gap-1.5">
-            <Note className="text-gold h-3 w-3" />
-            <span className="text-gold">{savedCount}</span> saved
-          </span>
         </div>
       </div>
 
@@ -560,7 +560,6 @@ export default function DiscoveryQueue({ fan }: { fan: Fan }) {
           credits={credits}
           onNeedCredits={() => setNeedCredits(true)}
           onSwipe={(direction, listenMs) => handleSwipe(direction, listenMs)}
-          onProgress={(currentTime, duration) => setClip({ currentTime, duration })}
         />
       )}
 
