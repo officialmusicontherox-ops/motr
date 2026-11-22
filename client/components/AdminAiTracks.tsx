@@ -27,13 +27,14 @@ export default function AdminAiTracks() {
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const page = usePager(20);
+  const [show, setShow] = useState<"ai" | "unasked">("ai");
 
   const load = useCallback(() => {
-    fetch("/api/admin/ai-tracks")
+    fetch(`/api/admin/ai-tracks${show === "unasked" ? "?show=unasked" : ""}`)
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setRows(d.tracks))
       .catch(() => setFailed(true));
-  }, []);
+  }, [show]);
 
   useEffect(() => {
     load();
@@ -64,15 +65,46 @@ export default function AdminAiTracks() {
     <AdminSection
       title="AI Vocals"
       description={
-        rows ? `${rows.length} songs in rotation marked as AI vocals, from ${artists} artists` : "Songs marked as AI vocals"
+        !rows
+          ? "Songs by AI-vocals label"
+          : show === "ai"
+            ? `${rows.length} songs marked as AI vocals, from ${artists} artists`
+            : `${rows.length} songs never labelled, from ${artists} artists. Listeners who switch AI off still hear these until they are marked.`
       }
     >
+      <div className="mb-4 flex gap-2">
+        {(
+          [
+            { key: "ai", label: "Marked AI" },
+            { key: "unasked", label: "Not asked yet" },
+          ] as const
+        ).map((v) => (
+          <button
+            key={v.key}
+            onClick={() => {
+              if (show === v.key) return;
+              setShow(v.key);
+              setRows(null);
+              page.reset();
+            }}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold ${
+              show === v.key
+                ? "bg-gold text-bg"
+                : "border-edge text-muted hover:border-gold/50 hover:text-ink border transition"
+            }`}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
       {failed ? (
         <p className="text-muted text-sm">Couldn&apos;t load.</p>
       ) : !rows ? (
         <p className="text-muted text-sm">Loading...</p>
       ) : rows.length === 0 ? (
-        <p className="text-muted text-sm">No songs are marked as AI vocals.</p>
+        <p className="text-muted text-sm">
+          {show === "ai" ? "No songs are marked as AI vocals." : "Every song has been labelled."}
+        </p>
       ) : (
         <>
           <ul className="space-y-2">
@@ -94,10 +126,12 @@ export default function AdminAiTracks() {
                 </div>
                 <select
                   aria-label={`AI vocals for ${r.title}`}
-                  value="yes"
+                  value={show === "ai" ? "yes" : ""}
                   disabled={busy === r.id}
                   onChange={(e) => void setAi(r.id, e.target.value)}
-                  className="border-gold/50 text-gold bg-bg shrink-0 rounded-md border px-2 py-1 text-xs outline-none disabled:opacity-40"
+                  className={`bg-bg shrink-0 rounded-md border px-2 py-1 text-xs outline-none disabled:opacity-40 ${
+                    show === "ai" ? "border-gold/50 text-gold" : "border-edge"
+                  }`}
                 >
                   <option value="yes">AI vocals: yes</option>
                   <option value="no">AI vocals: no</option>

@@ -1,20 +1,31 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 
 /**
- * Every song in rotation marked as having AI vocals, for the admin AI
- * Vocals tab. All of them, not the Tracks list's first 200, sorted by
- * artist so one artist's songs sit together.
+ * For the admin AI Vocals tab: every submitted song marked as AI vocals,
+ * or with ?show=unasked every one never labelled either way. All of them,
+ * sorted by artist so one artist's songs sit together.
+ *
+ * The unasked list matters because the AI question was added to the
+ * submit form partway through, and a listener who switches AI off still
+ * hears unlabelled songs. Working through it is how that gap closes.
  */
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const unasked = req.nextUrl.searchParams.get("show") === "unasked";
   if (!(await getAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const tracks = await prisma.track.findMany({
-    where: { aiGenerated: true, status: { not: "REJECTED" } },
+    where: {
+      aiGenerated: unasked ? null : true,
+      status: { not: "REJECTED" },
+      // Submitted songs only. The seeded catalogue is established releases
+      // nobody is asking about.
+      artistId: { not: null },
+    },
     orderBy: [{ artistName: "asc" }, { title: "asc" }],
     select: {
       id: true,
