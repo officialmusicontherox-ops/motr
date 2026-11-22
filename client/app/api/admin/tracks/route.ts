@@ -117,6 +117,9 @@ export async function GET(req: NextRequest) {
       artworkUrl: t.artworkUrl,
       previewUrl: t.previewUrl,
       genre: t.genre,
+      // The dropdown reads this. Left out, every row showed "AI vocals: no"
+      // whatever was saved, so a change looked as if it had not stuck.
+      aiGenerated: t.aiGenerated,
       status: t.status,
       feeStatus: t.feeStatus,
       reviewStatus: t.reviewStatus,
