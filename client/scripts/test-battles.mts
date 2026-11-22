@@ -321,7 +321,12 @@ async function main() {
     // Result emails: the winner is claimed and told once; the pulled side is
     // claimed and not written to.
     const { sendBattleResults } = await import("../lib/battleResults.ts");
-    await sendBattleResults();
+    // Bounded per run, so keep going until a run has nothing left, the
+    // way successive visits would.
+    for (let i = 0; i < 40; i++) {
+      const r = await sendBattleResults();
+      if (r.sent + r.skipped === 0) break;
+    }
     const told = await prisma.battle.findUnique({ where: { id: doomed.id } });
     check(!!told?.resultSentAAt && !!told?.resultSentBAt, "both sides of a decided battle are dealt with");
     const stamp = told!.resultSentBAt!.getTime();

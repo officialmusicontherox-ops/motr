@@ -547,7 +547,11 @@ export async function nextBattle(
       AND NOT EXISTS (
         SELECT 1 FROM "BattleVote" v WHERE v."battleId" = b."id" AND v."fanId" = ${fanId}
       )
-    ORDER BY (b."votesA" + b."votesB") ASC, RANDOM()
+    -- Level battles first, so the next listener breaks the tie: a battle
+    -- that closes level gives nobody a win, and last week 11 of 97 did.
+    -- That includes one nobody has voted in yet. Then the fewest votes, so
+    -- votes still spread across every battle, and chance within that.
+    ORDER BY (b."votesA" = b."votesB") DESC, (b."votesA" + b."votesB") ASC, RANDOM()
     LIMIT 1
   `);
   if (rows.length === 0) return { battle: null, reveal: null, viaShare: false };

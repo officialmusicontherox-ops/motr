@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { battleLostEmail, battleWonEmail, sendEmail } from "./email";
+import { battleLostEmail, battleTieEmail, battleWonEmail, sendEmail } from "./email";
 import { isEmailAddress } from "./emailAddress";
 import { artistUnsubscribeUrl } from "./nudges";
 
@@ -13,9 +13,10 @@ import { artistUnsubscribeUrl } from "./nudges";
  * and no extra wake-ups for the database.
  *
  * Each side is claimed before it is sent, so two requests arriving
- * together cannot send the same result twice. A tie, a battle nobody voted
- * in, a pulled song, an artist who has opted out and an address that
- * cannot receive mail are all claimed and not written to.
+ * together cannot send the same result twice. A battle that closes with
+ * no winner, a tie or one nobody voted in, gets the tie email on both
+ * sides. A pulled song, an artist who has opted out and an address that
+ * cannot receive mail are claimed and not written to.
  *
  * Bounded per call, because a request has about ten seconds in all. On the
  * Sunday a week closes there are many to send, and the next few visits
@@ -72,7 +73,6 @@ export async function sendBattleResults(): Promise<{ sent: number; skipped: numb
 
       const a = track?.artist;
       if (
-        !b.winnerId ||
         !track ||
         track.status === "REJECTED" ||
         !a ||
@@ -85,8 +85,9 @@ export async function sendBattleResults(): Promise<{ sent: number; skipped: numb
       }
 
       const unsubscribeUrl = artistUnsubscribeUrl(a.id, APP);
-      const template =
-        b.winnerId === trackId
+      const template = !b.winnerId
+        ? battleTieEmail({ title: track.title, unsubscribeUrl })
+        : b.winnerId === trackId
           ? battleWonEmail({ title: track.title, unsubscribeUrl })
           : battleLostEmail({ title: track.title, unsubscribeUrl });
       const result = await sendEmail(a.email, template);

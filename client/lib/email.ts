@@ -1366,6 +1366,29 @@ export function battleWonEmail(params: { title: string; unsubscribeUrl: string }
   };
 }
 
+/** Sent when a battle closes level, to both artists. */
+export function battleTieEmail(params: { title: string; unsubscribeUrl: string }) {
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const body = `
+      <p style="margin:0 0 14px">Hi,</p>
+
+      <p style="margin:0 0 14px">Your song <strong style="color:#fff">${esc(params.title)}</strong> finished its battle on MOTR this week in a tie, with neither song ahead when voting closed.</p>
+
+      <p style="margin:0 0 14px">A new week of battles starts every Sunday, with new matchups and a clean slate. If your song is paired this week, you will get a separate email with the link to your battle. Send it to your listeners: one vote can be the difference.</p>
+
+      <p style="margin:0">Good luck next week.</p>
+  `;
+  return {
+    subject: "Your MOTR battle ended in a tie",
+    html:
+      shell("Your battle ended in a tie", body, {
+        label: "Open Battles",
+        url: "https://app.musicontherox.com/battles",
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${params.unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 /** Sent the moment a battle is decided, to the artist whose song lost. */
 export function battleLostEmail(params: { title: string; unsubscribeUrl: string }) {
   const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
