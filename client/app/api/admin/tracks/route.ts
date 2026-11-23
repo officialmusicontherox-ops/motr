@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
   // without loading the listening stats for hundreds at once. This was a
   // flat first 200, which left everything past it unreachable except by
   // searching for it.
-  const PAGE_SIZE = 50;
+  const PAGE_SIZE = 25;
   const pageNum = Math.max(0, Number(req.nextUrl.searchParams.get("page") ?? 0) || 0);
   const [total, tracks] = await Promise.all([
     prisma.track.count({ where }),

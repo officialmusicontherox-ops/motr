@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
+import AiBadge from "./AiBadge";
 import { AppleMusicMark, SpotifyMark } from "./ServiceMarks";
 import { Bookmark, Cross, Disc, Pause, Play, Share } from "./icons";
 import Equalizer from "./Equalizer";
@@ -18,6 +19,7 @@ type SavedTrack = {
   /** Null for the seeded catalogue, which has no artist record behind it. */
   artistId: string | null;
   artworkUrl: string | null;
+  aiGenerated?: boolean | null;
   previewUrl: string;
   genre: string | null;
   status: string;
@@ -200,6 +202,7 @@ export default function SavedList({ fan }: { fan: Fan }) {
                       <Disc className="text-gold/30 h-6 w-6" />
                     </span>
                   )}
+                  <AiBadge on={t.aiGenerated} size="sm" />
                   <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-ink">
                     {playing === t.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   </span>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Pause, Play } from "./icons";
 import AdminSection, { Pager, usePager } from "./AdminSection";
 
 type Row = {
@@ -8,6 +9,7 @@ type Row = {
   title: string;
   artistName: string;
   artworkUrl: string | null;
+  previewUrl: string;
   genre: string | null;
   addedAt: string;
   account: string | null;
@@ -28,6 +30,26 @@ export default function AdminAiTracks() {
   const [busy, setBusy] = useState<string | null>(null);
   const page = usePager(20);
   const [show, setShow] = useState<"ai" | "unasked">("ai");
+  // One clip at a time, so you can hear a song and judge whether the
+  // vocals are AI before setting the label.
+  const [playing, setPlaying] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+
+  function preview(r: Row) {
+    audio.current?.pause();
+    if (playing === r.id) {
+      setPlaying(null);
+      return;
+    }
+    const a = new Audio(r.previewUrl);
+    audio.current = a;
+    a.onended = () => setPlaying(null);
+    a.play().catch(() => setPlaying(null));
+    setPlaying(r.id);
+  }
+
+  // A clip must not keep playing after leaving the tab.
+  useEffect(() => () => audio.current?.pause(), []);
 
   const load = useCallback(() => {
     fetch(`/api/admin/ai-tracks${show === "unasked" ? "?show=unasked" : ""}`)
@@ -110,12 +132,22 @@ export default function AdminAiTracks() {
           <ul className="space-y-2">
             {rows.slice(shown * page.pageSize, shown * page.pageSize + page.pageSize).map((r) => (
               <li key={r.id} className="border-edge bg-surface flex items-center gap-3 rounded-xl border p-3">
-                {r.artworkUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.artworkUrl} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
-                ) : (
-                  <div className="bg-surface-2 h-12 w-12 shrink-0 rounded-lg" />
-                )}
+                <button
+                  type="button"
+                  onClick={() => preview(r)}
+                  aria-label={playing === r.id ? `Pause ${r.title}` : `Play ${r.title}`}
+                  className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"
+                >
+                  {r.artworkUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.artworkUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="bg-surface-2 block h-full w-full" />
+                  )}
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">
+                    {playing === r.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  </span>
+                </button>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{r.artistName}</p>
                   <p className="text-muted truncate text-xs">{r.title}</p>

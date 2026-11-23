@@ -350,7 +350,7 @@ export async function recordResults(
  * be used to look it up. The two screens are blind in the same way, so a
  * listener is not told one thing here and another there.
  */
-type OpenSide = { previewUrl: string; title: string; artworkUrl: string | null };
+type OpenSide = { previewUrl: string; title: string; artworkUrl: string | null; ai: boolean };
 export type OpenBattle = {
   ticket: string;
   genre: string;
@@ -362,6 +362,8 @@ type Side = {
   title: string;
   artistName: string;
   artworkUrl: string | null;
+  /** Declared AI vocals, for the AI mark on the cover. */
+  ai: boolean;
   /** Out to the whole song, on the service the artist submitted it from. */
   spotifyUrl: string;
   appleUrl: string | null;
@@ -434,6 +436,7 @@ export async function revealBattle(battle: BattleRow, pick: "A" | "B" | null): P
       externalId: true,
       source: true,
       appleTrackId: true,
+      aiGenerated: true,
     },
   });
   const wins = await winsFor([battle.trackAId, battle.trackBId]);
@@ -445,6 +448,7 @@ export async function revealBattle(battle: BattleRow, pick: "A" | "B" | null): P
       // the primary artist, but the song is shown as it was released.
       artistName: t.artistName,
       artworkUrl: t.artworkUrl,
+      ai: t.aiGenerated === true,
       ...listenLinksFor(t),
       wins: wins.get(id) ?? 0,
     };
@@ -497,7 +501,7 @@ export async function nextBattle(
   const open = async (b: BattleRow): Promise<OpenBattle | null> => {
     const tracks = await prisma.track.findMany({
       where: { id: { in: [b.trackAId, b.trackBId] }, status: { not: "REJECTED" } },
-      select: { id: true, previewUrl: true, title: true, artworkUrl: true },
+      select: { id: true, previewUrl: true, title: true, artworkUrl: true, aiGenerated: true },
     });
     const ta = tracks.find((t) => t.id === b.trackAId);
     const tb = tracks.find((t) => t.id === b.trackBId);
@@ -506,6 +510,7 @@ export async function nextBattle(
       previewUrl: t.previewUrl,
       title: t.title,
       artworkUrl: t.artworkUrl,
+      ai: t.aiGenerated === true,
     });
     return { ticket: sealBattleId(b.id), genre: b.genre, a: side(ta), b: side(tb) };
   };

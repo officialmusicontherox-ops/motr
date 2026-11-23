@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
         title: s.title,
         artistName: s.artistName,
         artworkUrl: s.artworkUrl,
+        ai: s.aiGenerated === true,
       })),
       // Rank and name only. How many tracks an artist has in rotation says
       // nothing about how the week went, and next to a position it reads as

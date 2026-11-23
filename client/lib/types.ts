@@ -6,6 +6,8 @@ export type Track = {
   artworkUrl: string | null;
   previewUrl: string;
   genre: string | null;
+  /** Declared AI vocals: true, false, or null if never asked. */
+  aiGenerated?: boolean | null;
   status: "DISCOVERY" | "VETTING" | "GRADUATED" | "REJECTED";
   requiredFanApprovals: number;
   fanRightSwipes: number;

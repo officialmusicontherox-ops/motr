@@ -54,6 +54,10 @@ const FAQS = [
     a: "That's a real outcome, and it costs you nothing. Entry is free, the crowd decides, and a track that doesn't connect simply stays in the feed for the next listener.",
   },
   {
+    q: "What does the small AI mark on a song mean?",
+    a: "The artist told us the vocals on that song are AI-generated, so you know what you are hearing. It is there for transparency, not as a judgement. If you would rather not hear them, turn off AI vocals on the Discover screen.",
+  },
+  {
     q: "What are Battles?",
     a: "A second way to judge music. You get two songs from the same genre with no names on them, play each one as often as you like, and choose the one you would play again. Once you vote, both artists are revealed along with how the vote is going, and the song you picked goes into your Saved list. Everybody gets the same battles. New ones open every Sunday and they all close Saturday at midnight Central, when the song with the bigger share of the vote takes the win. If you can't stand either song, skip it and nobody is counted.",
   },

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Track } from "@/lib/types";
+import AiBadge from "./AiBadge";
 import { Cross, Disc, Heart, Note, Pause, Play } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
 import { swipeFeedback } from "@/lib/feedback";
@@ -330,15 +331,20 @@ export default function SwipeCard({
             means the controls always have room, whatever the phone. */}
         <div className="bg-bg relative flex max-h-[34svh] min-h-0 flex-1 justify-center sm:max-h-[40svh] md:max-h-none md:w-1/2 md:flex-none">
           {track.artworkUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={track.artworkUrl}
-              alt=""
-              // Equal h/w in viewport units keeps it square and bounded
-              // without needing an intrinsic size to resolve against.
-              className="h-full max-h-full w-auto max-w-full object-contain md:h-full md:w-full md:object-cover"
-              draggable={false}
-            />
+            // Wrapped so the AI mark sits on the corner of the artwork itself,
+            // not out in the margin beside a narrower picture.
+            <div className="relative h-full max-w-full md:w-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={track.artworkUrl}
+                alt=""
+                // Equal h/w in viewport units keeps it square and bounded
+                // without needing an intrinsic size to resolve against.
+                className="h-full max-h-full w-auto max-w-full object-contain md:h-full md:w-full md:object-cover"
+                draggable={false}
+              />
+              <AiBadge on={track.aiGenerated} />
+            </div>
           ) : (
             <div className="from-surface-2 to-bg flex aspect-square h-full max-w-full items-center justify-center bg-gradient-to-br md:aspect-auto md:h-full md:w-full">
               <Disc className="text-gold/25 h-16 w-16" />

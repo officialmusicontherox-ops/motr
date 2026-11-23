@@ -396,9 +396,9 @@ export default function ArtistsPage() {
                 unanswered question must not pass as a quiet "no". */}
             <span className="text-muted mb-2 mt-4 block text-xs">
               Are the vocals on this track AI-generated? Production, mixing and mastering
-              don&apos;t count, only the voice. An instrumental is a no. Some listeners filter
-              these out, and answering honestly is the only thing that keeps that filter worth
-              having.
+              don&apos;t count, only the voice. An instrumental is a no. Songs with AI vocals show
+              a small AI mark on their artwork, and some listeners filter them out, so answering
+              honestly is what keeps both worth having.
             </span>
             <div className="flex gap-2">
               {([

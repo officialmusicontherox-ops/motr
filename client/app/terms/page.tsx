@@ -80,6 +80,12 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             control.
           </li>
           <li>
+            <span className="text-ink">Tell us honestly whether the vocals are AI-generated.</span>{" "}
+            A song declared as having AI vocals shows a small AI mark on its artwork wherever it
+            appears on MOTR, listeners can choose to hide those songs, and in Battles they are
+            paired only with each other. We may correct the label if we find it is wrong.
+          </li>
+          <li>
             <span className="text-ink">Your email has to work.</span> It is the only way we
             reach you, and everything about your music goes to it: when a track goes live, when
             it is refused and why, your weekly results, and anything we have to tell you. Give

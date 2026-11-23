@@ -212,6 +212,7 @@ export type WeeklySong = {
   title: string;
   artistName: string;
   artworkUrl: string | null;
+  aiGenerated: boolean | null;
   saves: number;
   score: number;
   verdicts: number;
@@ -388,12 +389,13 @@ export async function leadersBetween(
         artistId: string | null;
         appleArtistId: string | null;
         artworkUrl: string | null;
+        aiGenerated: boolean | null;
         saves: bigint;
         score: bigint;
         verdicts: bigint;
       }[]
     >(Prisma.sql`
-      SELECT t."id", t."title", t."artistName", t."artistId", t."appleArtistId", t."artworkUrl",
+      SELECT t."id", t."title", t."artistName", t."artistId", t."appleArtistId", t."artworkUrl", t."aiGenerated",
         COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
         COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
         COUNT(s."id")::bigint AS verdicts
@@ -421,6 +423,7 @@ export async function leadersBetween(
       title: r.title,
       artistName: r.artistName,
       artworkUrl: r.artworkUrl,
+      aiGenerated: r.aiGenerated ?? null,
       saves: Number(r.saves),
       score: Number(r.score),
       verdicts: Number(r.verdicts),

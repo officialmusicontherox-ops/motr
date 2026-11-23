@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import AiBadge from "./AiBadge";
 import { useCallback, useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
@@ -11,6 +12,7 @@ type ChartSong = {
   title: string;
   artistName: string;
   artworkUrl: string | null;
+  ai?: boolean;
 };
 
 type ChartArtist = { rank: number; id: string; name: string };
@@ -233,18 +235,21 @@ export default function ChartsView() {
                       className="border-edge bg-surface flex items-center gap-3 rounded-xl border px-3 py-2"
                     >
                       <Rank n={song.rank} />
-                      {song.artworkUrl ? (
-                        <Image
-                          src={song.artworkUrl}
-                          alt=""
-                          width={44}
-                          height={44}
-                          unoptimized
-                          className="h-9 w-9 shrink-0 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <span className="bg-surface-2 h-9 w-9 shrink-0 rounded-lg" />
-                      )}
+                      <span className="relative h-9 w-9 shrink-0">
+                        {song.artworkUrl ? (
+                          <Image
+                            src={song.artworkUrl}
+                            alt=""
+                            width={44}
+                            height={44}
+                            unoptimized
+                            className="h-9 w-9 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <span className="bg-surface-2 block h-9 w-9 rounded-lg" />
+                        )}
+                        <AiBadge on={song.ai} size="sm" />
+                      </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{song.title}</span>
                         <span className="text-muted block truncate text-sm">

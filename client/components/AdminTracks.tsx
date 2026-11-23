@@ -69,7 +69,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
   const [paged, setPaged] = useState({ key: filterKey, n: 0 });
   const pageNum = paged.key === filterKey ? paged.n : 0;
   const [total, setTotal] = useState(0);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, setPageSize] = useState(25);
   const listTop = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
@@ -87,7 +87,7 @@ export default function AdminTracks({ onChanged }: { onChanged: () => void }) {
     setTracks(d.tracks);
     setCounts(d.counts);
     setTotal(d.total ?? d.tracks.length);
-    setPageSize(d.pageSize ?? 50);
+    setPageSize(d.pageSize ?? 25);
   }, [view, sort, q, pageNum, filterKey]);
 
   useEffect(() => {

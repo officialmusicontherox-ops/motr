@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MotrShell from "./MotrShell";
 import SponsoredCard from "./SponsoredCard";
+import AiBadge from "./AiBadge";
 import { AppleMusicMark, SpotifyMark } from "./ServiceMarks";
 import { Pause, Play, Share } from "./icons";
 import { clipPlayer, playClip } from "@/lib/clipPlayer";
 import { bumpSavedCount } from "@/lib/savedCount";
 import { safeLocal } from "@/lib/storage";
 
-type OpenSide = { previewUrl: string; title: string; artworkUrl: string | null };
+type OpenSide = { previewUrl: string; title: string; artworkUrl: string | null; ai: boolean };
 
 type Open = {
   ticket: string;
@@ -24,6 +25,7 @@ type Side = {
   title: string;
   artistName: string;
   artworkUrl: string | null;
+  ai: boolean;
   spotifyUrl: string;
   appleUrl: string | null;
   wins: number;
@@ -480,6 +482,7 @@ function Panel({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={revealed.artworkUrl} alt="" className="h-full w-full object-cover" />
                   )}
+                  <AiBadge on={revealed.ai} />
                 </div>
 
                 {/* Three groups down the space under the cover: who it is at
@@ -533,6 +536,7 @@ function Panel({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={open.artworkUrl} alt="" className="h-full w-full object-cover" />
                   )}
+                  <AiBadge on={open?.ai} />
                   <span className="absolute inset-0 flex items-center justify-center bg-black/35">
                     <span
                       className="flex h-14 w-14 items-center justify-center rounded-full border-2 bg-black/60 text-white md:h-16 md:w-16"
