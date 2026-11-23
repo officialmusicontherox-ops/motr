@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BUNDLES, CAP_PLACES, SPOTLIGHT_SPAN, price } from "@/lib/spotlightBundles";
+import { BUNDLES, CAP_PLACES, SALE, SPOTLIGHT_SPAN, bonusFor, price, saleOn } from "@/lib/spotlightBundles";
 import { Cross } from "./icons";
 
 /**
@@ -81,6 +81,11 @@ export default function SpotlightOffer({
           </p>
         ) : (
           <div className="mt-5 space-y-2">
+            {saleOn() && (
+              <p className="border-gold/40 bg-gold/10 text-gold rounded-xl border px-3 py-2 text-xs font-semibold">
+                {SALE.name}: free bonus Spotlights on bundles through {SALE.endsLabel}.
+              </p>
+            )}
             {BUNDLES.map((b) => (
               <button
                 key={b.id}
@@ -90,7 +95,12 @@ export default function SpotlightOffer({
               >
                 <span>
                   <span className="font-semibold">{b.label}</span>
-                  {"note" in b && b.note && (
+                  {bonusFor(b.id) > 0 && (
+                    <span className="bg-gold text-bg ml-2 rounded-full px-2 py-px text-[0.65rem] font-bold">
+                      +{bonusFor(b.id)} free
+                    </span>
+                  )}
+                  {bonusFor(b.id) === 0 && "note" in b && b.note && (
                     <span className="text-gold ml-2 text-[0.65rem] font-bold uppercase tracking-widest">
                       {b.note}
                     </span>

@@ -50,3 +50,28 @@ export function bundle(id: string) {
 export function price(cents: number) {
   return `$${(cents / 100).toFixed(2).replace(/\.00$/, "")}`;
 }
+
+/**
+ * Thanksgiving week, Monday 23 November to the end of Cyber Monday,
+ * 30 November 2026, midnight Central. Bonus Spotlights on the bundles, not a
+ * lower price: prices were only just set, and bonus credits get banked and
+ * spent over the following weeks instead of all queuing for the ten places
+ * at once. The single stays at full price.
+ *
+ * Ends by itself at that moment; nothing needs switching off.
+ */
+export const SALE = {
+  name: "Thanksgiving week",
+  ends: new Date("2026-12-01T06:00:00Z"),
+  endsLabel: "Monday, November 30",
+  bonus: { three: 1, ten: 3 } as Record<string, number>,
+};
+
+export function saleOn(at: Date = new Date()): boolean {
+  return at.getTime() < SALE.ends.getTime();
+}
+
+/** Free Spotlights added to a bundle right now. */
+export function bonusFor(id: string, at: Date = new Date()): number {
+  return saleOn(at) ? (SALE.bonus[id] ?? 0) : 0;
+}

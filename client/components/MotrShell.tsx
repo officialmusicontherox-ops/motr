@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MotrMenu from "./MotrMenu";
 import InstallApp from "./InstallApp";
+import SaleBanner from "./SaleBanner";
 import { Bolt, Bookmark, Disc, Menu, Waveform, Note } from "./icons";
 import PullToRefresh from "./PullToRefresh";
 import SideRail from "./SideRail";
@@ -141,6 +142,7 @@ export default function MotrShell({
     >
       <MotrMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       <InstallApp />
+      <SaleBanner />
 
       {/* Pinned: the menu button must never scroll out of reach. */}
       <header

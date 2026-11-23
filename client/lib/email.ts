@@ -1447,6 +1447,38 @@ export function artistPageIntroEmail(params: { unsubscribeUrl: string }) {
   };
 }
 
+/**
+ * The Thanksgiving week Spotlight sale, to artists and to listeners with an
+ * address. Artists open with "Hi,", listeners with "Hey,".
+ */
+export function thanksgivingSaleEmail(params: { listener: boolean; unsubscribeUrl: string }) {
+  const body = `
+      <p style="margin:0 0 14px">${params.listener ? "Hey," : "Hi,"}</p>
+
+      <p style="margin:0 0 14px">It is Thanksgiving week on MOTR, and through <strong style="color:#fff">Monday, November 30</strong> every Spotlight bundle comes with free ones:</p>
+
+      <p style="margin:0 0 6px"><strong style="color:#fff">10 Spotlights for $18, plus 3 free</strong></p>
+      <p style="margin:0 0 14px"><strong style="color:#fff">3 Spotlights for $7, plus 1 free</strong></p>
+
+      <p style="margin:0 0 14px">A Spotlight puts an artist on the Spotlight tab for three days, named, with their photo and links to their music. ${
+        params.listener
+          ? "Swipe up on a song you love and that artist goes in the Spotlight."
+          : "You can Spotlight yourself or any artist you want listeners to find."
+      } Spotlights you buy this week keep until you use them.</p>
+
+      <p style="margin:0">Tap <strong style="color:#fff">Get Spotlights</strong> on the Spotlight tab, or the banner at the top of the app.</p>
+  `;
+  return {
+    subject: "Thanksgiving week on MOTR: free bonus Spotlights through November 30",
+    html:
+      shell("Free bonus Spotlights this week", body, {
+        label: "Get Spotlights",
+        url: "https://app.musicontherox.com/spotlight",
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${params.unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 /** Sent when a battle closes level, to both artists. */
 export function battleTieEmail(params: { title: string; unsubscribeUrl: string }) {
   const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

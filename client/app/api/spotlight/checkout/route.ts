@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFanSession } from "@/lib/fanAuth";
 import { stripe } from "@/lib/stripe";
-import { SPOTLIGHT_SPAN, bundle } from "@/lib/spotlightBundles";
+import { SPOTLIGHT_SPAN, bonusFor, bundle } from "@/lib/spotlightBundles";
 
 /**
  * Start a purchase.
@@ -27,6 +27,12 @@ export async function POST(req: NextRequest) {
   const b = bundle(body?.bundle);
   if (!b) return NextResponse.json({ error: "Unknown bundle" }, { status: 400 });
 
+  // Any sale bonus is decided here, on the server, and travels in the
+  // metadata the webhook credits from, so the buyer gets exactly what the
+  // checkout page showed them.
+  const bonus = bonusFor(b.id);
+  const credits = b.credits + bonus;
+
   const base = process.env.APP_URL ?? "https://app.musicontherox.com";
   // Only a path from our own app, never whatever the body says. An absolute
   // URL here would turn checkout into an open redirect.
@@ -44,11 +50,11 @@ export async function POST(req: NextRequest) {
           currency: "usd",
           unit_amount: b.cents,
           product_data: {
-            name: b.label,
+            name: bonus ? `${b.label} + ${bonus} free` : b.label,
             description:
-              b.credits === 1
+              credits === 1
                 ? `One Spotlight on MOTR. ${SPOTLIGHT_SPAN} on the Spotlight tab. Non-refundable.`
-                : `${b.credits} Spotlights on MOTR. Each one is ${SPOTLIGHT_SPAN} on the Spotlight tab. Non-refundable.`,
+                : `${credits} Spotlights on MOTR${bonus ? `, including ${bonus} free for Thanksgiving week` : ""}. Each one is ${SPOTLIGHT_SPAN} on the Spotlight tab. Non-refundable.`,
           },
         },
       },
@@ -56,7 +62,7 @@ export async function POST(req: NextRequest) {
     // Both are read back in the webhook. client_reference_id is the one
     // Stripe shows in the dashboard, so a refund can be traced to a listener.
     client_reference_id: fanId,
-    metadata: { fanId, bundle: b.id, credits: String(b.credits) },
+    metadata: { fanId, bundle: b.id, credits: String(credits), bonus: String(bonus) },
     // Stripe collects an email for the receipt either way. Saying what it
     // is for turns a required field into the thing that makes a purchase
     // recoverable, which matters most for the listeners who buy without an
@@ -67,7 +73,7 @@ export async function POST(req: NextRequest) {
           "We'll save your Spotlights to this email, so you still have them if you come back on another phone or browser.",
       },
     },
-    success_url: `${base}${back}${back.includes("?") ? "&" : "?"}spotlights=${b.credits}`,
+    success_url: `${base}${back}${back.includes("?") ? "&" : "?"}spotlights=${credits}`,
     cancel_url: `${base}${back}`,
   });
 

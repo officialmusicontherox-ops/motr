@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import MotrShell from "./MotrShell";
-import { CAP_PLACES, SLOTS } from "@/lib/spotlightBundles";
+import { CAP_PLACES, SALE, SLOTS, saleOn } from "@/lib/spotlightBundles";
 import ArtistSheet from "./ArtistSheet";
 import SpotlightOffer from "./SpotlightOffer";
 
@@ -73,7 +73,7 @@ export default function SpotlightView() {
         {/* The only place to get one used to be the moment you reached for a
             Spotlight you did not have, which left the tab named after them
             with no way to get any. */}
-        <div className="mt-2 flex shrink-0 justify-center">
+        <div className="mt-2 flex shrink-0 flex-col items-center gap-1">
           <button
             onClick={() => setOffer(true)}
             className="border-gold/50 text-gold hover:bg-gold/10 rounded-full border px-4 py-1.5 text-xs font-semibold transition"
@@ -82,6 +82,15 @@ export default function SpotlightView() {
               ? `You have ${credits} Spotlight${credits === 1 ? "" : "s"}`
               : "Get Spotlights"}
           </button>
+          {/* One line, so the grid of tiles below keeps its room. */}
+          {saleOn() && (
+            <button
+              onClick={() => setOffer(true)}
+              className="text-gold text-[0.7rem] font-semibold"
+            >
+              {SALE.name}: bonus Spotlights through {SALE.endsLabel}
+            </button>
+          )}
         </div>
 
         {error ? (
