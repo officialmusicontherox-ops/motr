@@ -130,6 +130,15 @@ async function send(
     return { ok: false, error: "RESEND_API_KEY not set" };
   }
 
+  // Never from a copy running on the local test database. A local build
+  // reads the same .env, key and all, and its test artists have made-up
+  // addresses: on 22 Nov 2026 two battle results went out from one to
+  // addresses that could only bounce.
+  if (/localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL ?? "")) {
+    console.log(`[email skipped: local test database] to=${to} subject="${subject}"`);
+    return { ok: false, error: "local test database" };
+  }
+
   // Checked per send rather than at import: the value comes from the
   // environment, and a module that threw on load would take the whole app
   // down instead of the one feature that is misconfigured.

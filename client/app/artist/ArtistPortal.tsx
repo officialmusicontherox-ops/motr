@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { GENRES } from "@/lib/genres";
 import MotrShell from "@/components/MotrShell";
+import SubmitSongs from "@/components/SubmitSongs";
 
 type Track = {
   id: string;
@@ -176,6 +177,8 @@ function Dashboard({ me }: { me: Me }) {
           ))}
         </ul>
       )}
+
+      <SubmitMore email={me.email} />
 
       <div className="border-edge bg-surface mt-6 space-y-2.5 rounded-xl border border-dashed p-4">
         <p className="text-muted text-xs leading-relaxed">
@@ -394,6 +397,39 @@ function TrackCard({ track }: { track: Track }) {
         <p className="text-gold mt-1 break-all text-xs">{shareUrl}</p>
       </div>
     </li>
+  );
+}
+
+/**
+ * More songs without leaving the page: the same form as the submit page,
+ * up to five at a time with the same questions, under the address they are
+ * signed in with. Closed until asked for, so the stats stay the first thing
+ * on the page.
+ */
+function SubmitMore({ email }: { email: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="border-edge bg-surface mt-6 rounded-2xl border p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="font-display text-lg uppercase tracking-wide">Submit more music</p>
+          <p className="text-muted text-xs">Up to five songs at a time, free.</p>
+        </div>
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${
+            open ? "border-edge text-muted hover:text-ink border" : "bg-gold text-bg"
+          }`}
+        >
+          {open ? "Close" : "Add songs"}
+        </button>
+      </div>
+      {open && (
+        <div className="border-edge mt-4 border-t pt-4">
+          <SubmitSongs embedded fixedEmail={email} />
+        </div>
+      )}
+    </section>
   );
 }
 
