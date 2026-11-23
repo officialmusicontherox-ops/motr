@@ -58,6 +58,10 @@ export default function SubmitSongs({
   onSubmitted?: () => void;
 } = {}) {
   const [artistEmail, setArtistEmail] = useState(fixedEmail ?? "");
+  // Typed twice, because a mistyped address is an artist nobody can reach:
+  // results, battle links and the weekly recap all go to it. Compared without
+  // regard to capitals or stray spaces, which the address itself ignores.
+  const [confirmEmail, setConfirmEmail] = useState(fixedEmail ?? "");
   // The email is asked once and every song in the batch goes under it. Making
   // an artist retype it per track was the whole reason anyone submitted one
   // song at a time.
@@ -70,7 +74,8 @@ export default function SubmitSongs({
 
   const filled = songs.filter((s) => s.url.trim() && s.genre && s.ai !== null);
   const emailOk = isEmailAddress(artistEmail);
-  const canSubmit = filled.length > 0 && emailOk && !pending;
+  const emailsMatch = artistEmail.trim().toLowerCase() === confirmEmail.trim().toLowerCase();
+  const canSubmit = filled.length > 0 && emailOk && emailsMatch && !pending;
 
   function setSong(i: number, patch: Partial<SongRow>) {
     setSongs((prev) => prev.map((s, n) => (n === i ? { ...s, ...patch } : s)));
@@ -366,6 +371,30 @@ export default function SubmitSongs({
             <span className="text-nope mt-1 block text-xs">
               That address isn&apos;t complete. It needs an ending like .com or .co.uk after the
               domain, or we can&apos;t reach you.
+            </span>
+          )}
+        </label>
+        )}
+
+        {!fixedEmail && (
+        <label className="-mt-2 block">
+          <span className="motr-label block">Confirm your email</span>
+          <input
+            type="email"
+            value={confirmEmail}
+            onChange={(e) => setConfirmEmail(e.target.value)}
+            required
+            autoComplete="off"
+            placeholder="Type it again"
+            className={`bg-surface mt-2 w-full rounded-xl border px-4 py-3 outline-none transition placeholder:text-neutral-600 ${
+              confirmEmail.trim() && !emailsMatch
+                ? "border-nope focus:border-nope"
+                : "border-edge focus:border-gold"
+            }`}
+          />
+          {confirmEmail.trim() && !emailsMatch && (
+            <span className="text-nope mt-1 block text-xs">
+              The two addresses don&apos;t match. Check both for a typo.
             </span>
           )}
         </label>
