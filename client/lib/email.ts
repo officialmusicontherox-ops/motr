@@ -2,7 +2,7 @@ import { Resend } from "resend";
 import { CARD_VERSION } from "./shareCard";
 import { APP_URL as CANONICAL_APP_URL } from "./appUrl";
 import { isSuppressed } from "./suppression";
-import { recordEmailProblem } from "./emailProblems";
+import { isUndeliverable, recordEmailProblem } from "./emailProblems";
 
 /**
  * Transactional email. Two moments in the product depend on it: telling an
@@ -1572,6 +1572,12 @@ export async function sendEmail(
   if (!opts.transactional && (await isSuppressed(to))) {
     console.log(`[email suppressed] ${to} has opted out. subject="${template.subject}"`);
     return { ok: false as const, error: "suppressed", suppressed: true as const };
+  }
+  // An address Resend has already told us is dead is not tried again: it
+  // would only be refused and recorded once more.
+  if (!opts.transactional && (await isUndeliverable(to))) {
+    console.log(`[email skipped] ${to} is known to be undeliverable. subject="${template.subject}"`);
+    return { ok: false as const, error: "undeliverable", suppressed: true as const };
   }
   return send(to, template.subject, template.html, template.attachments, opts.scheduledAt);
 }
