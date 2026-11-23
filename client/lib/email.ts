@@ -1395,6 +1395,49 @@ export function battleWonEmail(params: { title: string; unsubscribeUrl: string }
   };
 }
 
+/**
+ * Introducing the artist page to every artist on MOTR: what is on it, how to
+ * get there, what they can do with it. Sign-in is by email link, so there is
+ * no password to explain.
+ */
+export function artistPageIntroEmail(params: { unsubscribeUrl: string }) {
+  const li = (t: string) => `<li style="margin:0 0 8px">${t}</li>`;
+  const body = `
+      <p style="margin:0 0 14px">Hi,</p>
+
+      <p style="margin:0 0 14px">You now have your own <strong style="color:#fff">artist page</strong> on MOTR. It is private to you, and it puts everything about your music in one place.</p>
+
+      <p style="margin:0 0 8px"><strong style="color:#fff">What is on it</strong></p>
+      <ul style="margin:0 0 16px;padding-left:20px">
+        ${li("<strong style=\"color:#fff\">This week</strong>: where you are on Top Artists, which of your songs are counting toward the chart, and your battle with a link to share.")}
+        ${li("<strong style=\"color:#fff\">Every song</strong>: how many listeners saved it, how many heard all 30 seconds, and how many opened your share link.")}
+        ${li("<strong style=\"color:#fff\">Battle Wins</strong>: your all-time total.")}
+        ${li("<strong style=\"color:#fff\">Spotlight</strong>: a note whenever a listener puts you in the Spotlight.")}
+        ${li("<strong style=\"color:#fff\">Share cards</strong>: a story card, a post card and a ready-made caption for each song.")}
+      </ul>
+
+      <p style="margin:0 0 8px"><strong style="color:#fff">What you can do with it</strong></p>
+      <ul style="margin:0 0 16px;padding-left:20px">
+        ${li("Share your battle link and your songs while they are moving.")}
+        ${li("Update a song's genre, or whether its vocals are AI, with <strong style=\"color:#fff\">Edit details</strong>. We check each change before it goes live.")}
+      </ul>
+
+      <p style="margin:0 0 8px"><strong style="color:#fff">How to get there</strong></p>
+      <p style="margin:0 0 14px">Open the menu in the MOTR app and tap <strong style="color:#fff">Your artist page</strong>, or go to <a href="https://app.musicontherox.com/artist" style="color:#dcb55f">app.musicontherox.com/artist</a>. Enter the email you submitted your music with and we will send you a sign-in link. No password needed.</p>
+
+      <p style="margin:0">See you there.</p>
+  `;
+  return {
+    subject: "Your MOTR artist page: your stats, battle and songs in one place",
+    html:
+      shell("Your artist page is here", body, {
+        label: "Open your artist page",
+        url: "https://app.musicontherox.com/artist",
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${params.unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 /** Sent when a battle closes level, to both artists. */
 export function battleTieEmail(params: { title: string; unsubscribeUrl: string }) {
   const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

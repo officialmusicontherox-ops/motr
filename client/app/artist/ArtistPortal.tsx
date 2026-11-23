@@ -28,6 +28,7 @@ type Me = {
   week: string;
   chartPlace: number | null;
   battleWins: number;
+  spotlight: { live: boolean; queued: boolean; total: number };
   battles: Battle[];
   tracks: Track[];
 };
@@ -447,6 +448,34 @@ function ThisWeek({ me }: { me: Me }) {
           Battle Wins, all time: <span className="text-ink font-semibold">{me.battleWins}</span>
         </p>
       </div>
+
+      {/* A listener backing them. Shown so they find out, and have
+          something to share; never who bought it or how long is left. */}
+      {me.spotlight.total > 0 && (
+        <div className="border-edge mt-3 border-t pt-3">
+          {me.spotlight.live ? (
+            <p className="text-sm">
+              <span className="text-gold font-semibold">You&apos;re in the Spotlight right now.</span>{" "}
+              A listener put you there.{" "}
+              <a href="/spotlight" className="text-gold underline underline-offset-2">
+                See the Spotlight tab
+              </a>
+            </p>
+          ) : me.spotlight.queued ? (
+            <p className="text-sm">
+              <span className="text-gold font-semibold">A listener has put you in the Spotlight.</span>{" "}
+              It starts as soon as a place opens up.
+            </p>
+          ) : null}
+          {me.spotlight.live && me.spotlight.queued && (
+            <p className="text-muted mt-1 text-xs">Another one is waiting to start after this.</p>
+          )}
+          <p className="text-muted mt-1 text-xs">
+            Times listeners have put you in the Spotlight:{" "}
+            <span className="text-ink font-semibold">{me.spotlight.total}</span>
+          </p>
+        </div>
+      )}
     </section>
   );
 }

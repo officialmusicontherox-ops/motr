@@ -44,6 +44,16 @@ export async function GET() {
   const week = weekOf();
   const bWeek = battleWeek();
 
+  // Spotlights listeners have put them in. Whether one is up now, whether
+  // another is waiting, and how many in all. Never who bought them, and
+  // never how long is left.
+  const now = new Date();
+  const [spotlightLive, spotlightQueued, spotlightTotal] = await Promise.all([
+    prisma.spotlight.count({ where: { artistId: session.artistId, startsAt: { lte: now }, endsAt: { gt: now } } }),
+    prisma.spotlight.count({ where: { artistId: session.artistId, startsAt: null } }),
+    prisma.spotlight.count({ where: { artistId: session.artistId } }),
+  ]);
+
   const pendingChanges = ids.length
     ? await prisma.trackChangeRequest.findMany({ where: { trackId: { in: ids }, status: "PENDING" } })
     : [];
@@ -102,6 +112,7 @@ export async function GET() {
     week: week.label,
     chartPlace: place >= 0 ? place + 1 : null,
     battleWins: tracks.reduce((n, t) => n + t.battleWins, 0),
+    spotlight: { live: spotlightLive > 0, queued: spotlightQueued > 0, total: spotlightTotal },
     battles: battles.map((b) => {
       const mine = ids.includes(b.trackAId) ? b.trackAId : b.trackBId;
       return {
