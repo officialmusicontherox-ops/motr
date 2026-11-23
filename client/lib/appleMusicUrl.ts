@@ -58,3 +58,30 @@ export function appleLinkProblem(kind: Exclude<AppleLink["kind"], "song">): stri
 export function appleSongUrl(appleTrackId: string): string {
   return `https://music.apple.com/us/song/${appleTrackId}`;
 }
+
+/**
+ * The song inside an Apple Music single, from the single's album link.
+ *
+ * The same thing as on Spotify: a single shared from its own page is an
+ * album link with no song in it. When the release has exactly one song,
+ * that is the one. Anything longer returns null.
+ */
+export async function singleSongFromAppleAlbum(
+  input: string
+): Promise<{ id: string; country: string | null } | null> {
+  const value = input.trim();
+  const albumId = value.match(/\/album\/(?:[^/?#]*\/)?(\d+)/)?.[1];
+  if (!albumId) return null;
+  const country = value.match(/apple\.com\/([a-z]{2})\//i)?.[1]?.toLowerCase() ?? null;
+  try {
+    const data = await fetch(
+      `https://itunes.apple.com/lookup?id=${albumId}&entity=song${country ? `&country=${country}` : ""}`
+    ).then((r) => (r.ok ? r.json() : { results: [] }));
+    const songs = ((data.results ?? []) as { wrapperType?: string; trackId?: number }[]).filter(
+      (r) => r.wrapperType === "track" && r.trackId
+    );
+    return songs.length === 1 ? { id: String(songs[0].trackId), country } : null;
+  } catch {
+    return null;
+  }
+}

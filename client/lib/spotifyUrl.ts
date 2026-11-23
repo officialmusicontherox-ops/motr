@@ -77,3 +77,31 @@ export async function resolveSpotifyShortLink(input: string): Promise<string | n
     return null;
   }
 }
+
+/**
+ * The song inside a Spotify single, from the single's own link.
+ *
+ * On Spotify a single is a one-song album, so sharing from the single's
+ * page gives an /album/ link, and artists were being told to go back and
+ * copy the song instead. The album's public page lists its songs, so when
+ * there is exactly one, that is the song they meant. A real album or EP
+ * returns null and still asks for the specific song.
+ */
+export async function singleTrackFromAlbum(input: string): Promise<string | null> {
+  const albumId = input.trim().match(/open\.spotify\.com\/(?:intl-[a-z-]+\/)?album\/([A-Za-z0-9]{22})/)?.[1];
+  if (!albumId) return null;
+  try {
+    const html = await fetch(`https://open.spotify.com/album/${albumId}`, {
+      // The page carries its meta tags for crawlers, not for browsers.
+      headers: { "user-agent": "MOTR/1.0 (+https://app.musicontherox.com)", accept: "*/*" },
+    }).then((r) => (r.ok ? r.text() : ""));
+    const songs = [
+      ...new Set(
+        [...html.matchAll(/name="music:song" content="https:\/\/open\.spotify\.com\/track\/([A-Za-z0-9]{22})"/g)].map((m) => m[1])
+      ),
+    ];
+    return songs.length === 1 ? songs[0] : null;
+  } catch {
+    return null;
+  }
+}

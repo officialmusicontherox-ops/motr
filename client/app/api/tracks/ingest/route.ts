@@ -16,11 +16,17 @@ import {
   resolveSpotifyTrack,
   trackIdentity,
 } from "@/lib/trackLookup";
-import { appleLinkProblem, isAppleMusicLink, parseAppleMusicLink } from "@/lib/appleMusicUrl";
+import {
+  appleLinkProblem,
+  isAppleMusicLink,
+  parseAppleMusicLink,
+  singleSongFromAppleAlbum,
+} from "@/lib/appleMusicUrl";
 import {
   describeSpotifyLink,
   parseSpotifyTrackId,
   resolveSpotifyShortLink,
+  singleTrackFromAlbum,
 } from "@/lib/spotifyUrl";
 import { allowRequest, tooManyRequests } from "@/lib/rateLimit";
 import { optInArtist } from "@/lib/optOut";
@@ -87,7 +93,14 @@ export async function POST(req: NextRequest) {
   // The one link field takes either service. An Apple Music link is read
   // here and never reaches the Spotify handling below.
   const pasted = typeof body.spotifyUrl === "string" ? body.spotifyUrl.trim() : "";
-  const apple = pasted && isAppleMusicLink(pasted) ? parseAppleMusicLink(pasted) : null;
+  let apple = pasted && isAppleMusicLink(pasted) ? parseAppleMusicLink(pasted) : null;
+
+  // A single shared from its own page is an album link with one song in it.
+  // Take that song rather than sending the artist back to copy it again.
+  if (apple && apple.kind === "album") {
+    const single = await singleSongFromAppleAlbum(pasted);
+    if (single) apple = { kind: "song", id: single.id, country: single.country };
+  }
 
   // Every refusal leaves a row, so an artist who tried and failed shows up
   // in the admin queue instead of vanishing.
@@ -119,6 +132,11 @@ export async function POST(req: NextRequest) {
   // link.
   if (!apple && !spotifyTrackId && source === "SPOTIFY" && body.spotifyUrl) {
     spotifyTrackId = await resolveSpotifyShortLink(String(body.spotifyUrl));
+  }
+
+  // The same for Spotify: an album link that holds a single song is that song.
+  if (!apple && !spotifyTrackId && source === "SPOTIFY" && body.spotifyUrl) {
+    spotifyTrackId = await singleTrackFromAlbum(String(body.spotifyUrl));
   }
 
   if (!apple && source === "SPOTIFY" && body.spotifyUrl && !spotifyTrackId) {
