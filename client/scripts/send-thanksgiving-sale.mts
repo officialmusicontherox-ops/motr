@@ -13,10 +13,12 @@ const APP = "https://app.musicontherox.com";
 const artists = await prisma.artist.findMany({
   where: { emailOptOut: false, tracks: { some: { status: { not: "REJECTED" } } } },
   select: { id: true, email: true },
+  orderBy: { id: "asc" },
 });
 const fans = await prisma.fan.findMany({
   where: { emailOptOut: false, email: { not: null } },
   select: { id: true, email: true },
+  orderBy: { id: "asc" },
 });
 const seen = new Set<string>();
 const list: { email: string; listener: boolean; unsub: string }[] = [];
@@ -41,11 +43,19 @@ if (!process.argv.includes("--send")) {
   console.log("\n--- listener version differs only in: ---\n" + toPlainText(l.html).split("\n").filter((x) => !toPlainText(a.html).includes(x)).join("\n"));
   process.exit(0);
 }
+// Sent in sections: --take=N per run, with a record of who has it so a
+// later run (or a rerun after a failure) never sends anyone a second copy.
+const LOG = "/tmp/claude-1000/-home-jerrettfranklinmusic-music-discovery-app/d8cd3646-45e5-4efe-ba98-990d1b87f220/scratchpad/thanksgiving-sent.txt";
+const done = new Set(fs.existsSync(LOG) ? fs.readFileSync(LOG, "utf8").split("\n").filter(Boolean) : []);
+const take = Number(process.argv.find((x) => x.startsWith("--take="))?.slice(7) ?? 50);
+const todo = list.filter((r) => !done.has(r.email)).slice(0, take);
 let sent = 0, skipped = 0;
-for (const r of list) {
+for (const r of todo) {
   const res = await sendEmail(r.email, thanksgivingSaleEmail({ listener: r.listener, unsubscribeUrl: r.unsub }));
   if (res.ok) sent++; else skipped++;
+  // Recorded either way: a refusal is not retried by the next section.
+  fs.appendFileSync(LOG, r.email + "\n");
   await new Promise((x) => setTimeout(x, 300));
 }
-console.log(`  SENT ${sent}, not sent ${skipped}`);
+console.log(`  section: SENT ${sent}, not sent ${skipped} | left after this: ${list.length - done.size - todo.length}`);
 process.exit(0);
