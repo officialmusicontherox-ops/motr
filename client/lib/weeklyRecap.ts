@@ -128,7 +128,9 @@ export function recapDue(now = new Date()): { due: boolean; week: Week; why: str
   const hour = Number(parts.find((p) => p.type === "hour")?.value ?? -1) % 24;
 
   if (weekday !== "Sun") return { due: false, week, why: `Recaps go out on Sunday (it is ${weekday}).` };
-  if (hour !== 10) return { due: false, week, why: `Recaps go out at 10am Central (it is ${hour}:00).` };
+  // From 10am, with the next few hourly runs finishing anything the first
+  // one did not reach. Each run skips whoever already has theirs.
+  if (hour < 10 || hour > 14) return { due: false, week, why: `Recaps go out from 10am Central (it is ${hour}:00).` };
 
   return { due: true, week, why: "" };
 }
@@ -164,8 +166,11 @@ export async function sendWeeklyRecaps(appUrl: string, opts: { force?: boolean }
   const recaps = await recapsFor(week);
   let sent = 0;
   let failed = 0;
+  const started = Date.now();
 
   for (const r of recaps) {
+    // Stop inside the request's time limit; the next hourly run carries on.
+    if (Date.now() - started > 8000) break;
     const attachments = r.position ? await cardFor(r, r.position) : [];
     const result = await sendEmail(
       r.email,
@@ -186,6 +191,9 @@ export async function sendWeeklyRecaps(appUrl: string, opts: { force?: boolean }
       continue;
     }
     sent += 1;
+    // Under Resend's ten-a-second limit, leaving room for anything else
+    // sending at the same moment.
+    await new Promise((x) => setTimeout(x, 150));
     // Written as it goes, so a retry after a partial failure never mails
     // anyone twice.
     await prisma.weeklyRecapSend

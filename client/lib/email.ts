@@ -140,6 +140,11 @@ async function send(
   }
 
   try {
+    // Resend allows about ten requests a second across the whole account.
+    // When two senders run at once (the Sunday recap and battle emails did,
+    // on 22 Nov 2026) the excess is refused as "too many requests", and 51
+    // recaps were lost that way. A short wait and a retry gets them through.
+    for (let attempt = 0; ; attempt++) {
     const { data, error } = await resend.emails.send({
       from: FROM,
       to,
@@ -159,6 +164,11 @@ async function send(
       ...(scheduledAt ? { scheduledAt } : {}),
     });
 
+    if (error && /too many requests|rate limit/i.test(error.message) && attempt < 4) {
+      await new Promise((r) => setTimeout(r, 1100 * (attempt + 1)));
+      continue;
+    }
+
     if (error) {
       console.error(`[email failed] to=${to}: ${error.message}`);
       // Kept, so the admin panel can show who could not be reached.
@@ -166,6 +176,7 @@ async function send(
       return { ok: false, error: error.message };
     }
     return { ok: true, id: data?.id };
+    }
   } catch (e) {
     const message = e instanceof Error ? e.message : "unknown error";
     console.error(`[email threw] to=${to}: ${message}`);
