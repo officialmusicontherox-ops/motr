@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { GENRES } from "@/lib/genres";
+import MotrShell from "@/components/MotrShell";
 
 type Track = {
   id: string;
@@ -68,13 +69,28 @@ export default function ArtistPortal() {
     };
   }, []);
 
+  // The same header, tabs and menu as every other page, so there is always
+  // a way back into the app. This page used to stand alone with none.
   if (loading) {
-    return <p className="text-muted py-20 text-center text-sm">Loading...</p>;
+    return (
+      <MotrShell>
+        <p className="text-muted py-20 text-center text-sm">Loading...</p>
+      </MotrShell>
+    );
   }
 
-  if (needsSignIn || !me) return <SignIn />;
+  if (needsSignIn || !me)
+    return (
+      <MotrShell>
+        <SignIn />
+      </MotrShell>
+    );
 
-  return <Dashboard me={me} />;
+  return (
+    <MotrShell>
+      <Dashboard me={me} />
+    </MotrShell>
+  );
 }
 
 function SignIn() {
@@ -95,7 +111,7 @@ function SignIn() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm py-12">
+    <div className="mx-auto w-full max-w-sm py-6">
       <h1 className="font-display text-center text-3xl uppercase tracking-wide">Your page</h1>
       <p className="text-muted mt-3 text-center text-sm leading-relaxed">
         See how your music is doing on MOTR and get a card you can post.
@@ -137,7 +153,7 @@ function SignIn() {
 
 function Dashboard({ me }: { me: Me }) {
   return (
-    <div className="mx-auto w-full max-w-md py-8">
+    <div className="mx-auto w-full max-w-md py-2 md:max-w-4xl">
       <header className="mb-6">
         <h1 className="font-display text-2xl uppercase tracking-wide">Your tracks</h1>
         <p className="text-muted mt-1.5 text-sm leading-relaxed">
@@ -152,7 +168,8 @@ function Dashboard({ me }: { me: Me }) {
           Nothing in the feed yet. Once a track is in, it shows up here.
         </p>
       ) : (
-        <ul className="space-y-4">
+        // Two across on a laptop, so a wide screen is not one long column.
+        <ul className="space-y-4 md:grid md:grid-cols-2 md:items-start md:gap-4 md:space-y-0">
           {me.tracks.map((t) => (
             <TrackCard key={t.id} track={t} />
           ))}

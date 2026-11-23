@@ -12,6 +12,9 @@ const LINKS = [
   // Moved out of the tab bar on 10 Nov 2026 to make room for Spotlight: five
   // labelled tabs is too many on a phone. Its unread count now rides on the
   // menu button, so an unlocked badge is still noticed.
+  // First, so the menu is always a way back to the main screen from
+  // anywhere, including pages reached from the menu itself.
+  { href: "/", label: "Home", note: "Back to Discover" },
   { href: "/badges", label: "Your badges", note: "What you have unlocked so far" },
   { href: "/artists", label: "Submit your song", note: "Free. Spotify or Apple Music link" },
   { href: "/artist", label: "Your artist page", note: "Your songs, stats and battle" },
