@@ -30,6 +30,7 @@ import AdminSection, { ShowMore, useVisibleCount } from "./AdminSection";
 import AdminAttention from "./AdminAttention";
 import PullToRefresh from "./PullToRefresh";
 import AdminAiTracks from "./AdminAiTracks";
+import AdminTrackChanges from "./AdminTrackChanges";
 import AdminEmailProblems from "./AdminEmailProblems";
 
 type Stats = {
@@ -222,7 +223,12 @@ export default function AdminDashboard({
  </>
  )}
 
- {view === "artists" && <AdminArtistShare />}
+ {view === "artists" && (
+ <>
+ <AdminTrackChanges />
+ <AdminArtistShare />
+ </>
+ )}
 
  {view === "spotlights" && <AdminSpotlights />}
 

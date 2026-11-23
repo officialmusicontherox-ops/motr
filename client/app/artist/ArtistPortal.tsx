@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { GENRES } from "@/lib/genres";
 
 type Track = {
   id: string;
@@ -12,6 +13,9 @@ type Track = {
   savesThisWeek: number;
   counting: boolean;
   ai: boolean;
+  genre: string | null;
+  aiGenerated: boolean | null;
+  pending: { genre: string | null; aiGenerated: boolean | null } | null;
   addedAt: string;
 };
 
@@ -184,6 +188,38 @@ function Dashboard({ me }: { me: Me }) {
 
 function TrackCard({ track }: { track: Track }) {
   const [copied, setCopied] = useState(false);
+  // Asking for a change to the song's details. It goes to the admin and
+  // nothing changes until they approve it.
+  const [editing, setEditing] = useState(false);
+  const [genre, setGenre] = useState(track.genre ?? "");
+  const [ai, setAi] = useState<"" | "yes" | "no">(
+    track.aiGenerated === null ? "" : track.aiGenerated ? "yes" : "no"
+  );
+  const [pending, setPending] = useState(track.pending);
+  const [saving, setSaving] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setProblem(null);
+    const res = await fetch("/api/artist/track-change", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        trackId: track.id,
+        genre: genre || undefined,
+        aiGenerated: ai === "" ? undefined : ai === "yes",
+      }),
+    }).catch(() => null);
+    setSaving(false);
+    const d = res ? await res.json().catch(() => ({})) : {};
+    if (!res || !res.ok) {
+      setProblem(d.error ?? "Couldn't send that. Try again.");
+      return;
+    }
+    setPending(d.request);
+    setEditing(false);
+  }
   const shareUrl = `https://app.musicontherox.com/?track=${track.id}`;
   const caption = `My track "${track.title}" is on MOTR. Give it 30 seconds and swipe right if you like it: ${shareUrl}`;
 
@@ -202,6 +238,86 @@ function TrackCard({ track }: { track: Track }) {
           {track.status === "DISCOVERY" ? "In rotation" : track.status.toLowerCase()}
         </span>
       </div>
+
+      <p className="text-muted mt-1 text-xs">
+        {(track.genre ?? "No genre").split(" /")[0]} ·{" "}
+        {track.aiGenerated === null ? "AI vocals not answered" : track.aiGenerated ? "AI vocals" : "No AI vocals"}
+        {!editing && (
+          <>
+            {" · "}
+            <button
+              onClick={() => setEditing(true)}
+              className="text-gold underline underline-offset-2"
+            >
+              Edit details
+            </button>
+          </>
+        )}
+      </p>
+
+      {pending && !editing && (
+        <p className="border-gold/40 bg-gold/5 mt-2 rounded-lg border px-3 py-2 text-xs">
+          Sent for review:
+          {pending.genre ? ` genre to ${pending.genre.split(" /")[0]}` : ""}
+          {pending.genre && pending.aiGenerated !== null ? "," : ""}
+          {pending.aiGenerated !== null ? ` AI vocals to ${pending.aiGenerated ? "yes" : "no"}` : ""}. It
+          updates once approved.
+        </p>
+      )}
+
+      {editing && (
+        <div className="border-edge bg-surface-2 mt-2 space-y-2 rounded-xl border p-3">
+          <label className="block text-xs">
+            <span className="text-muted mb-1 block">Genre</span>
+            <select
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              className="border-edge bg-bg text-ink w-full rounded-lg border px-2 py-2 text-sm outline-none focus:border-gold"
+            >
+              {!track.genre && <option value="">Choose a genre</option>}
+              {GENRES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-xs">
+            <span className="text-muted mb-1 block">Are the vocals AI-generated?</span>
+            <select
+              value={ai}
+              onChange={(e) => setAi(e.target.value as "" | "yes" | "no")}
+              className="border-edge bg-bg text-ink w-full rounded-lg border px-2 py-2 text-sm outline-none focus:border-gold"
+            >
+              {track.aiGenerated === null && <option value="">Choose one</option>}
+              <option value="no">No AI vocals</option>
+              <option value="yes">Yes, AI vocals</option>
+            </select>
+          </label>
+          <p className="text-muted text-xs leading-relaxed">
+            Changes are checked by MOTR before they show. Your song stays as it is until then.
+          </p>
+          {problem && <p className="text-nope text-xs">{problem}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={() => void save()}
+              disabled={saving}
+              className="bg-gold text-bg flex-1 rounded-full py-2 text-xs font-bold disabled:opacity-40"
+            >
+              {saving ? "Sending..." : "Submit for review"}
+            </button>
+            <button
+              onClick={() => {
+                setEditing(false);
+                setProblem(null);
+              }}
+              className="border-edge text-muted hover:text-ink flex-1 rounded-full border py-2 text-xs font-semibold transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       <p className="text-muted mt-1 text-xs">
         This week: {track.savesThisWeek} save{track.savesThisWeek === 1 ? "" : "s"}

@@ -1101,3 +1101,22 @@ model EmailProblem {
   @@index([email])
   @@index([createdAt])
 }
+
+/// An artist asking, from their own page, to change a song's genre or its
+/// AI-vocals label. The song is untouched until an admin approves; a null
+/// field means "no change asked for". One pending request per song: a new
+/// one replaces the last.
+model TrackChangeRequest {
+  id          String    @id @default(cuid())
+  trackId     String
+  artistId    String
+  genre       String?
+  aiGenerated Boolean?
+  /// PENDING, APPROVED or DECLINED.
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  decidedAt   DateTime?
+
+  @@index([status])
+  @@index([trackId])
+}

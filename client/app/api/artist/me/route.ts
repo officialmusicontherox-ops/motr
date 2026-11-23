@@ -35,6 +35,7 @@ export async function GET() {
       shareOpens: true,
       fanRightSwipes: true,
       aiGenerated: true,
+      genre: true,
       battleWins: true,
       createdAt: true,
     },
@@ -42,6 +43,11 @@ export async function GET() {
   const ids = tracks.map((t) => t.id);
   const week = weekOf();
   const bWeek = battleWeek();
+
+  const pendingChanges = ids.length
+    ? await prisma.trackChangeRequest.findMany({ where: { trackId: { in: ids }, status: "PENDING" } })
+    : [];
+  const pendingBy = new Map(pendingChanges.map((p) => [p.trackId, p]));
 
   const [fullListens, thisWeek, leaders, battles] = await Promise.all([
     // Listeners who heard the whole clip before deciding.
@@ -116,6 +122,12 @@ export async function GET() {
       savesThisWeek: weekSaves.get(t.id) ?? 0,
       counting: counting.has(t.id),
       ai: t.aiGenerated === true,
+      genre: t.genre,
+      aiGenerated: t.aiGenerated,
+      // A change they asked for that is waiting on the admin.
+      pending: pendingBy.has(t.id)
+        ? { genre: pendingBy.get(t.id)!.genre, aiGenerated: pendingBy.get(t.id)!.aiGenerated }
+        : null,
       addedAt: t.createdAt.toISOString(),
     })),
   });

@@ -301,6 +301,24 @@ function shell(heading: string, body: string, cta?: { label: string; url: string
  * common problem isn't bad audio — it's someone submitting music that isn't
  * theirs.
  */
+/** To the admin: an artist asked to change a song's details. */
+export function trackChangeRequestEmail(params: {
+  artistName: string;
+  title: string;
+  changes: string[];
+}) {
+  const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const body = `
+      <p style="margin:0 0 14px"><strong style="color:#fff">${esc(params.artistName)}</strong> asked to change the details of <strong style="color:#fff">${esc(params.title)}</strong>:</p>
+      ${params.changes.map((c) => `<p style="margin:0 0 6px">${esc(c)}</p>`).join("")}
+      <p style="margin:14px 0 0;color:#8b8b8b">Nothing changes until you approve it in the admin panel, on the Artists tab.</p>
+  `;
+  return {
+    subject: `Song change request: ${params.title}`,
+    html: shell("Song change request", body, { label: "Open the dashboard", url: `${APP_URL}/admin` }),
+  };
+}
+
 export function newSubmissionEmail(params: {
   tracks: { title: string; artistName: string; genre: string | null }[];
   submitterEmail: string;
