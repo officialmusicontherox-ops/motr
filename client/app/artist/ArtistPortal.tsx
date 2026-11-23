@@ -8,10 +8,24 @@ type Track = {
   status: string;
   opens: number;
   saves: number;
+  fullListens: number;
+  savesThisWeek: number;
+  counting: boolean;
+  ai: boolean;
   addedAt: string;
 };
 
-type Me = { name: string; email: string; tracks: Track[] };
+type Battle = { url: string; title: string; closes: string; result: "won" | "lost" | "tie" | null };
+
+type Me = {
+  name: string;
+  email: string;
+  week: string;
+  chartPlace: number | null;
+  battleWins: number;
+  battles: Battle[];
+  tracks: Track[];
+};
 
 /**
  * An artist's own page: what their music is doing, and the card to post.
@@ -127,6 +141,8 @@ function Dashboard({ me }: { me: Me }) {
         </p>
       </header>
 
+      {me.tracks.length > 0 && <ThisWeek me={me} />}
+
       {me.tracks.length === 0 ? (
         <p className="border-edge bg-surface text-muted rounded-xl border p-4 text-sm leading-relaxed">
           Nothing in the feed yet. Once a track is in, it shows up here.
@@ -174,15 +190,28 @@ function TrackCard({ track }: { track: Track }) {
   return (
     <li className="border-edge bg-surface rounded-2xl border p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="font-semibold">{track.title}</span>
+        <span className="font-semibold">
+          {track.title}
+          {track.ai && (
+            <span className="text-muted border-edge ml-2 rounded-full border px-1.5 py-px align-middle text-[0.6rem] font-semibold">
+              AI
+            </span>
+          )}
+        </span>
         <span className="text-muted shrink-0 text-xs">
           {track.status === "DISCOVERY" ? "In rotation" : track.status.toLowerCase()}
         </span>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Stat value={track.opens} label="opened your link" tone="gold" />
+      <p className="text-muted mt-1 text-xs">
+        This week: {track.savesThisWeek} save{track.savesThisWeek === 1 ? "" : "s"}
+        {track.counting && <span className="text-gold font-semibold"> · counting toward the chart</span>}
+      </p>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
         <Stat value={track.saves} label="saved it" tone="green" />
+        <Stat value={track.fullListens} label="heard all 30 seconds" tone="gold" />
+        <Stat value={track.opens} label="opened your link" tone="gold" />
       </div>
 
       <div className="mt-4 flex gap-3">
@@ -231,6 +260,61 @@ function TrackCard({ track }: { track: Track }) {
         <p className="text-gold mt-1 break-all text-xs">{shareUrl}</p>
       </div>
     </li>
+  );
+}
+
+/**
+ * The week at a glance: chart place, this week's battle, Battle Wins.
+ * Their own standing only, never anybody else's numbers.
+ */
+function ThisWeek({ me }: { me: Me }) {
+  return (
+    <section className="border-edge bg-surface mb-5 rounded-2xl border p-4">
+      <div className="motr-label text-muted">This week · {me.week}</div>
+
+      <p className="mt-2 text-sm leading-relaxed">
+        {me.chartPlace ? (
+          <>
+            You are <span className="text-gold font-bold">#{me.chartPlace}</span> on Top Artists.
+          </>
+        ) : (
+          <>Not in the Top Artists ten yet. Your two best songs this week are what count.</>
+        )}
+      </p>
+
+      <div className="border-edge mt-3 border-t pt-3">
+        {me.battles.length === 0 ? (
+          <p className="text-muted text-sm">
+            Not in a battle this week. You will be paired as soon as another artist in your genre
+            joins.
+          </p>
+        ) : (
+          me.battles.map((b) => (
+            <div key={b.url} className="flex items-center justify-between gap-3">
+              <p className="min-w-0 text-sm">
+                <span className="block truncate font-semibold">Battle: {b.title}</span>
+                <span className="text-muted text-xs">
+                  {b.result === "won"
+                    ? "You won this one."
+                    : b.result
+                      ? "Decided early this week."
+                      : `Voting closes ${b.closes} at midnight Central.`}
+                </span>
+              </p>
+              <a
+                href={b.url}
+                className="bg-gold text-bg shrink-0 rounded-full px-4 py-2 text-xs font-bold"
+              >
+                Open
+              </a>
+            </div>
+          ))
+        )}
+        <p className="text-muted mt-2 text-xs">
+          Battle Wins, all time: <span className="text-ink font-semibold">{me.battleWins}</span>
+        </p>
+      </div>
+    </section>
   );
 }
 

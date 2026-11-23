@@ -14,6 +14,7 @@ const LINKS = [
   // menu button, so an unlocked badge is still noticed.
   { href: "/badges", label: "Your badges", note: "What you have unlocked so far" },
   { href: "/artists", label: "Submit your song", note: "Free. Spotify or Apple Music link" },
+  { href: "/artist", label: "Your artist page", note: "Your songs, stats and battle" },
   { href: "/faq", label: "How it works", note: "Thirty seconds, no names, your call" },
   { href: "/contact", label: "Contact", note: "Questions, press, support" },
   { href: "/privacy", label: "Privacy", note: "What we collect and why" },
