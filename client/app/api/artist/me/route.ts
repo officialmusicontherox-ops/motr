@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireArtist } from "@/lib/artistAuth";
-import { FULL_LISTEN_MS } from "@/lib/discovery";
 import { leadersBetween, SONGS_PER_ARTIST } from "@/lib/scoutData";
 import { weekOf } from "@/lib/weekWindow";
 import { battleWeek } from "@/lib/battles";
@@ -12,10 +11,12 @@ import { battleWeek } from "@/lib/battles";
  * The artist id comes from the signed cookie, never from the request, so
  * there is no parameter anyone could change to read somebody else's numbers.
  *
- * Their songs with saves, full listens and link opens; which of them count
- * toward this week's chart; their place on Top Artists if they have one;
- * this week's battle and their Battle Wins. Their own numbers only, and
- * nobody else's: no opponent's votes, no other artist's figures.
+ * Their songs and which of them count toward this week's chart; their place
+ * on Top Artists if they have one; this week's battle and their Battle Wins.
+ *
+ * No save, listen or link-open counts. Not shown on the page, and not sent
+ * at all, so they cannot be read from the browser either. Nobody else's
+ * figures: no opponent's votes, no other artist's numbers.
  */
 export const dynamic = "force-dynamic";
 
@@ -32,8 +33,6 @@ export async function GET() {
       id: true,
       title: true,
       status: true,
-      shareOpens: true,
-      fanRightSwipes: true,
       aiGenerated: true,
       genre: true,
       battleWins: true,
@@ -59,22 +58,13 @@ export async function GET() {
     : [];
   const pendingBy = new Map(pendingChanges.map((p) => [p.trackId, p]));
 
-  const [fullListens, thisWeek, leaders, battles] = await Promise.all([
-    // Listeners who heard the whole clip before deciding.
-    ids.length
-      ? prisma.fanSwipe.groupBy({
-          by: ["trackId"],
-          where: { trackId: { in: ids }, listenMs: { gte: FULL_LISTEN_MS } },
-          _count: { _all: true },
-        })
-      : [],
+  const [thisWeek, leaders, battles] = await Promise.all([
     // This week's weighted saves per song, to show which two are counting.
     ids.length
       ? prisma.fanSwipe.groupBy({
           by: ["trackId"],
           where: { trackId: { in: ids }, direction: "RIGHT", createdAt: { gte: week.start, lt: week.end } },
           _sum: { weight: true },
-          _count: { _all: true },
         })
       : [],
     leadersBetween(week.start, week.end),
@@ -90,9 +80,7 @@ export async function GET() {
       : [],
   ]);
 
-  const full = new Map(fullListens.map((r) => [r.trackId, r._count._all]));
   const weekScore = new Map(thisWeek.map((r) => [r.trackId, r._sum.weight ?? 0]));
-  const weekSaves = new Map(thisWeek.map((r) => [r.trackId, r._count._all]));
 
   // Their best two this week, by the same weighted count the chart uses.
   const counting = new Set(
@@ -127,10 +115,6 @@ export async function GET() {
       id: t.id,
       title: t.title,
       status: t.status,
-      opens: t.shareOpens,
-      saves: t.fanRightSwipes,
-      fullListens: full.get(t.id) ?? 0,
-      savesThisWeek: weekSaves.get(t.id) ?? 0,
       counting: counting.has(t.id),
       ai: t.aiGenerated === true,
       genre: t.genre,

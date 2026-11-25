@@ -9,10 +9,6 @@ type Track = {
   id: string;
   title: string;
   status: string;
-  opens: number;
-  saves: number;
-  fullListens: number;
-  savesThisWeek: number;
   counting: boolean;
   ai: boolean;
   genre: string | null;
@@ -159,7 +155,7 @@ function Dashboard({ me }: { me: Me }) {
       <header className="mb-6">
         <h1 className="font-display text-2xl uppercase tracking-wide">Your tracks</h1>
         <p className="text-muted mt-1.5 text-sm leading-relaxed">
-          Hi {me.name}. These move every time somebody swipes. Come back any time.
+          Hi {me.name}. Your songs, your battle and where you stand this week.
         </p>
       </header>
 
@@ -340,16 +336,9 @@ function TrackCard({ track }: { track: Track }) {
         </div>
       )}
 
-      <p className="text-muted mt-1 text-xs">
-        This week: {track.savesThisWeek} save{track.savesThisWeek === 1 ? "" : "s"}
-        {track.counting && <span className="text-gold font-semibold"> · counting toward the chart</span>}
-      </p>
-
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <Stat value={track.saves} label="saved it" tone="green" />
-        <Stat value={track.fullListens} label="heard all 30 seconds" tone="gold" />
-        <Stat value={track.opens} label="opened your link" tone="gold" />
-      </div>
+      {track.counting && (
+        <p className="text-gold mt-1 text-xs font-semibold">Counting toward this week&apos;s chart</p>
+      )}
 
       <div className="mt-4 flex gap-3">
         {/* The card itself, so there is no guessing what gets posted. */}
@@ -513,16 +502,5 @@ function ThisWeek({ me }: { me: Me }) {
         </div>
       )}
     </section>
-  );
-}
-
-function Stat({ value, label, tone }: { value: number; label: string; tone: "gold" | "green" }) {
-  return (
-    <div className="bg-surface-2 rounded-xl px-3 py-2.5">
-      <div className={`text-2xl font-bold leading-none ${tone === "gold" ? "text-gold" : "text-hot"}`}>
-        {value}
-      </div>
-      <div className="text-muted mt-1 text-xs leading-tight">{label}</div>
-    </div>
   );
 }
