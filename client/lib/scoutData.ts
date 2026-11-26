@@ -284,8 +284,9 @@ export function countsBestTwo(until?: Date): boolean {
  * other. Each chart has its own top ten, its own winner and its own
  * write-up. A song nobody has marked either way counts as regular.
  *
- * The chart is by song, not by account: an artist with both kinds of song
- * can appear on both charts, each counting their two best of that kind.
+ * The kind is the song's, not the artist's, so nobody is labelled an AI
+ * artist for one AI song. An artist with both kinds appears once, on the
+ * chart where their best two of that kind add up to more that week.
  *
  * Weeks that ended before it keep the single combined chart they were
  * decided on.
@@ -326,21 +327,18 @@ export function artistTotalsSql(opts: {
 }) {
   const { since, until, limit } = opts;
   const upper = until ? Prisma.sql`AND s."createdAt" < ${until}` : Prisma.empty;
-  const kindFilter =
-    opts.kind && splitsAiChart(until)
-      ? Prisma.sql`AND COALESCE(t."aiGenerated", false) = ${opts.kind === "ai"}`
-      : Prisma.empty;
   const perArtist = countsBestTwo(until) ? SONGS_PER_ARTIST : 100000;
   const having = opts.needSave ? Prisma.sql`HAVING SUM(saves) > 0` : Prisma.empty;
   const order =
     opts.order === "winner"
       ? Prisma.sql`ORDER BY score DESC, tracks ASC`
       : Prisma.sql`ORDER BY score DESC, verdicts DESC`;
-  return Prisma.sql`
-    WITH per AS (
+
+  const per = Prisma.sql`
       SELECT t."id", t."artistId",
         COALESCE(t."appleArtistId", 'name:' || t."artistName") AS k,
         COALESCE(t."appleArtistName", t."artistName") AS name,
+        COALESCE(t."aiGenerated", false) AS ai,
         COUNT(*) FILTER (WHERE s."direction" = 'RIGHT') AS saves,
         COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0) AS score,
         COUNT(s."id") AS verdicts
@@ -350,9 +348,13 @@ export function artistTotalsSql(opts: {
         AND t."status" <> 'REJECTED'
         AND s."createdAt" >= ${since}
         ${upper}
-        ${kindFilter}
-      GROUP BY t."id"
-    ),
+      GROUP BY t."id"`;
+
+  // One combined chart: every week before AI_CHART_FROM, and anything that
+  // asks for no particular chart.
+  if (!opts.kind || !splitsAiChart(until)) {
+    return Prisma.sql`
+    WITH per AS (${per}),
     ranked AS (
       SELECT per.*,
         ROW_NUMBER() OVER (PARTITION BY k, name ORDER BY score DESC, verdicts DESC) AS r
@@ -366,6 +368,48 @@ export function artistTotalsSql(opts: {
     FROM ranked
     WHERE r <= ${perArtist}
     GROUP BY k, name
+    ${having}
+    ${order}
+    LIMIT ${limit}
+  `;
+  }
+
+  /*
+   * Two charts, and each artist on only one of them.
+   *
+   * The kind is the song's, never the artist's: an artist is not labelled AI
+   * for having made one AI song. Each artist gets a total for their best two
+   * regular songs and one for their best two AI songs, and appears only on
+   * the chart where that total is higher this week, ties going to Top
+   * Artists. The other kind's songs count toward nothing that week.
+   */
+  return Prisma.sql`
+    WITH per AS (${per}),
+    ranked AS (
+      SELECT per.*,
+        ROW_NUMBER() OVER (PARTITION BY k, name, ai ORDER BY score DESC, verdicts DESC) AS r
+      FROM per
+    ),
+    sides AS (
+      SELECT k, name, ai, MIN("artistId") AS "artistId",
+        SUM(saves) AS saves, SUM(score) AS score, SUM(verdicts) AS verdicts, COUNT(*) AS tracks
+      FROM ranked
+      WHERE r <= ${perArtist}
+      GROUP BY k, name, ai
+    ),
+    chosen AS (
+      SELECT sides.*,
+        ROW_NUMBER() OVER (PARTITION BY k, name ORDER BY score DESC, ai ASC) AS pick
+      FROM sides
+    )
+    SELECT "artistId", name,
+      SUM(saves)::bigint AS saves,
+      SUM(score)::bigint AS score,
+      SUM(verdicts)::bigint AS verdicts,
+      SUM(tracks)::bigint AS tracks
+    FROM chosen
+    WHERE pick = 1 AND ai = ${opts.kind === "ai"}
+    GROUP BY k, name, "artistId"
     ${having}
     ${order}
     LIMIT ${limit}

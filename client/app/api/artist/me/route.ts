@@ -83,17 +83,30 @@ export async function GET() {
 
   const weekScore = new Map(thisWeek.map((r) => [r.trackId, r._sum.weight ?? 0]));
 
-  // Their best two this week on each chart, by the same weighted count the
-  // chart uses. A song with AI vocals counts toward AI Artists and every
-  // other song toward Top Artists, so an artist with both has two of each.
+  // Their best two this week on each kind, by the same weighted count the
+  // chart uses. They appear on one chart only: whichever kind adds up to
+  // more this week, ties going to Top Artists, and only that chart's two
+  // songs are counting. With no saves yet, the chart their songs mostly sit
+  // on, so the page has something to say on a Sunday.
   const isAi = new Map(tracks.map((t) => [t.id, t.aiGenerated === true]));
   const bestTwo = (ai: boolean) =>
     [...weekScore.entries()]
       .filter(([id, s]) => s > 0 && isAi.get(id) === ai)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, SONGS_PER_ARTIST)
-      .map(([id]) => id);
-  const counting = new Set([...bestTwo(false), ...bestTwo(true)]);
+      .slice(0, SONGS_PER_ARTIST);
+  const sum = (xs: [string, number][]) => xs.reduce((n, [, v]) => n + v, 0);
+  const reg = bestTwo(false);
+  const ai = bestTwo(true);
+  const anySaves = reg.length + ai.length > 0;
+  const aiSongs = tracks.filter((t) => t.aiGenerated === true).length;
+  const chart: "regular" | "ai" = anySaves
+    ? sum(ai) > sum(reg)
+      ? "ai"
+      : "regular"
+    : aiSongs > tracks.length - aiSongs
+      ? "ai"
+      : "regular";
+  const counting = new Set((chart === "ai" ? ai : reg).map(([id]) => id));
 
   const placeOn = (list: { artistId: string }[]) => {
     const i = list.findIndex((a) => a.artistId === session.artistId);
@@ -107,8 +120,10 @@ export async function GET() {
     week: week.label,
     // Their place on each chart this week, or null where they are not in
     // its top ten.
-    chartPlace: placeOn(leaders.artists),
-    aiChartPlace: placeOn(leaders.aiArtists),
+    // The one chart they are on this week, and their place on it, or null
+    // if they are not in its top ten.
+    chart,
+    chartPlace: placeOn(chart === "ai" ? leaders.aiArtists : leaders.artists),
     battleWins: tracks.reduce((n, t) => n + t.battleWins, 0),
     spotlight: { live: spotlightLive > 0, queued: spotlightQueued > 0, total: spotlightTotal },
     battles: battles.map((b) => {

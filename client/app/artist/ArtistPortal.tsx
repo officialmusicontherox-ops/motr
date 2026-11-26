@@ -23,8 +23,9 @@ type Me = {
   name: string;
   email: string;
   week: string;
+  /** The one chart they are on this week. */
+  chart: "regular" | "ai";
   chartPlace: number | null;
-  aiChartPlace: number | null;
   battleWins: number;
   spotlight: { live: boolean; queued: boolean; total: number };
   battles: Battle[];
@@ -184,9 +185,10 @@ function Dashboard({ me }: { me: Me }) {
         </p>
         <p className="text-muted text-xs leading-relaxed">
           There are two charts, each with its own weekly winner and write-up: Top Artists, and
-          AI Artists for songs with AI vocals, so neither kind is ranked against the other. Each
-          counts your two best songs of its kind that week. Send as many as you like: every one
-          stays in the feed, and each is another chance to be one of your best two.
+          AI Artists for songs with AI vocals, so neither kind is ranked against the other. You
+          are on one of them each week: your two best songs of each kind are added up, and you
+          appear on whichever chart that total is higher. Send as many songs as you like: every
+          one stays in the feed, and each is another chance to be one of your best two.
         </p>
       </div>
 
@@ -435,11 +437,9 @@ function ThisWeek({ me }: { me: Me }) {
     <section className="border-edge bg-surface mb-5 rounded-2xl border p-4">
       <div className="motr-label text-muted">This week · {me.week}</div>
 
-      {/* One line per chart they have songs on. Songs with AI vocals are on
-          AI Artists, every other song on Top Artists, so an artist with
-          both kinds is on both. */}
-      {me.tracks.some((t) => !t.ai) && <ChartLine name="Top Artists" place={me.chartPlace} />}
-      {me.tracks.some((t) => t.ai) && <ChartLine name="AI Artists" place={me.aiChartPlace} />}
+      {/* One chart only. An artist with both kinds of song is on whichever
+          chart their songs are stronger on this week. */}
+      <ChartLine name={me.chart === "ai" ? "AI Artists" : "Top Artists"} place={me.chartPlace} />
 
       <div className="border-edge mt-3 border-t pt-3">
         {me.battles.length === 0 ? (

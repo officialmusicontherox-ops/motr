@@ -220,7 +220,7 @@ export default function ChartsView() {
                   ? "Every song an artist had, added together. That was the rule for weeks before November 15."
                   : range === "week" && data.aiChart === false
                     ? "Each artist's two best songs, added together. Songs with AI vocals got a chart of their own from November 22."
-                    : "Each artist's two best songs, added together. Songs with AI vocals are on the AI Artists chart instead."}
+                    : "Each artist's two best songs, added together. An artist with songs of both kinds is on whichever chart they are stronger on this week."}
               </p>
               {data.artists.length === 0 ? (
                 <Empty />
@@ -242,9 +242,9 @@ export default function ChartsView() {
             <section hidden={board !== "ai"}>
               <h2 className="motr-label text-gold mb-3">AI artists</h2>
               <p className="text-muted mb-3 text-xs leading-relaxed">
-                Songs with AI vocals, on a chart of their own so neither kind of artist is ranked
-                against the other. Each artist&apos;s two best, added together, with its own weekly
-                winner and write-up.
+                Songs with AI vocals, on a chart of their own so neither kind is ranked against the
+                other. Each artist&apos;s two best, added together, with its own weekly winner and
+                write-up. An artist is on one chart a week, whichever they are stronger on.
               </p>
               {data.aiChart === false ? (
                 <p className="border-edge bg-surface text-muted rounded-xl border p-4 text-sm leading-relaxed">

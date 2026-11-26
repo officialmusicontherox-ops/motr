@@ -119,8 +119,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           There are two artist charts, each with its own top ten and its own weekly winner: Top
           Artists, and AI Artists for songs declared as having AI vocals. A song counts toward
           one chart only, by that declaration, and a song not declared either way counts toward
-          Top Artists. Each chart counts an artist&apos;s two best songs of its kind for the
-          week, added together. Artists can submit as many songs as they like, and every song
+          Top Artists. An artist appears on only one chart a week: their two best songs of
+          each kind are added together, and they appear on whichever chart that total is higher,
+          with a tie going to Top Artists. Songs of the other kind count toward neither chart
+          that week. Artists can submit as many songs as they like, and every song
           stays in the feed, but only the best two count. The two-song rule applies from the
           week that began on November 15, 2026, and the two charts from the week that began on
           November 22, 2026. Earlier weeks keep the results they were announced with.
