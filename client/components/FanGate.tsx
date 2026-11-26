@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Equalizer from "./Equalizer";
 import type { Fan } from "@/lib/types";
 import { safeLocal, safeSession } from "@/lib/storage";
@@ -33,36 +33,30 @@ export default function FanGate({
 }) {
   const [fan, setFan] = useState<Fan | null>(null);
   const [checked, setChecked] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    const code = new URLSearchParams(window.location.search).get("auth_error");
+    return code ? (AUTH_ERRORS[code] ?? "Sign-in didn't go through. Try again.") : null;
+  });
   const [pending, setPending] = useState(false);
-  const [signedOut, setSignedOut] = useState(false);
-  const [anonId, setAnonId] = useState<string | null>(null);
+  // Confirms the sign-out landed, since the screen it returns to looks
+  // identical to a first visit.
+  const [signedOut] = useState(
+    () => typeof window !== "undefined" && Boolean(new URLSearchParams(window.location.search).get("signedout"))
+  );
 
-  /**
-   * Creates the anonymous listener and drops them into the feed.
-   *
-   * Guarded against running twice: React re-invokes effects in development,
-   * and a double call here would create two listener records for one visitor
-   * — inflating the count and splitting their swipes across two accounts.
-   */
-  const entering = useRef(false);
-  const enterAnonymously = useCallback(async () => {
-    if (entering.current) return null;
-    entering.current = true;
-    const res = await fetch("/api/fans", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ anonymous: true }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      entering.current = false;
-      throw new Error(data.error ?? "Could not start listening");
-    }
-    safeLocal.setItem(STORAGE_KEY, data.fan.id);
-    setFan(data.fan);
-    return data.fan;
-  }, []);
+  /** Where to come back to after signing in: this page, as they opened it. */
+  // Read once from the address bar. Nothing on the first render uses them
+  // (it is the loading screen until the check below finishes), so the
+  // server's empty values never show.
+  const [here] = useState(() => (typeof window === "undefined" ? "/" : currentPath()));
+  const [invited] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const p = new URLSearchParams(window.location.search);
+    return Boolean(p.get("track") || p.get("b"));
+  });
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkSent, setLinkSent] = useState<string | null>(null);
 
   // Start the database waking while they read the screen. Neon suspends
   // when idle and takes ~1.5s to come back, which otherwise lands on the tap.
@@ -73,35 +67,26 @@ export default function FanGate({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
+    // Only our own markers come out of the address bar. A shared song's
+    // ?track= and a battle's ?b= stay, because the page behind the wall
+    // reads them once the listener is signed in.
+    window.history.replaceState({}, "", currentPath());
+
     // A shared link's track id has to outlive the URL tidying below, and
     // the Google round trip, before the feed can act on it.
     const shared = params.get("track");
     if (shared) safeSession.setItem("motr:sharedTrack", shared);
 
-    // Confirms the sign-out landed, since the screen it returns to looks
-    // identical to a first visit.
-    if (params.get("signedout")) {
-      setSignedOut(true);
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-
-    const authError = params.get("auth_error");
-    if (authError) {
-      setError(AUTH_ERRORS[authError] ?? "Sign-in didn't go through. Try again.");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
 
 
     // Both providers now say only that it worked. The id comes from the session
     // rather than the address bar, so it never lands in browser history.
     if (params.get("signedin")) {
-      window.history.replaceState({}, "", window.location.pathname);
       fetch("/api/fans/me")
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (!data?.fan) return;
           safeLocal.setItem(STORAGE_KEY, data.fan.id);
-          setAnonId(data.fan.id);
           setFan(data.fan);
         })
         .catch(() => {})
@@ -111,33 +96,21 @@ export default function FanGate({
 
     const savedId = safeLocal.getItem(STORAGE_KEY);
     if (!savedId) {
-      // Arriving from an artist's share link means they've already chosen to
-      // listen. Making them pick an account first is friction at the worst
-      // moment, and it's the artist's own fans who get lost at it. Straight
-      // in as an anonymous listener; they can sign in later from the menu.
-      // A link to a battle is the same invitation as a link to a song.
-      const invited = shared || params.get("b");
-
       // Nothing saved here does not mean a stranger. Where a browser has no
       // storage, or it has been cleared, the session cookie may still know
-      // them, and asking it first stops one person becoming a new listener
-      // on every visit, with a fresh vote in every battle each time.
+      // them.
       fetch("/api/fans/me")
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (data?.fan) {
             safeLocal.setItem(STORAGE_KEY, data.fan.id);
-            setAnonId(data.fan.id);
             setFan(data.fan);
-            return;
           }
-          if (invited) return enterAnonymously();
         })
         .catch(() => {})
         .finally(() => setChecked(true));
       return;
     }
-    setAnonId(savedId);
 
     fetch(`/api/fans/${savedId}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -147,21 +120,34 @@ export default function FanGate({
       })
       .catch(() => safeLocal.removeItem(STORAGE_KEY))
       .finally(() => setChecked(true));
-  }, [enterAnonymously]);
+  }, []);
 
-  async function swipeAnonymously() {
+  /** Emails a one-time sign-in link, for anyone without Google. */
+  async function requestLink(e: React.FormEvent) {
+    e.preventDefault();
     setPending(true);
     setError(null);
     try {
-      await enterAnonymously();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start listening");
+      const res = await fetch("/api/auth/email/request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: linkEmail, next: here }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Couldn't send the link. Try again.");
+      setLinkSent(linkEmail.trim());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't send the link. Try again.");
     } finally {
       setPending(false);
     }
   }
 
-  if (fan) return <>{children(fan)}</>;
+  // The whole app is for signed-in listeners. An anonymous session from
+  // before the wall goes up meets the wall too; its swipes are folded into
+  // their account when they sign in.
+  const signedIn = Boolean(fan && (fan.hasEmail || fan.hasSpotify));
+  if (fan && signedIn) return <>{children(fan)}</>;
 
   if (!checked) {
     return (
@@ -192,9 +178,9 @@ export default function FanGate({
         <span className="text-gold"> favorite song</span>
       </h1>
       <p className="text-muted relative mt-2.5 max-w-sm text-sm leading-relaxed">
-        Thirty seconds each, with no artist name attached. Swipe what moves you, and
-        whatever you keep turns up in Saved with the artist revealed, ready to open in
-        Spotify.
+        {invited
+          ? "Sign in and you'll go straight to what you were sent."
+          : "Thirty seconds each, with no artist name attached. Swipe what moves you, and whatever you keep turns up in Saved with the artist revealed."}
       </p>
 
       {signedOut && (
@@ -212,32 +198,57 @@ export default function FanGate({
             explained rather than fatal. */}
         <a
           // No merge parameter: the server reads the anonymous session itself.
-          href="/api/auth/google/login?as=fan"
+          href={`/api/auth/google/login?as=fan&next=${encodeURIComponent(here)}`}
           className="flex items-center justify-center gap-2.5 rounded-full bg-white px-5 py-3.5 font-bold text-neutral-900 transition hover:brightness-95"
         >
           <GoogleMark className="h-5 w-5" />
           Continue with Google
         </a>
 
-        <button
-          onClick={swipeAnonymously}
-          disabled={pending}
-          className="border-edge hover:border-gold hover:text-gold rounded-full border px-5 py-3.5 text-sm font-semibold transition disabled:opacity-40"
-        >
-          {pending ? "Starting..." : "Swipe without an account"}
-        </button>
+        <div className="flex items-center gap-3">
+          <span className="border-edge h-px flex-1 border-t" />
+          <span className="motr-label text-[0.6rem]">No Google account?</span>
+          <span className="border-edge h-px flex-1 border-t" />
+        </div>
+
+        {linkSent ? (
+          <p className="border-gold/40 bg-surface rounded-xl border px-4 py-3 text-sm leading-relaxed">
+            Check your inbox. We sent a sign-in link to{" "}
+            <span className="text-ink font-semibold">{linkSent}</span>. It works once, for 30
+            minutes.
+          </p>
+        ) : (
+          <form onSubmit={requestLink} className="flex flex-col gap-2">
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={linkEmail}
+              onChange={(e) => setLinkEmail(e.target.value)}
+              placeholder="you@example.com"
+              aria-label="Your email address"
+              className="border-edge bg-surface text-ink focus:border-gold rounded-full border px-5 py-3 text-center text-sm outline-none transition"
+            />
+            <button
+              type="submit"
+              disabled={pending || !linkEmail.includes("@")}
+              className="border-edge hover:border-gold hover:text-gold rounded-full border px-5 py-3.5 text-sm font-semibold transition disabled:opacity-40"
+            >
+              {pending ? "Sending..." : "Email me a sign-in link"}
+            </button>
+          </form>
+        )}
       </div>
 
       <p className="text-muted relative mt-3 max-w-xs text-xs leading-relaxed">
-        Signing in keeps your saves across devices. You can connect Spotify later to push tracks
-        into your own library.
+        Free, and you only do it once on each device. Your saves follow you everywhere you sign
+        in.
       </p>
 
       {/* Consent belongs at the point the address is handed over, not buried
-          in a policy page. Only applies to signing in — swiping without an
-          account gives us no address to email. */}
+          in a policy page. */}
       <p className="text-muted relative mt-2 max-w-xs text-[0.7rem] leading-relaxed">
-        By continuing with Google you agree to our{" "}
+        By signing in you agree to our{" "}
         <Link href="/terms" className="text-gold underline underline-offset-2">
           Terms
         </Link>{" "}
@@ -295,4 +306,12 @@ function GoogleMark({ className }: { className?: string }) {
       />
     </svg>
   );
+}
+
+/** This page's address without our own sign-in markers, so it can be returned to. */
+function currentPath(): string {
+  const keep = new URLSearchParams(window.location.search);
+  for (const k of ["signedin", "signedout", "auth_error"]) keep.delete(k);
+  const q = keep.toString();
+  return window.location.pathname + (q ? `?${q}` : "");
 }

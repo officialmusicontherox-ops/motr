@@ -848,6 +848,20 @@ model ArtistLoginToken {
   @@index([email, expiresAt])
 }
 
+/// A one-time sign-in link for a listener without Google. Any address can
+/// ask for one: the account is made, or found, when the link is used.
+model FanLoginToken {
+  id        String    @id @default(cuid())
+  /// Lowercased.
+  email     String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email, expiresAt])
+}
+
 model ScoutLoginToken {
   id        String    @id @default(cuid())
   /// Lowercased, matched against Scout.email.

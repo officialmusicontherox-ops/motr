@@ -647,6 +647,20 @@ export function artistLoginLinkEmail(params: { name: string; url: string; minute
   };
 }
 
+/** A listener's sign-in link, for anyone signing in without Google. */
+export function fanLoginLinkEmail(params: { url: string; minutes: number }) {
+  const { url, minutes } = params;
+  return {
+    subject: "Your MOTR sign-in link",
+    html: letter(
+      `<p style="margin:0 0 14px">Hey,</p>
+       <p style="margin:0 0 14px">Here's your link to sign in to MOTR. It works once and expires in ${minutes} minutes. Once you're in, you'll stay signed in on that device.</p>
+       <p style="margin:0 0 14px"><a href="${url}" style="color:#8a6d3a;font-weight:600">Sign in to MOTR</a></p>
+       <p style="margin:0;color:#777;font-size:13px">If you didn't ask for this, ignore it. Nothing happens until the link is opened.</p>`
+    ),
+  };
+}
+
 /**
  * Tells an artist their page exists, and shows them the card rather than
  * describing it.

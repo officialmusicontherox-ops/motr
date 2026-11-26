@@ -126,15 +126,19 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           November 22, 2026. Earlier weeks keep the results they were announced with.
         </p>
         <p className="mt-3">
-          <span className="text-ink">If you sign in, we may email you.</span> That means things
+          <span className="text-ink">You need to sign in to use MOTR as a listener,</span> with
+          Google or with a one-time link we email you. Artists submitting music and checking their
+          artist page do not need a listener account.
+        </p>
+        <p className="mt-3">
+          <span className="text-ink">Once you sign in, we may email you.</span> That means things
           like a reminder when you haven&apos;t swiped in a while, or news about tracks you
           saved, not adverts for anyone else. Every one carries an unsubscribe link that ends them
           permanently. For a listener that changes nothing else: your account and your saves stay
           as they are. For an artist it does more, because email is the only way we can reach you
           about the charts, the weekly contest or your own release, so unsubscribing also takes
           your music off the platform. We ask you to confirm that before it happens, nothing is
-          deleted, and submitting again puts you back on with your music. Swipe without an account
-          and we have no address for you, so there&apos;s nothing to opt out of.
+          deleted, and submitting again puts you back on with your music.
         </p>
       </>
     ),

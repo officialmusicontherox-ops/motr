@@ -1,6 +1,7 @@
 import { APP_URL } from "@/lib/appUrl";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { signInFan } from "@/lib/fanSignIn";
+import { safeNext } from "@/lib/safeNext";
 import { fanSessionCookie, getFanSession } from "@/lib/fanAuth";
 
 /**
@@ -30,11 +31,15 @@ export async function GET(req: NextRequest) {
    */
   const mergeFanId = (await getFanSession()) ?? undefined;
 
+  // Where they were headed when the sign-in wall stopped them: a shared song,
+  // a battle, Charts. Checked again here, since a cookie can be edited.
+  const next = safeNext(req.cookies.get("motr_next")?.value);
+
   const back = (params: string) => {
     const res = NextResponse.redirect(
-      new URL(`/?${params}`, APP_URL)
+      new URL(`${next}${next.includes("?") ? "&" : "?"}${params}`, APP_URL)
     );
-    for (const c of ["google_oauth_state", "google_oauth_as"]) {
+    for (const c of ["google_oauth_state", "google_oauth_as", "motr_next"]) {
       res.cookies.set(c, "", { path: "/", maxAge: 0 });
     }
     return res;
@@ -91,40 +96,4 @@ export async function GET(req: NextRequest) {
   const session = fanSessionCookie(fan.id);
   res.cookies.set(session.name, session.value, session.options);
   return res;
-}
-
-async function signInFan(email: string, name: string | undefined, mergeFanId?: string) {
-  const existing = await prisma.fan.findFirst({
-    where: { email: { equals: email, mode: "insensitive" } },
-  });
-
-  const fan =
-    existing ??
-    (await prisma.fan.create({
-      data: {
-        email,
-        displayName: name ?? null,
-        username: `${(name ?? email.split("@")[0]).replace(/[^a-zA-Z0-9]/g, "").slice(0, 12) || "listener"}${Math.random().toString(36).slice(2, 6)}`,
-      },
-    }));
-
-  if (mergeFanId && mergeFanId !== fan.id) {
-    const anon = await prisma.fan.findUnique({ where: { id: mergeFanId } });
-    // Only ever absorb a genuinely anonymous session, never another account.
-    if (anon && !anon.email && !anon.spotifyId) {
-      const swipes = await prisma.fanSwipe.findMany({ where: { fanId: mergeFanId } });
-      for (const s of swipes) {
-        await prisma.fanSwipe
-          .update({ where: { id: s.id }, data: { fanId: fan.id } })
-          .catch(async () => {
-            // Already swiped that track on the signed-in account — the
-            // anonymous copy is redundant.
-            await prisma.fanSwipe.delete({ where: { id: s.id } }).catch(() => {});
-          });
-      }
-      await prisma.fan.delete({ where: { id: mergeFanId } }).catch(() => {});
-    }
-  }
-
-  return fan;
 }

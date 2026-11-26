@@ -1,6 +1,7 @@
 import { APP_URL } from "@/lib/appUrl";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { safeNext } from "@/lib/safeNext";
 
 /**
  * Google sign-in for listeners. We only need identity —
@@ -38,6 +39,9 @@ export async function GET(req: NextRequest) {
     path: "/",
     maxAge: 600,
   };
+  // Where to land after Google, so a shared song or battle link still opens
+  // what it pointed at once they have signed in.
+  res.cookies.set("motr_next", safeNext(req.nextUrl.searchParams.get("next")), cookieOpts);
   res.cookies.set("google_oauth_state", state, {
     httpOnly: true,
     sameSite: "lax",

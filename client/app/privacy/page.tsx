@@ -32,21 +32,18 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     title: "What we collect",
     body: (
       <>
-        <p className="font-semibold text-ink">If you swipe anonymously</p>
+        <p className="font-semibold text-ink">When you sign in as a listener</p>
         <ul>
-          <li>A randomly generated username and account ID. No email, no name.</li>
-          <li>Which tracks you swiped on, which direction, and when.</li>
-        </ul>
-
-        <p className="mt-4 font-semibold text-ink">If you sign in with Google</p>
-        <ul>
-          <li>Your email address and the name on your Google account.</li>
-          <li>Your swipe history and saved tracks.</li>
+          <li>
+            Your email address, and if you use Google, the name on your Google account. If you
+            sign in with an emailed link instead, we have only your email address.
+          </li>
+          <li>Which tracks you swiped on, which direction, and when, and your saved tracks.</li>
         </ul>
         <p className="mt-2">
-          Signing in is only so your saves survive a cleared browser and follow you to another
-          device. We ask Google for nothing beyond your name and email, and we never post anywhere
-          on your behalf.
+          Signing in is required to listen, so your saves and votes belong to you and follow you
+          to another device. We ask Google for nothing beyond your name and email, and we never
+          post anywhere on your behalf.
         </p>
 
 
@@ -106,7 +103,8 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
             Google is told nothing about what you listen to.
           </li>
           <li>
-            <span className="text-ink">Resend</span>: transactional email.
+            <span className="text-ink">Resend</span>: transactional email, including sign-in
+            links.
           </li>
           <li>
             <span className="text-ink">Neon and Netlify</span>: database and hosting.
@@ -169,7 +167,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         We use a small number of first-party cookies to keep you signed in, to hold your
-        session while you sign in with Google, and to count a returning visit as the same
+        session while you sign in, and to count a returning visit as the same
         person rather than a new one. Blocking those will break sign-in.
         <br />
         <br />

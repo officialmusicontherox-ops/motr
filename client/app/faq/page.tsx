@@ -34,6 +34,10 @@ const STEPS = [
 
 const FAQS = [
   {
+    q: "Do I need an account to listen?",
+    a: "Yes. Like any music app, MOTR asks you to sign in once on each device, and it's free. Continue with Google, or if you don't use Google, enter your email and we'll send you a sign-in link. There's no password to remember. If someone sent you a song or a battle, you'll go straight to it once you're signed in. Your saves, votes and badges follow you to any device you sign in on.",
+  },
+  {
     q: "Does it cost anything?",
     a: "No. Listening is free and submitting is free. Artists are never charged for anything, and there is no paid tier that moves you up the feed. The one thing on sale is a Spotlight, which a listener can buy to promote an artist they like, and that has nothing to do with the charts.",
   },

@@ -1,4 +1,4 @@
-import SpotlightView from "@/components/SpotlightView";
+import SpotlightClient from "./SpotlightClient";
 
 export const metadata = {
   title: "Spotlight — MOTR",
@@ -6,5 +6,5 @@ export const metadata = {
 };
 
 export default function SpotlightPage() {
-  return <SpotlightView />;
+  return <SpotlightClient />;
 }
