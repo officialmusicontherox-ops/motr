@@ -55,6 +55,7 @@ export default function FanGate({
     const p = new URLSearchParams(window.location.search);
     return Boolean(p.get("track") || p.get("b"));
   });
+  const [inApp] = useState(() => (typeof navigator === "undefined" ? null : inAppBrowser(navigator.userAgent)));
   const [linkEmail, setLinkEmail] = useState("");
   const [linkSent, setLinkSent] = useState<string | null>(null);
 
@@ -157,6 +158,35 @@ export default function FanGate({
     );
   }
 
+  const emailBlock = linkSent ? (
+    <p className="border-gold/40 bg-surface rounded-xl border px-4 py-3 text-sm leading-relaxed">
+      Check your inbox. We sent a sign-in link to{" "}
+      <span className="text-ink font-semibold">{linkSent}</span>. It works once, for 30 minutes.
+    </p>
+  ) : (
+    <form onSubmit={requestLink} className="flex flex-col gap-2">
+      <input
+        type="email"
+        required
+        autoComplete="email"
+        value={linkEmail}
+        onChange={(e) => setLinkEmail(e.target.value)}
+        placeholder="you@example.com"
+        aria-label="Your email address"
+        className="border-edge bg-surface text-ink focus:border-gold rounded-full border px-5 py-3 text-center text-sm outline-none transition"
+      />
+      <button
+        type="submit"
+        disabled={pending || !linkEmail.includes("@")}
+        className={`rounded-full px-5 py-3.5 text-sm font-semibold transition disabled:opacity-40 ${
+          inApp ? "bg-gold text-bg font-bold" : "border-edge hover:border-gold hover:text-gold border"
+        }`}
+      >
+        {pending ? "Sending..." : "Email me a sign-in link"}
+      </button>
+    </form>
+  );
+
   return (
     <div className="bg-bg relative flex h-viewport flex-col items-center justify-center overflow-y-auto px-6 py-safe-6 text-center">
       <div
@@ -190,53 +220,40 @@ export default function FanGate({
       )}
 
       <div className="relative mt-6 flex w-full max-w-xs flex-col gap-3">
-        {/* Google leads while the Spotify app is capped at 25 hand-added
-            accounts in development mode. Spotify was the top button and
-            failed for every visitor who wasn't on that list — a broken first
-            impression for the majority. It's offered from Saved instead,
-            where someone opts into it for library saves and a failure is
-            explained rather than fatal. */}
-        <a
-          // No merge parameter: the server reads the anonymous session itself.
-          href={`/api/auth/google/login?as=fan&next=${encodeURIComponent(here)}`}
-          className="flex items-center justify-center gap-2.5 rounded-full bg-white px-5 py-3.5 font-bold text-neutral-900 transition hover:brightness-95"
-        >
-          <GoogleMark className="h-5 w-5" />
-          Continue with Google
-        </a>
-
-        <div className="flex items-center gap-3">
-          <span className="border-edge h-px flex-1 border-t" />
-          <span className="motr-label text-[0.6rem]">No Google account?</span>
-          <span className="border-edge h-px flex-1 border-t" />
-        </div>
-
-        {linkSent ? (
-          <p className="border-gold/40 bg-surface rounded-xl border px-4 py-3 text-sm leading-relaxed">
-            Check your inbox. We sent a sign-in link to{" "}
-            <span className="text-ink font-semibold">{linkSent}</span>. It works once, for 30
-            minutes.
-          </p>
-        ) : (
-          <form onSubmit={requestLink} className="flex flex-col gap-2">
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={linkEmail}
-              onChange={(e) => setLinkEmail(e.target.value)}
-              placeholder="you@example.com"
-              aria-label="Your email address"
-              className="border-edge bg-surface text-ink focus:border-gold rounded-full border px-5 py-3 text-center text-sm outline-none transition"
-            />
-            <button
-              type="submit"
-              disabled={pending || !linkEmail.includes("@")}
-              className="border-edge hover:border-gold hover:text-gold rounded-full border px-5 py-3.5 text-sm font-semibold transition disabled:opacity-40"
+        {inApp ? (
+          <>
+            {/* Inside Instagram, TikTok and the rest, Google refuses to sign
+                anyone in and shows its own error page with no way back. So
+                the email link leads here, and Google is offered only once
+                they are in a real browser. */}
+            {emailBlock}
+            <Divider label="Or use Google" />
+            <a
+              href={openInBrowserUrl(inApp)}
+              className="flex items-center justify-center gap-2.5 rounded-full bg-white px-5 py-3.5 font-bold text-neutral-900 transition hover:brightness-95"
             >
-              {pending ? "Sending..." : "Email me a sign-in link"}
-            </button>
-          </form>
+              <GoogleMark className="h-5 w-5" />
+              Open in your browser to use Google
+            </a>
+            <p className="text-muted text-xs leading-relaxed">
+              Google sign-in doesn&apos;t work inside {inApp.app}. If nothing opens, tap the{" "}
+              <span className="text-ink font-semibold">•••</span> menu and choose{" "}
+              <span className="text-ink font-semibold">Open in browser</span>.
+            </p>
+          </>
+        ) : (
+          <>
+            <a
+              // No merge parameter: the server reads the anonymous session itself.
+              href={`/api/auth/google/login?as=fan&next=${encodeURIComponent(here)}`}
+              className="flex items-center justify-center gap-2.5 rounded-full bg-white px-5 py-3.5 font-bold text-neutral-900 transition hover:brightness-95"
+            >
+              <GoogleMark className="h-5 w-5" />
+              Continue with Google
+            </a>
+            <Divider label="No Google account?" />
+            {emailBlock}
+          </>
         )}
       </div>
 
@@ -314,4 +331,54 @@ function currentPath(): string {
   for (const k of ["signedin", "signedout", "auth_error"]) keep.delete(k);
   const q = keep.toString();
   return window.location.pathname + (q ? `?${q}` : "");
+}
+
+function Divider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="border-edge h-px flex-1 border-t" />
+      <span className="motr-label text-[0.6rem]">{label}</span>
+      <span className="border-edge h-px flex-1 border-t" />
+    </div>
+  );
+}
+
+type InApp = { app: string; android: boolean; ios: boolean };
+
+/**
+ * Whether this is an app's built-in browser, which Google refuses to sign
+ * anyone in from ("Error 403: disallowed_useragent"). Each of these names
+ * itself in the user agent.
+ */
+function inAppBrowser(ua: string): InApp | null {
+  const apps: [RegExp, string][] = [
+    [/Instagram/i, "Instagram"],
+    [/musical_ly|Bytedance|TikTok/i, "TikTok"],
+    [/Barcelona/i, "Threads"],
+    [/FBAN|FBAV|FB_IAB|FBIOS|Messenger/i, "Facebook"],
+    [/Snapchat/i, "Snapchat"],
+    [/Pinterest/i, "Pinterest"],
+    [/LinkedInApp/i, "LinkedIn"],
+    [/Twitter/i, "X"],
+  ];
+  const hit = apps.find(([re]) => re.test(ua));
+  if (!hit) return null;
+  return { app: hit[1], android: /Android/i.test(ua), ios: /iPhone|iPad|iPod/i.test(ua) };
+}
+
+/**
+ * This same page, opened in the phone's real browser.
+ *
+ * Android hands an intent:// link to Chrome, and falls back to the plain
+ * address if Chrome is missing. iOS 17 and later open x-safari-https:// in
+ * Safari; on older versions it does nothing, which is what the line under
+ * the button is for.
+ */
+function openInBrowserUrl(inApp: InApp): string {
+  const url = new URL(window.location.href);
+  if (inApp.android) {
+    return `intent://${url.host}${url.pathname}${url.search}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url.toString())};end`;
+  }
+  if (inApp.ios) return `x-safari-${url.toString()}`;
+  return url.toString();
 }
