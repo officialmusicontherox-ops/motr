@@ -299,7 +299,26 @@ export default function FanGate({
               Free for artists
             </span>
           </Link>
+          {/* Artists have their own sign-in. Without this, one landing here
+              would sign up as a listener and wonder where their page went. */}
+          <p className="text-muted mt-2.5 text-xs">
+            Already submitted?{" "}
+            <Link href="/artist" className="text-gold font-semibold underline underline-offset-2">
+              Sign in to your artist page
+            </Link>
+          </p>
         </div>
+
+        {/* Open without signing in, so someone deciding whether to can read
+            what MOTR is first, or reach us. */}
+        <p className="text-muted mt-6 flex justify-center gap-4 text-xs">
+          <Link href="/faq" className="hover:text-ink underline underline-offset-2">
+            How MOTR works
+          </Link>
+          <Link href="/contact" className="hover:text-ink underline underline-offset-2">
+            Contact
+          </Link>
+        </p>
       </div>
     </div>
   );
