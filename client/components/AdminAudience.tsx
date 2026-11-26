@@ -39,7 +39,10 @@ type SavedTrack = {
  * nothing else.
  */
 export default function AdminAudience() {
-  const [type, setType] = useState<"google" | "anonymous">("google");
+  // Only listeners with an email are listed. Nobody can be anonymous since
+  // the sign-in wall (26 Nov 2026); the old anonymous accounts still count
+  // in the tiles above but are no longer listed one by one.
+  const type = "google" as "google" | "anonymous";
   const [totals, setTotals] = useState<Totals | null>(null);
   const [fans, setFans] = useState<AudienceFan[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -109,30 +112,7 @@ export default function AdminAudience() {
 
       {showSaves && <SavedBreakdown />}
 
-      <div className="mt-4 flex gap-2">
-        {/* The split has never been about Google. It is whether there is an
-            address to reach someone at, which is the only distinction that
-            changes what you can do with them. Plenty of these typed an email
-            in without signing in with Google at all. */}
-        {(
-          [
-            ["google", "With an email"],
-            ["anonymous", "Anonymous"],
-          ] as const
-        ).map(([t, label]) => (
-          <button
-            key={t}
-            onClick={() => setType(t)}
-            className={`rounded-full px-4 py-1.5 text-sm ${
-              type === t
-                ? "bg-gold text-bg"
-                : "border border-edge text-muted transition hover:border-gold/50 hover:text-ink"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <p className="motr-label text-muted mt-4">Listeners with an email</p>
 
       {error ? (
         <p className="mt-3 text-sm text-nope">Couldn&apos;t load audience: {error}</p>
