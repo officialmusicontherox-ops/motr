@@ -34,7 +34,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           The one thing anyone can buy is a{" "}
           <strong className="text-ink">Spotlight</strong>, which a listener may buy to put an
           artist on the Spotlight tab. It is advertising, it is{" "}
-          <strong className="text-ink">non-refundable</strong>, and it cannot affect the chart.
+          <strong className="text-ink">non-refundable</strong>, and it cannot affect the charts.
         </li>
         <li>
           Every track is heard with{" "}
@@ -42,7 +42,7 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           verdict on the song.
         </li>
         <li>
-          Nobody can buy their way onto the chart. A Spotlight buys a place on its own tab and
+          Nobody can buy their way onto the charts. A Spotlight buys a place on its own tab and
           nothing else.
         </li>
       </ul>
@@ -116,10 +116,14 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           counts in full.
         </p>
         <p className="mt-3">
-          Top Artists and the weekly winner count each artist&apos;s two best songs for the week,
-          added together. Artists can submit as many songs as they like, and every song stays in
-          the feed, but only the best two count toward those. This applies from the week that
-          began on November 15, 2026. Earlier weeks keep the results they were announced with.
+          There are two artist charts, each with its own top ten and its own weekly winner: Top
+          Artists, and AI Artists for songs declared as having AI vocals. A song counts toward
+          one chart only, by that declaration, and a song not declared either way counts toward
+          Top Artists. Each chart counts an artist&apos;s two best songs of its kind for the
+          week, added together. Artists can submit as many songs as they like, and every song
+          stays in the feed, but only the best two count. The two-song rule applies from the
+          week that began on November 15, 2026, and the two charts from the week that began on
+          November 22, 2026. Earlier weeks keep the results they were announced with.
         </p>
         <p className="mt-3">
           <span className="text-ink">If you sign in, we may email you.</span> That means things
@@ -233,9 +237,9 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           </li>
           <li>
             <strong className="text-ink">A win is a Battle Win and nothing else.</strong> Battle
-            Wins are counted on their own board. They have no effect on the song chart, the
-            artist chart, the weekly winner, or any write-up, feature or prize that goes with
-            the weekly winner. Those are decided by saves alone.
+            Wins are counted on their own board. They have no effect on Top Artists, AI
+            Artists, the weekly winners, or any write-up, feature or prize that goes with the
+            weekly winners. Those are decided by saves alone.
           </li>
           <li>
             <strong className="text-ink">Battles can be shared.</strong> Anyone who has voted in

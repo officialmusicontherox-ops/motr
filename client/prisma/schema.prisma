@@ -1066,9 +1066,14 @@ model WeeklyRecapSend {
 model ChartWinner {
   id String @id @default(cuid())
 
-  /// Monday of the week this covers, at midnight UTC. Unique, so one winner
-  /// per week and locking the same week twice can't create a second row.
-  weekStart DateTime @unique
+  /// Sunday of the week this covers, at midnight Central. Unique with
+  /// `kind`, so one winner per chart per week and locking the same week twice
+  /// can't create a second row.
+  weekStart DateTime
+
+  /// Which chart: "regular" (Top Artists) or "ai" (AI Artists). Every week
+  /// before 22 November 2026 had one chart and is "regular".
+  kind String @default("regular")
 
   artistId   String?
   artistName String
@@ -1083,6 +1088,7 @@ model ChartWinner {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([weekStart, kind])
   @@index([weekStart])
 }
 

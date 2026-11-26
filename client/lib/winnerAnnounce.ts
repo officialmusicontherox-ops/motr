@@ -19,7 +19,7 @@ const BATCH_MAX = 10;
 const BATCH_BUDGET_MS = 4500;
 const PACE_MS = 550;
 
-/** One send per winner, keyed by their week. No schema change needed. */
+/** One send per week, naming every winner that week. No schema change needed. */
 function claimKey(weekStart: Date): string {
   return `winner:${weekStart.toISOString().slice(0, 10)}`;
 }
@@ -48,50 +48,83 @@ export type WinnerAnnounceProgress = {
   artistName?: string;
 };
 
+type Winner = Awaited<ReturnType<typeof prisma.chartWinner.findMany>>[number];
+
+/** Top Artists first, then AI Artists, the same order as the Charts tab. */
+function inOrder(ws: Winner[]): Winner[] {
+  return [...ws].sort((x, y) => (x.kind === y.kind ? 0 : x.kind === "regular" ? -1 : 1));
+}
+
+/** What the email and the admin preview are given, one per chart. */
+function forEmail(ws: Winner[]) {
+  return inOrder(ws).map((w) => ({
+    chart: w.kind === "ai" ? ("ai" as const) : ("regular" as const),
+    artistName: w.artistName,
+    writeUpUrl: w.writeUpUrl as string,
+  }));
+}
+
 /**
- * The most recent locked week that has a write-up and has not been announced.
+ * The most recent locked week whose write-ups are all in, and which has not
+ * been announced.
  *
- * Most recent rather than oldest: if a week was missed, announcing it weeks
- * later as "this week's winner" would be wrong, and the newest is always the
- * one the user has just written.
+ * All of them: from 22 November 2026 a week has a Top Artists winner and an
+ * AI Artists winner, and the one email names both, so it waits until both
+ * links are pasted. A week where only one chart had a winner needs only that
+ * one. Most recent rather than oldest: if a week was missed, announcing it
+ * weeks later as "this week's winner" would be wrong.
  */
 async function pending() {
-  const winners = await prisma.chartWinner.findMany({
-    where: { writeUpUrl: { not: null } },
-    orderBy: { weekStart: "desc" },
-    take: 5,
-  });
-  for (const w of winners) {
-    const claimed = await prisma.chartBlastSend.findUnique({
-      where: { sentOn: claimKey(w.weekStart) },
-    });
-    if (!claimed?.doneAt) return { winner: w, claimed };
+  const rows = await prisma.chartWinner.findMany({ orderBy: { weekStart: "desc" }, take: 10 });
+  const weeks = new Map<string, Winner[]>();
+  for (const r of rows) {
+    const k = r.weekStart.toISOString();
+    weeks.set(k, [...(weeks.get(k) ?? []), r]);
   }
-  return { winner: null, claimed: null };
+  for (const ws of weeks.values()) {
+    if (ws.some((w) => !w.writeUpUrl)) continue;
+    const claimed = await prisma.chartBlastSend.findUnique({
+      where: { sentOn: claimKey(ws[0].weekStart) },
+    });
+    if (!claimed?.doneAt) return { winners: inOrder(ws), claimed };
+  }
+  return { winners: null, claimed: null };
+}
+
+/** "Name" or "Name and Name". */
+function names(ws: { artistName: string }[]) {
+  return ws.map((w) => w.artistName).join(" and ");
 }
 
 /** Who it would reach and what it would say. Sends nothing. */
 export async function previewWinnerAnnounce(appUrl: string) {
-  const [{ winner, claimed }, people] = await Promise.all([pending(), recipients(appUrl)]);
+  const [{ winners, claimed }, people] = await Promise.all([pending(), recipients(appUrl)]);
 
-  if (!winner) {
+  if (!winners) {
     const latest = await prisma.chartWinner.findFirst({ orderBy: { weekStart: "desc" } });
+    const week = latest
+      ? await prisma.chartWinner.findMany({ where: { weekStart: latest.weekStart } })
+      : [];
+    const missing = inOrder(week).filter((w) => !w.writeUpUrl);
     return {
       ready: false as const,
       reason: !latest
         ? "No week has been locked yet, so there is no winner to announce."
-        : !latest.writeUpUrl
-          ? `${latest.artistName} won the latest locked week, but no write-up link has been pasted in yet.`
-          : "Everyone has already been told about the latest winner.",
+        : missing.length > 0
+          ? `Waiting on the write-up for ${missing
+              .map((w) => `${w.artistName} (${w.kind === "ai" ? "AI Artists" : "Top Artists"})`)
+              .join(" and ")}. The email goes out once every winner for the week has one.`
+          : "Everyone has already been told about the latest winners.",
       recipients: people.length,
     };
   }
 
   return {
     ready: true as const,
-    artistName: winner.artistName,
-    weekLabel: labelFor(winner.weekStart),
-    writeUpUrl: winner.writeUpUrl as string,
+    artistName: names(winners),
+    winners: forEmail(winners),
+    weekLabel: labelFor(winners[0].weekStart),
+    writeUpUrl: winners[0].writeUpUrl as string,
     recipients: people.length,
     unfinished:
       claimed && !claimed.doneAt
@@ -102,19 +135,21 @@ export async function previewWinnerAnnounce(appUrl: string) {
 
 /** Send one batch, and say how far along it is. Called until done. */
 export async function sendWinnerAnnounce(appUrl: string): Promise<WinnerAnnounceProgress> {
-  const { winner } = await pending();
-  if (!winner) {
+  const { winners } = await pending();
+  if (!winners) {
     return {
       total: 0,
       cursor: 0,
       sent: 0,
       failed: 0,
       done: true,
-      skipped: "Nothing to announce: either no write-up has been pasted in, or it has already gone out.",
+      skipped:
+        "Nothing to announce yet. The email goes out once both write-ups for the week are pasted in, and only once.",
     };
   }
 
-  const key = claimKey(winner.weekStart);
+  const key = claimKey(winners[0].weekStart);
+  const artistName = names(winners);
   let row = await prisma.chartBlastSend.findUnique({ where: { sentOn: key } });
 
   if (row?.doneAt) {
@@ -124,8 +159,8 @@ export async function sendWinnerAnnounce(appUrl: string): Promise<WinnerAnnounce
       sent: row.sent,
       failed: row.failed,
       done: true,
-      skipped: `${winner.artistName} was already announced at ${clockTime(row.doneAt)}.`,
-      artistName: winner.artistName,
+      skipped: `${artistName} was already announced at ${clockTime(row.doneAt)}.`,
+      artistName,
     };
   }
 
@@ -138,7 +173,7 @@ export async function sendWinnerAnnounce(appUrl: string): Promise<WinnerAnnounce
       row = await prisma.chartBlastSend.create({
         data: {
           sentOn: key,
-          weekLabel: labelFor(winner.weekStart),
+          weekLabel: labelFor(winners[0].weekStart),
           recipients: people.length,
           queue: JSON.stringify(people),
         },
@@ -174,8 +209,7 @@ export async function sendWinnerAnnounce(appUrl: string): Promise<WinnerAnnounce
     const result = await sendEmail(
       person.email,
       chartWinnerEmail({
-        artistName: winner.artistName,
-        writeUpUrl: winner.writeUpUrl as string,
+        winners: forEmail(winners),
         weekLabel: row.weekLabel,
         unsubscribeUrl: person.unsubscribe,
       })
@@ -192,5 +226,5 @@ export async function sendWinnerAnnounce(appUrl: string): Promise<WinnerAnnounce
     data: { cursor, sent, failed, doneAt: done ? new Date() : null },
   });
 
-  return { total, cursor, sent, failed, done, artistName: winner.artistName };
+  return { total, cursor, sent, failed, done, artistName };
 }

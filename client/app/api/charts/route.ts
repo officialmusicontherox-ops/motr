@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { leadersBetween, weeklyLeaders } from "@/lib/scoutData";
+import { AI_CHART_FROM, leadersBetween, weeklyLeaders } from "@/lib/scoutData";
 import { battleLeadersBetween, battleWeek } from "@/lib/battles";
 import { selectableWeeks, weekFromKey, weekKey } from "@/lib/weekWindow";
 
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   const weekly = month ? await weeklyLeaders(30) : await leadersBetween(week.start, week.end);
 
   // Battle Wins over the same window as the other two boards. Its own list:
-  // a battle is not a save, so it never feeds the song or artist chart, the
+  // a battle is not a save, so it never feeds either artist chart, the
   // weekly winner, or the write-up that goes with it.
   const now = new Date();
   const battles = month
@@ -51,14 +51,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(
     {
-      songs: weekly.songs.map((s, i) => ({
-        rank: i + 1,
-        id: s.id,
-        title: s.title,
-        artistName: s.artistName,
-        artworkUrl: s.artworkUrl,
-        ai: s.aiGenerated === true,
-      })),
       // Rank and name only. How many tracks an artist has in rotation says
       // nothing about how the week went, and next to a position it reads as
       // though a bigger catalogue is what earned the placing.
@@ -67,6 +59,15 @@ export async function GET(req: NextRequest) {
         id: a.artistId,
         name: a.name,
       })),
+      // Songs with AI vocals, on a chart of their own from 22 November 2026.
+      // Empty for an earlier week, which had one combined chart.
+      aiArtists: weekly.aiArtists.map((a, i) => ({
+        rank: i + 1,
+        id: a.artistId,
+        name: a.name,
+      })),
+      // So the page can say why an old week has no AI chart.
+      aiChart: month || weekly.aiArtists.length > 0 || week.end > AI_CHART_FROM,
       // Rank and name, like the others. The complete totals are on the
       // reveal after a vote and in the admin panel.
       battles: battles.map((b, i) => ({ rank: i + 1, id: b.key, name: b.name })),

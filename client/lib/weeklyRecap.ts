@@ -65,9 +65,17 @@ export type Recap = {
   /** Of those saves, how many heard the clip out. Those count double. */
   fullListens: number;
   position: number | null;
+  /** Which chart `position` is on. An artist on both is told their better place. */
+  chart: "regular" | "ai";
   /** Their best-performing track that week, for the graphic. */
   track: { id: string; title: string; artworkUrl: string | null } | null;
 };
+
+/** The better of an artist's two chart places, and which chart it is on. */
+function placeFor(regular: number | null, ai: number | null): { position: number | null; chart: "regular" | "ai" } {
+  if (ai !== null && (regular === null || ai < regular)) return { position: ai, chart: "ai" };
+  return { position: regular, chart: "regular" };
+}
 
 /** Who would be written to for a given week, and what each would be told. */
 export async function recapsFor(week: Week): Promise<Recap[]> {
@@ -80,6 +88,7 @@ export async function recapsFor(week: Week): Promise<Recap[]> {
 
   const chart = await leadersBetween(week.start, week.end);
   const rankOf = new Map(chart.artists.map((a, i) => [a.artistId, i + 1]));
+  const aiRankOf = new Map(chart.aiArtists.map((a, i) => [a.artistId, i + 1]));
 
   const out: Recap[] = [];
   for (let i = 0; i < rows.length; i++) {
@@ -99,7 +108,7 @@ export async function recapsFor(week: Week): Promise<Recap[]> {
       email: r.email,
       saves: Number(r.saves),
       fullListens: Number(r.fullListens),
-      position: rankOf.get(r.artistId) ?? null,
+      ...placeFor(rankOf.get(r.artistId) ?? null, aiRankOf.get(r.artistId) ?? null),
       track,
     });
   }
@@ -178,6 +187,7 @@ export async function sendWeeklyRecaps(appUrl: string, opts: { force?: boolean }
         name: r.name,
         week: week.label,
         position: r.position,
+        chart: r.chart,
         saves: r.saves,
         fullListens: r.fullListens,
         trackTitle: r.track?.title ?? null,

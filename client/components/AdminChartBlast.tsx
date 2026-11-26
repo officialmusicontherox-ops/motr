@@ -10,7 +10,7 @@ type Preview = {
   alreadySentToday?: string | null;
   /** Set when a send stopped partway, so the button can offer to finish it. */
   unfinished?: { cursor: number; total: number; sent: number } | null;
-  songs: { title: string; artistName: string }[];
+  aiArtists: { name: string }[];
   artists: { name: string }[];
 };
 
@@ -22,7 +22,7 @@ type Progress = {
   done: boolean;
   skipped?: string;
   weekLabel: string;
-  songs: number;
+  aiArtists: number;
   artists: number;
 };
 
@@ -98,7 +98,7 @@ export default function AdminChartBlast({
     }
   }
 
-  const empty = preview !== null && preview.songs.length === 0 && preview.artists.length === 0;
+  const empty = preview !== null && preview.aiArtists.length === 0 && preview.artists.length === 0;
   const already = preview?.alreadySentToday ?? null;
   const unfinished = preview?.unfinished ?? null;
   const busyAny = busy || sending;
@@ -116,7 +116,7 @@ export default function AdminChartBlast({
       description={
         midweek
           ? "The same two charts sent while the week is still open, saying where things stand midweek and asking people to go and make sure their favorite gets heard. To every listener and artist with an address, once a day."
-          : "Send the current week's top ten songs and artists to every listener and artist with an address. Can be sent at any point in the week, once a day."
+          : "Send the current week's Top Artists and AI Artists charts to every listener and artist with an address. Can be sent at any point in the week, once a day."
       }
     >
       <div className="flex flex-wrap items-center gap-2">
@@ -241,14 +241,12 @@ export default function AdminChartBlast({
               </ol>
             </div>
             <div>
-              <p className="motr-label text-muted mb-1.5">Top songs</p>
+              <p className="motr-label text-muted mb-1.5">AI artists</p>
               <ol className="space-y-1 text-sm">
-                {preview.songs.map((s, i) => (
-                  <li key={`${s.title}-${i}`} className="flex gap-2">
+                {preview.aiArtists.map((a, i) => (
+                  <li key={a.name} className="flex gap-2">
                     <span className="text-muted w-5 tabular-nums">{i + 1}</span>
-                    <span className="truncate">
-                      {s.title} <span className="text-muted">{s.artistName}</span>
-                    </span>
+                    <span className="truncate">{a.name}</span>
                   </li>
                 ))}
               </ol>

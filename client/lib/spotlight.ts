@@ -129,10 +129,12 @@ export async function spotlightTiles(): Promise<Tile[]> {
 
   if (tiles.length >= SLOTS) return tiles;
 
-  // Fill the rest from the week's chart. An artist who is already in a paid
+  // Fill the rest from the week's Top Artists chart. An artist who is already in a paid
   // slot is skipped rather than shown twice.
   const week = weekOf();
   const leaders = await leadersBetween(week.start, week.end);
+  // Top Artists only. The AI Artists chart never fills a Spotlight place;
+  // an AI artist is in the Spotlight only when a listener puts them there.
   const names = leaders.artists.map((a) => a.name).filter(Boolean);
 
   if (names.length > 0) {

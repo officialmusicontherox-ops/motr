@@ -58,7 +58,7 @@ export type ChartBlastProgress = {
   /** Set when nothing was sent and nothing will be, with the reason. */
   skipped?: string;
   weekLabel: string;
-  songs: number;
+  aiArtists: number;
   artists: number;
 };
 
@@ -127,15 +127,16 @@ async function thisWeek() {
   const leaders = await leadersBetween(week.start, week.end);
   return {
     week,
-    songs: leaders.songs.map((s) => ({ title: s.title, artistName: s.artistName })),
     artists: leaders.artists.map((a) => ({ name: a.name })),
+    aiArtists: leaders.aiArtists.map((a) => ({ name: a.name })),
   };
 }
 
 /** What a day's claim carries, so each batch mails exactly what the first one would have. */
 type Queue = {
-  songs: { title: string; artistName: string }[];
   artists: { name: string }[];
+  /** Missing from a claim made before the AI Artists chart existed. */
+  aiArtists?: { name: string }[];
   people: Recipient[];
 };
 
@@ -150,7 +151,7 @@ function clockTime(at: Date) {
 
 /** Who it would reach and what it would say. Sends nothing. */
 export async function previewChartBlast(appUrl: string, variant: ChartVariant = "weekly") {
-  const [{ week, songs, artists }, people, already] = await Promise.all([
+  const [{ week, artists, aiArtists }, people, already] = await Promise.all([
     thisWeek(),
     recipients(appUrl),
     sentToday(variant),
@@ -158,8 +159,8 @@ export async function previewChartBlast(appUrl: string, variant: ChartVariant = 
   return {
     recipients: people.length,
     weekLabel: week.label,
-    songs,
     artists,
+    aiArtists,
     // So the button can say so before it is pressed, rather than after.
     alreadySentToday: already?.doneAt ? clockTime(already.doneAt) : null,
     // A send that stopped partway, so the button can offer to finish it
@@ -196,17 +197,17 @@ export async function sendChartBlast(
       done: true,
       skipped: `The ${variant === "midweek" ? "midweek" : "weekly"} charts already went out today at ${clockTime(row.doneAt)}. One batch a day.`,
       weekLabel: row.weekLabel,
-      songs: 0,
+      aiArtists: 0,
       artists: 0,
     };
   }
 
-  const { week, songs, artists } = await thisWeek();
+  const { week, artists, aiArtists } = await thisWeek();
 
   if (!row) {
     // Everything is checked before the day is claimed, so a week with nothing
     // in it cannot use up the one send available today.
-    if (songs.length === 0 && artists.length === 0) {
+    if (aiArtists.length === 0 && artists.length === 0) {
       return {
         total: 0,
         cursor: 0,
@@ -215,7 +216,7 @@ export async function sendChartBlast(
         done: true,
         skipped: "Nothing has been played this week yet, so there is no chart to send.",
         weekLabel: week.label,
-        songs: 0,
+        aiArtists: 0,
         artists: 0,
       };
     }
@@ -230,7 +231,7 @@ export async function sendChartBlast(
         done: true,
         skipped: "Nobody has an address to send to.",
         weekLabel: week.label,
-        songs: songs.length,
+        aiArtists: aiArtists.length,
         artists: artists.length,
       };
     }
@@ -242,7 +243,7 @@ export async function sendChartBlast(
      * arriving together would both pass a read-then-write, and the second
      * mailing cannot be recalled. Whoever inserts the row owns the send.
      */
-    const queue: Queue = { songs, artists, people };
+    const queue: Queue = { artists, aiArtists, people };
     try {
       row = await prisma.chartBlastSend.create({
         data: {
@@ -264,7 +265,7 @@ export async function sendChartBlast(
           done: true,
           skipped: `The ${variant === "midweek" ? "midweek" : "weekly"} charts already went out today at ${clockTime(row.doneAt)}. One batch a day.`,
           weekLabel: row.weekLabel,
-          songs: 0,
+          aiArtists: 0,
           artists: 0,
         };
       }
@@ -281,7 +282,7 @@ export async function sendChartBlast(
     queue = null;
   }
   if (!queue) {
-    queue = { songs, artists, people: await recipients(appUrl) };
+    queue = { artists, aiArtists, people: await recipients(appUrl) };
     await prisma.chartBlastSend.update({
       where: { id: row.id },
       data: { queue: JSON.stringify(queue), recipients: queue.people.length },
@@ -299,8 +300,8 @@ export async function sendChartBlast(
     const result = await sendEmail(
       person.email,
       weeklyChartEmail({
-        songs: queue.songs,
         artists: queue.artists,
+        aiArtists: queue.aiArtists ?? [],
         weekLabel: row.weekLabel,
         unsubscribeUrl: person.unsubscribe,
         variant,
@@ -329,7 +330,7 @@ export async function sendChartBlast(
     failed,
     done,
     weekLabel: row.weekLabel,
-    songs: queue.songs.length,
+    aiArtists: (queue.aiArtists ?? []).length,
     artists: queue.artists.length,
   };
 }

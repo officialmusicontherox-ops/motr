@@ -8,6 +8,8 @@ type Preview =
   | {
       ready: true;
       artistName: string;
+      /** One per chart: Top Artists, then AI Artists. */
+      winners?: { chart: "regular" | "ai"; artistName: string; writeUpUrl: string }[];
       weekLabel: string;
       writeUpUrl: string;
       recipients: number;
@@ -141,20 +143,20 @@ export default function AdminWinnerAnnounce() {
       {ready && (
         <div className="border-edge bg-surface mt-3 rounded-xl border p-4 text-sm">
           <p className="motr-label text-gold">{ready.weekLabel}</p>
-          <p className="mt-1">
-            <strong>{ready.artistName}</strong>
-            <span className="text-muted"> wins, going to {ready.recipients} addresses</span>
-          </p>
-          <p className="mt-1 truncate text-xs">
-            <a
-              href={ready.writeUpUrl}
-              target="_blank"
-              rel="noopener"
-              className="text-gold hover:underline"
-            >
-              {ready.writeUpUrl}
-            </a>
-          </p>
+          {(ready.winners ?? [{ chart: "regular" as const, artistName: ready.artistName, writeUpUrl: ready.writeUpUrl }]).map((w) => (
+            <div key={w.chart} className="mt-2">
+              <p>
+                <span className="text-muted">{w.chart === "ai" ? "AI Artists" : "Top Artists"}: </span>
+                <strong>{w.artistName}</strong>
+              </p>
+              <p className="mt-0.5 truncate text-xs">
+                <a href={w.writeUpUrl} target="_blank" rel="noopener" className="text-gold hover:underline">
+                  {w.writeUpUrl}
+                </a>
+              </p>
+            </div>
+          ))}
+          <p className="text-muted mt-2">Going to {ready.recipients} addresses</p>
         </div>
       )}
 

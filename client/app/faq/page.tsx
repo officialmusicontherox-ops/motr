@@ -43,11 +43,11 @@ const FAQS = [
   },
   {
     q: "Can anyone pay to get on the charts?",
-    a: "No, and this is the one thing we will not bend on. Every track is heard with no artist name attached, and the only thing that moves it up is whether people keep it. A Spotlight is advertising on its own tab and counts for nothing on the chart, the weekly winner, or any figure an artist is measured by.",
+    a: "No, and this is the one thing we will not bend on. Every track is heard with no artist name attached, and the only thing that moves it up is whether people keep it. A Spotlight is advertising on its own tab and counts for nothing on the charts, the weekly winners, or any figure an artist is measured by.",
   },
   {
-    q: "How are Top Artists and the weekly winner decided?",
-    a: "By saves, from listeners who don't know whose song they are hearing. Each artist's two best songs of the week are added together, the same two-song limit the song chart uses. You can send as many songs as you like and every one stays in the feed, but only your best two count toward the chart. The weekly winner is the artist at number one on Top Artists when the week closes, Saturday at midnight Central.",
+    q: "How are the charts and the weekly winners decided?",
+    a: "By saves, from listeners who don't know whose song they are hearing. There are two artist charts, each a top ten: Top Artists, and AI Artists for songs with AI vocals, so neither kind of artist is ranked against the other. On each chart an artist's two best songs of that kind are added together. You can send as many songs as you like and every one stays in the feed, but only your best two count. Each chart has its own weekly winner, the artist at number one when the week closes, Saturday at midnight Central, and each winner gets a write-up on Music On The Rox. The two charts started with the week of November 22, 2026.",
   },
   {
     q: "What if my track doesn't break through?",
@@ -55,7 +55,7 @@ const FAQS = [
   },
   {
     q: "What does the small AI mark on a song mean?",
-    a: "The artist told us the vocals on that song are AI-generated, so you know what you are hearing. It is there for transparency, not as a judgement. If you would rather not hear them, turn off AI vocals on the Discover screen.",
+    a: "The artist told us the vocals on that song are AI-generated, so you know what you are hearing. It is there for transparency, not as a judgement. Those songs have a chart of their own, AI Artists, next to Top Artists. If you would rather not hear them, turn off AI vocals on the Discover screen.",
   },
   {
     q: "What are Battles?",
@@ -67,7 +67,7 @@ const FAQS = [
   },
   {
     q: "Do Battles affect the charts or the weekly winner?",
-    a: "No. Winning a battle is a Battle Win for that artist, and Battle Wins have a board of their own on the Charts tab, by week and by month. They have no effect on the song chart, the artist chart, the weekly winner or the write-up that goes with it. Those come from saves alone. An artist's Battle Wins are kept for good and never reset.",
+    a: "No. Winning a battle is a Battle Win for that artist, and Battle Wins have a board of their own on the Charts tab, by week and by month. They have no effect on Top Artists, AI Artists, the weekly winners or the write-ups that go with them. Those come from saves alone. An artist's Battle Wins are kept for good and never reset.",
   },
   {
     q: "What is a Spotlight?",

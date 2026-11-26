@@ -7,6 +7,7 @@ import { CHART_START_LABEL } from "@/lib/weekWindow";
 type Recorded = {
   id: string;
   weekStart: string;
+  kind: string;
   artistId: string | null;
   artistName: string;
   saves: number;
@@ -16,11 +17,15 @@ type Recorded = {
 
 type Provisional = { artistName: string; saves: number; tracks: number } | null;
 
+type Slot = { recorded: Recorded | null; provisional: Provisional };
+
 type Week = {
   weekStart: string;
   weekEnd: string;
-  recorded: Recorded | null;
-  provisional: Provisional;
+  /** Top Artists. */
+  regular: Slot;
+  /** AI Artists. Null for weeks before 22 November 2026, which had one chart. */
+  ai: Slot | null;
 };
 
 const range = (start: string, end: string) => {
@@ -109,12 +114,18 @@ export default function AdminChartWinners() {
     }
   }
 
-  const pending = weeks?.filter((w) => w.recorded && !w.recorded.writeUpUrl).length ?? 0;
+  const pending =
+    weeks?.reduce(
+      (n, w) =>
+        n +
+        [w.regular, w.ai].filter((x) => x?.recorded && !x.recorded.writeUpUrl).length,
+      0
+    ) ?? 0;
 
   return (
     <AdminSection
       title="Weekly winners"
-      description="Top artist each week wins a write-up on Music On The Rox. Running from October."
+      description="Two winners a week from 22 November, Top Artists and AI Artists, each with a write-up on Music On The Rox. The email goes out once both links are in."
       defaultOpen={false}
       badge={
         pending > 0 ? (
@@ -170,88 +181,120 @@ export default function AdminChartWinners() {
 
       {weeks && weeks.length > 0 && (
         <ul className="space-y-3">
-          {weeks.map((w) => (
-            <li key={w.weekStart} className="border-edge bg-surface rounded-xl border p-4">
-              <p className="motr-label text-muted">{range(w.weekStart, w.weekEnd)}</p>
+          {weeks.map((w) => {
+            const slots: [string, Slot][] = w.ai
+              ? [
+                  ["Top Artists", w.regular],
+                  ["AI Artists", w.ai],
+                ]
+              : [["Top Artists", w.regular]];
+            const unlocked = slots.some(([, x]) => !x.recorded && x.provisional);
+            return (
+              <li key={w.weekStart} className="border-edge bg-surface rounded-xl border p-4">
+                <p className="motr-label text-muted">{range(w.weekStart, w.weekEnd)}</p>
 
-              {w.recorded ? (
-                <>
-                  <p className="mt-1 font-semibold">
-                    {w.recorded.artistName}
-                    <span className="text-gold font-normal">
-                      {" "}
-                      · {w.recorded.saves} save{w.recorded.saves === 1 ? "" : "s"}
-                    </span>
-                  </p>
-
-                  {w.recorded.writeUpUrl ? (
-                    <p className="mt-2 text-sm">
-                      <a
-                        href={w.recorded.writeUpUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-gold underline underline-offset-4"
-                      >
-                        Write-up published
-                      </a>
-                    </p>
-                  ) : (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <input
-                        value={drafts[w.recorded.id] ?? ""}
-                        onChange={(e) =>
-                          setDrafts({ ...drafts, [w.recorded!.id]: e.target.value })
-                        }
-                        placeholder="https://musicontherox.com/..."
-                        className="border-edge bg-bg focus:border-gold min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none transition"
-                      />
-                      <button
-                        disabled={busy === w.recorded.id || !(drafts[w.recorded.id] ?? "").trim()}
-                        onClick={async () => {
-                          const saved = await post(
-                            {
-                              action: "SET_WRITEUP",
-                              winnerId: w.recorded!.id,
-                              writeUpUrl: drafts[w.recorded!.id],
-                            },
-                            w.recorded!.id
-                          );
-                          if (saved) await announceWinner();
-                        }}
-                        className="bg-gold text-bg rounded-full px-4 py-2 text-sm font-bold disabled:opacity-40"
-                      >
-                        Save link and announce
-                      </button>
+                <div className={`mt-2 grid gap-3 ${w.ai ? "md:grid-cols-2" : ""}`}>
+                  {slots.map(([label, x]) => (
+                    <div key={label} className="border-edge bg-bg rounded-lg border p-3">
+                      {w.ai && <p className="motr-label text-gold">{label}</p>}
+                      {x.recorded ? (
+                        <>
+                          <p className="mt-1 font-semibold">
+                            {x.recorded.artistName}
+                            <span className="text-gold font-normal">
+                              {" "}
+                              · {x.recorded.saves} save{x.recorded.saves === 1 ? "" : "s"}
+                            </span>
+                          </p>
+                          {x.recorded.writeUpUrl ? (
+                            <p className="mt-2 text-sm">
+                              <a
+                                href={x.recorded.writeUpUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-gold underline underline-offset-4"
+                              >
+                                Write-up published
+                              </a>
+                            </p>
+                          ) : (
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <input
+                                value={drafts[x.recorded.id] ?? ""}
+                                onChange={(e) =>
+                                  setDrafts({ ...drafts, [x.recorded!.id]: e.target.value })
+                                }
+                                placeholder="https://musicontherox.com/..."
+                                className="border-edge bg-surface focus:border-gold min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm outline-none transition"
+                              />
+                              <button
+                                disabled={
+                                  busy === x.recorded.id || !(drafts[x.recorded.id] ?? "").trim()
+                                }
+                                onClick={async () => {
+                                  const saved = await post(
+                                    {
+                                      action: "SET_WRITEUP",
+                                      winnerId: x.recorded!.id,
+                                      writeUpUrl: drafts[x.recorded!.id],
+                                    },
+                                    x.recorded!.id
+                                  );
+                                  // The server sends only once every winner
+                                  // for the week has a link, so the first of
+                                  // two pastes just says it is waiting.
+                                  if (saved) await announceWinner();
+                                }}
+                                className="bg-gold text-bg rounded-full px-4 py-2 text-sm font-bold disabled:opacity-40"
+                              >
+                                Save link
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      ) : x.provisional ? (
+                        <p className="mt-1 font-semibold">
+                          {x.provisional.artistName}
+                          <span className="text-muted font-normal">
+                            {" "}
+                            · {x.provisional.saves} save{x.provisional.saves === 1 ? "" : "s"} across{" "}
+                            {x.provisional.tracks} track{x.provisional.tracks === 1 ? "" : "s"}
+                          </span>
+                        </p>
+                      ) : (
+                        <p className="text-muted mt-1 text-sm">Nothing was saved on this chart that week.</p>
+                      )}
                     </div>
-                  )}
-                </>
-              ) : w.provisional ? (
-                <>
-                  <p className="mt-1 font-semibold">
-                    {w.provisional.artistName}
-                    <span className="text-muted font-normal">
-                      {" "}
-                      · {w.provisional.saves} save{w.provisional.saves === 1 ? "" : "s"} across{" "}
-                      {w.provisional.tracks} track{w.provisional.tracks === 1 ? "" : "s"}
-                    </span>
+                  ))}
+                </div>
+
+                {unlocked && (
+                  <>
+                    <p className="text-muted/70 mt-2 text-xs">
+                      Not locked in yet. Recording {w.ai ? "both winners" : "it"} fixes the result, so a
+                      later recount can&apos;t change who won.
+                    </p>
+                    <button
+                      disabled={busy === w.weekStart}
+                      onClick={() => post({ action: "LOCK", weekStart: w.weekStart }, w.weekStart)}
+                      className="border-edge hover:border-gold hover:text-gold mt-2 rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-40"
+                    >
+                      {busy === w.weekStart
+                        ? "Locking..."
+                        : w.ai
+                          ? "Lock in both winners"
+                          : "Lock in this winner"}
+                    </button>
+                  </>
+                )}
+                {slots.some(([, x]) => x.recorded) && slots.some(([, x]) => x.recorded && !x.recorded.writeUpUrl) && w.ai && (
+                  <p className="text-muted/70 mt-2 text-xs">
+                    The winners email goes out to everyone once both write-up links are saved.
                   </p>
-                  <p className="text-muted/70 mt-1 text-xs">
-                    Not locked in yet. Recording it fixes the result, so a later recount can&apos;t
-                    change who won.
-                  </p>
-                  <button
-                    disabled={busy === w.weekStart}
-                    onClick={() => post({ action: "LOCK", weekStart: w.weekStart }, w.weekStart)}
-                    className="border-edge hover:border-gold hover:text-gold mt-2 rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-40"
-                  >
-                    {busy === w.weekStart ? "Locking..." : "Lock in this winner"}
-                  </button>
-                </>
-              ) : (
-                <p className="text-muted mt-1 text-sm">Nothing was saved that week.</p>
-              )}
-            </li>
-          ))}
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </AdminSection>

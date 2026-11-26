@@ -24,6 +24,7 @@ type Me = {
   email: string;
   week: string;
   chartPlace: number | null;
+  aiChartPlace: number | null;
   battleWins: number;
   spotlight: { live: boolean; queued: boolean; total: number };
   battles: Battle[];
@@ -182,9 +183,10 @@ function Dashboard({ me }: { me: Me }) {
           worth two who skip.
         </p>
         <p className="text-muted text-xs leading-relaxed">
-          The song chart, the artist chart and the weekly winner all count your two best songs
-          each week. Send as many as you like: every one stays in the feed, and each is another
-          chance to be one of your best two.
+          There are two charts, each with its own weekly winner and write-up: Top Artists, and
+          AI Artists for songs with AI vocals, so neither kind is ranked against the other. Each
+          counts your two best songs of its kind that week. Send as many as you like: every one
+          stays in the feed, and each is another chance to be one of your best two.
         </p>
       </div>
 
@@ -337,7 +339,9 @@ function TrackCard({ track }: { track: Track }) {
       )}
 
       {track.counting && (
-        <p className="text-gold mt-1 text-xs font-semibold">Counting toward this week&apos;s chart</p>
+        <p className="text-gold mt-1 text-xs font-semibold">
+          Counting toward {track.ai ? "AI Artists" : "Top Artists"} this week
+        </p>
       )}
 
       <div className="mt-4 flex gap-3">
@@ -431,15 +435,11 @@ function ThisWeek({ me }: { me: Me }) {
     <section className="border-edge bg-surface mb-5 rounded-2xl border p-4">
       <div className="motr-label text-muted">This week · {me.week}</div>
 
-      <p className="mt-2 text-sm leading-relaxed">
-        {me.chartPlace ? (
-          <>
-            You are <span className="text-gold font-bold">#{me.chartPlace}</span> on Top Artists.
-          </>
-        ) : (
-          <>Not in the Top Artists ten yet. Your two best songs this week are what count.</>
-        )}
-      </p>
+      {/* One line per chart they have songs on. Songs with AI vocals are on
+          AI Artists, every other song on Top Artists, so an artist with
+          both kinds is on both. */}
+      {me.tracks.some((t) => !t.ai) && <ChartLine name="Top Artists" place={me.chartPlace} />}
+      {me.tracks.some((t) => t.ai) && <ChartLine name="AI Artists" place={me.aiChartPlace} />}
 
       <div className="border-edge mt-3 border-t pt-3">
         {me.battles.length === 0 ? (
@@ -502,5 +502,20 @@ function ThisWeek({ me }: { me: Me }) {
         </div>
       )}
     </section>
+  );
+}
+
+/** Where they stand on one chart this week. */
+function ChartLine({ name, place }: { name: string; place: number | null }) {
+  return (
+    <p className="mt-2 text-sm leading-relaxed">
+      {place ? (
+        <>
+          You are <span className="text-gold font-bold">#{place}</span> on {name}.
+        </>
+      ) : (
+        <>Not in the {name} ten yet. Your two best songs this week are what count.</>
+      )}
+    </p>
   );
 }

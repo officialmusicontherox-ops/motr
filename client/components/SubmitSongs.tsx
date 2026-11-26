@@ -530,8 +530,8 @@ export default function SubmitSongs({
             send, and five strong songs earning two chart slots is better
             learned now than from the chart later. */}
         <p className="text-muted text-center text-xs leading-relaxed">
-          Send as many as you like. Every song stays in the feed, and the charts and the weekly
-          winner count your two best songs each week.
+          Send as many as you like. Every song stays in the feed, and the charts count your two
+          best songs each week. Songs with AI vocals have a chart of their own.
         </p>
 
         <button

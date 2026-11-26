@@ -240,9 +240,10 @@ export type WeeklyArtist = {
 export async function weeklyLeaders(days = 7): Promise<{
   songs: WeeklySong[];
   artists: WeeklyArtist[];
+  aiArtists: WeeklyArtist[];
   since: string;
 }> {
-  return leadersBetween(new Date(Date.now() - days * 24 * 60 * 60 * 1000));
+  return leadersBetween(new Date(Date.now() - days * 24 * 60 * 60 * 1000), undefined, { songs: true });
 }
 
 /**
@@ -275,6 +276,31 @@ export function countsBestTwo(until?: Date): boolean {
 }
 
 /**
+ * The first chart week with two artist charts: Top Artists and AI Artists.
+ *
+ * Sunday 22 November 2026, midnight Central. From this week a song marked
+ * as AI vocals counts toward the AI Artists chart and every other song
+ * toward Top Artists, so neither kind of artist is ranked against the
+ * other. Each chart has its own top ten, its own winner and its own
+ * write-up. A song nobody has marked either way counts as regular.
+ *
+ * The chart is by song, not by account: an artist with both kinds of song
+ * can appear on both charts, each counting their two best of that kind.
+ *
+ * Weeks that ended before it keep the single combined chart they were
+ * decided on.
+ */
+export const AI_CHART_FROM = new Date("2026-11-22T06:00:00Z");
+
+/** Whether a window is split into Top Artists and AI Artists. */
+export function splitsAiChart(until?: Date): boolean {
+  return !until || until.getTime() > AI_CHART_FROM.getTime();
+}
+
+/** Which artist chart: Top Artists, or AI Artists. */
+export type ChartKind = "regular" | "ai";
+
+/**
  * Each artist's total over a window, for Top Artists and the weekly winner.
  *
  * Grouped by Apple's artist id, falling back to the credited name, so an
@@ -292,9 +318,18 @@ export function artistTotalsSql(opts: {
   needSave?: boolean;
   /** "chart" breaks ties on listens, "winner" on the smaller catalogue. */
   order?: "chart" | "winner";
+  /**
+   * Which chart's songs to count. Left out, or for a window before
+   * AI_CHART_FROM, every song counts, as it did then.
+   */
+  kind?: ChartKind;
 }) {
   const { since, until, limit } = opts;
   const upper = until ? Prisma.sql`AND s."createdAt" < ${until}` : Prisma.empty;
+  const kindFilter =
+    opts.kind && splitsAiChart(until)
+      ? Prisma.sql`AND COALESCE(t."aiGenerated", false) = ${opts.kind === "ai"}`
+      : Prisma.empty;
   const perArtist = countsBestTwo(until) ? SONGS_PER_ARTIST : 100000;
   const having = opts.needSave ? Prisma.sql`HAVING SUM(saves) > 0` : Prisma.empty;
   const order =
@@ -315,6 +350,7 @@ export function artistTotalsSql(opts: {
         AND t."status" <> 'REJECTED'
         AND s."createdAt" >= ${since}
         ${upper}
+        ${kindFilter}
       GROUP BY t."id"
     ),
     ranked AS (
@@ -374,27 +410,38 @@ function capPerArtist<
   return out;
 }
 
+/**
+ * A window's charts: Top Artists, AI Artists, and (for the scout portal
+ * only) the top songs. The public Charts tab no longer has a song chart.
+ *
+ * For a window before AI_CHART_FROM, `artists` is the single combined chart
+ * that week was decided on and `aiArtists` is empty.
+ */
 export async function leadersBetween(
   since: Date,
-  until?: Date
-): Promise<{ songs: WeeklySong[]; artists: WeeklyArtist[]; since: string }> {
+  until?: Date,
+  opts: { songs?: boolean } = {}
+): Promise<{ songs: WeeklySong[]; artists: WeeklyArtist[]; aiArtists: WeeklyArtist[]; since: string }> {
   const upper = until ? Prisma.sql`AND s."createdAt" < ${until}` : Prisma.empty;
+  const split = splitsAiChart(until);
 
-  const [songRows, artistRows] = await Promise.all([
-    prisma.$queryRaw<
-      {
-        id: string;
-        title: string;
-        artistName: string;
-        artistId: string | null;
-        appleArtistId: string | null;
-        artworkUrl: string | null;
-        aiGenerated: boolean | null;
-        saves: bigint;
-        score: bigint;
-        verdicts: bigint;
-      }[]
-    >(Prisma.sql`
+  type ArtistRow = { artistId: string; name: string; saves: bigint; score: bigint; verdicts: bigint; tracks: bigint };
+  const [songRows, artistRows, aiRows] = await Promise.all([
+    opts.songs
+      ? prisma.$queryRaw<
+          {
+            id: string;
+            title: string;
+            artistName: string;
+            artistId: string | null;
+            appleArtistId: string | null;
+            artworkUrl: string | null;
+            aiGenerated: boolean | null;
+            saves: bigint;
+            score: bigint;
+            verdicts: bigint;
+          }[]
+        >(Prisma.sql`
       SELECT t."id", t."title", t."artistName", t."artistId", t."appleArtistId", t."artworkUrl", t."aiGenerated",
         COUNT(*) FILTER (WHERE s."direction" = 'RIGHT')::bigint AS saves,
         COALESCE(SUM(s."weight") FILTER (WHERE s."direction" = 'RIGHT'), 0)::bigint AS score,
@@ -410,11 +457,24 @@ export async function leadersBetween(
       -- Deeper than the ten shown: the per-artist cap below drops rows, and
       -- the chart still has to come out ten long.
       LIMIT 60
-    `),
-    prisma.$queryRaw<
-      { artistId: string; name: string; saves: bigint; score: bigint; verdicts: bigint; tracks: bigint }[]
-    >(artistTotalsSql({ since, until, limit: 10 })),
+    `)
+      : Promise.resolve([]),
+    prisma.$queryRaw<ArtistRow[]>(
+      artistTotalsSql({ since, until, limit: CHART_SIZE, kind: split ? "regular" : undefined })
+    ),
+    split
+      ? prisma.$queryRaw<ArtistRow[]>(artistTotalsSql({ since, until, limit: CHART_SIZE, kind: "ai" }))
+      : Promise.resolve([] as ArtistRow[]),
   ]);
+
+  const toArtist = (r: ArtistRow): WeeklyArtist => ({
+    artistId: r.artistId,
+    name: r.name,
+    saves: Number(r.saves),
+    score: Number(r.score),
+    verdicts: Number(r.verdicts),
+    tracks: Number(r.tracks),
+  });
 
   return {
     since: since.toISOString(),
@@ -428,14 +488,8 @@ export async function leadersBetween(
       score: Number(r.score),
       verdicts: Number(r.verdicts),
     })),
-    artists: artistRows.map((r) => ({
-      artistId: r.artistId,
-      name: r.name,
-      saves: Number(r.saves),
-      score: Number(r.score),
-      verdicts: Number(r.verdicts),
-      tracks: Number(r.tracks),
-    })),
+    artists: artistRows.map(toArtist),
+    aiArtists: aiRows.map(toArtist),
   };
 }
 

@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { artistTotalsSql } from "./scoutData";
+import { AI_CHART_FROM, artistTotalsSql, splitsAiChart, type ChartKind } from "./scoutData";
 
 /**
  * The weekly chart winner: whoever's music was saved most in a given week.
@@ -46,19 +46,32 @@ export type WeekResult = {
 };
 
 /**
- * Who topped a given week, computed from the swipes in it.
+ * Who topped a given week on one chart, computed from the swipes in it.
  *
  * Submissions only. The seeded catalogue exists to keep the feed full and
  * can't win a prize aimed at the artists who chose to be here.
+ *
+ * From AI_CHART_FROM there are two winners a week, one for Top Artists and
+ * one for AI Artists. Before it there was one chart, and "ai" has no winner.
  */
-export async function winnerForWeek(weekStart: Date): Promise<WeekResult | null> {
+export async function winnerForWeek(weekStart: Date, kind: ChartKind = "regular"): Promise<WeekResult | null> {
   const weekEnd = weekEndOf(weekStart);
+  if (kind === "ai" && !splitsAiChart(weekEnd)) return null;
 
   // The same count as the chart, so the winner is always the artist the
   // chart shows at number one. Best two songs each from BEST_TWO_FROM.
   const rows = await prisma.$queryRaw<
     { artistId: string; name: string; saves: bigint; tracks: bigint }[]
-  >(artistTotalsSql({ since: weekStart, until: weekEnd, limit: 1, needSave: true, order: "winner" }));
+  >(
+    artistTotalsSql({
+      since: weekStart,
+      until: weekEnd,
+      limit: 1,
+      needSave: true,
+      order: "winner",
+      kind: splitsAiChart(weekEnd) ? kind : undefined,
+    })
+  );
 
   const top = rows[0];
   if (!top) return null;
@@ -73,25 +86,27 @@ export async function winnerForWeek(weekStart: Date): Promise<WeekResult | null>
   };
 }
 
+type Recorded = Awaited<ReturnType<typeof prisma.chartWinner.findMany>>[number];
+
+/** One chart's side of a week: who was recorded, or who leads if nobody was. */
+export type WinnerSlot = { recorded: Recorded | null; provisional: WeekResult | null };
+
 /**
  * Every week from the contest start to the last completed one, with whoever
- * has already been recorded as the winner.
+ * has already been recorded on each chart.
  *
  * The current week is deliberately excluded: a winner isn't a winner until
  * the week is over, and locking one in early would reward whoever happened
  * to be ahead on a Tuesday.
+ *
+ * `ai` is null for weeks before AI_CHART_FROM, which had one chart.
  */
 export async function chartWinnerBoard() {
   const recorded = await prisma.chartWinner.findMany({ orderBy: { weekStart: "desc" } });
-  const byWeek = new Map(recorded.map((w) => [w.weekStart.toISOString(), w]));
+  const byWeek = new Map(recorded.map((w) => [`${w.weekStart.toISOString()}|${w.kind}`, w]));
 
   const thisWeek = weekStartOf(new Date());
-  const weeks: {
-    weekStart: string;
-    weekEnd: string;
-    recorded: (typeof recorded)[number] | null;
-    provisional: WeekResult | null;
-  }[] = [];
+  const weeks: { weekStart: string; weekEnd: string; regular: WinnerSlot; ai: WinnerSlot | null }[] = [];
 
   // Walked back a week at a time through weekOf, so each step lands on a
   // real chart week rather than drifting across a clock change.
@@ -102,35 +117,50 @@ export async function chartWinnerBoard() {
   ) {
     if (start.getTime() === thisWeek.getTime()) continue; // still running
     const end = weekEndOf(start);
-
     const key = start.toISOString();
-    const already = byWeek.get(key) ?? null;
+
+    // Only computed for a chart nobody has locked yet, so a recorded winner
+    // can never be silently contradicted by a later recount.
+    const slot = async (kind: ChartKind): Promise<WinnerSlot> => {
+      const already = byWeek.get(`${key}|${kind}`) ?? null;
+      return { recorded: already, provisional: already ? null : await winnerForWeek(start, kind) };
+    };
+
     weeks.push({
       weekStart: key,
       weekEnd: end.toISOString(),
-      recorded: already,
-      // Only computed for weeks nobody has locked in yet, so a recorded
-      // winner can never be silently contradicted by a later recount.
-      provisional: already ? null : await winnerForWeek(start),
+      regular: await slot("regular"),
+      ai: start >= AI_CHART_FROM ? await slot("ai") : null,
     });
   }
 
   return weeks;
 }
 
-/** Writes a week's winner down, so a later recount can't change it. */
+/**
+ * Writes a week's winners down, both charts at once, so a later recount
+ * can't change either. Returns what was recorded, which is nothing if
+ * nobody was saved that week on either chart.
+ */
 export async function lockWeek(weekStart: Date) {
-  const result = await winnerForWeek(weekStart);
-  if (!result) return null;
-
-  return prisma.chartWinner.upsert({
-    where: { weekStart },
-    create: {
-      weekStart,
-      artistId: result.artistId,
-      artistName: result.artistName,
-      saves: result.saves,
-    },
-    update: {},
-  });
+  const kinds: ChartKind[] = weekStart >= AI_CHART_FROM ? ["regular", "ai"] : ["regular"];
+  const out = [];
+  for (const kind of kinds) {
+    const result = await winnerForWeek(weekStart, kind);
+    if (!result) continue;
+    out.push(
+      await prisma.chartWinner.upsert({
+        where: { weekStart_kind: { weekStart, kind } },
+        create: {
+          weekStart,
+          kind,
+          artistId: result.artistId,
+          artistName: result.artistName,
+          saves: result.saves,
+        },
+        update: {},
+      })
+    );
+  }
+  return out;
 }

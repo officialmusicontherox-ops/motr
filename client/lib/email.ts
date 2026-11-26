@@ -270,10 +270,11 @@ function letter(body: string, cta?: { label: string; url: string }) {
  */
 const WEEKLY_PRIZE = `
   <p style="margin:16px 0 0;padding:14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
-    <strong style="color:#dcb55f">New: a weekly winner.</strong>
+    <strong style="color:#dcb55f">Two weekly winners.</strong>
     Every week, the artist whose two best songs get saved the most on MOTR wins a full
     write-up on Music On The Rox: a real piece of editorial on a real site,
-    not a playlist slot. Your own fans swiping is what decides it, so the most
+    not a playlist slot. There is one winner on Top Artists and one on AI Artists,
+    for songs with AI vocals, so neither is ranked against the other. Your own fans swiping is what decides it, so the most
     useful thing you can do is send them over.
   </p>`;
 
@@ -767,7 +768,7 @@ export function whatsNewListenerEmail(params: { appUrl?: string } = {}) {
        ${point(
          3,
          "There's a chart",
-         `Top songs and top artists for the week, Sunday to Saturday, closing Saturday at midnight. Position is earned by one thing: how many people kept the song. Nothing can be bought and nothing is promoted.`
+         `Top Artists and AI Artists for the week, Sunday to Saturday, closing Saturday at midnight. Position is earned by one thing: how many people kept the song. Nothing can be bought and nothing is promoted.`
        )}
        <p style="margin:0;color:#67655f;font-size:14px">A full listen still counts double, so the patient ones carry more weight than the fast ones.</p>`,
       { label: "Open MOTR", url: appUrl }
@@ -832,6 +833,8 @@ export function weeklyRecapEmail(params: {
   name: string;
   week: string;
   position: number | null;
+  /** Which chart the position is on. */
+  chart?: "regular" | "ai";
   saves: number;
   fullListens: number;
   trackTitle: string | null;
@@ -839,6 +842,7 @@ export function weeklyRecapEmail(params: {
   appUrl?: string;
 }) {
   const { name, week, position, saves, fullListens, trackTitle, attachments, appUrl = APP_URL } = params;
+  const chartName = params.chart === "ai" ? "the AI Artists chart" : "the Top Artists chart";
   const kept = `${saves} ${saves === 1 ? "person" : "people"} kept your music`;
   // Say the weighting out loud. Without it an artist with more saves placed
   // below one with fewer reads the chart as broken, and they would be right
@@ -854,7 +858,7 @@ export function weeklyRecapEmail(params: {
       html: shell(
         `#${position} this week`,
         `<p style="margin:0 0 12px">Hi ${leadName(name)},</p>
-         <p style="margin:0 0 18px">You finished <strong style="color:#dcb55f">number ${position}</strong> on the MOTR chart for ${week}${
+         <p style="margin:0 0 18px">You finished <strong style="color:#dcb55f">number ${position}</strong> on ${chartName} for ${week}${
            trackTitle ? `, led by <strong style="color:#fff">${trackTitle}</strong>` : ""
          }. ${kept} this week. ${heardOut}</p>
          <p style="margin:0 0 18px">There's a graphic attached saying so. Put it on your story and send your people over, and next week's position partly depends on who turns up.</p>
@@ -966,24 +970,42 @@ export function artistSharePageEmail(params: {
  * the platform and noise to everyone receiving this.
  */
 export function chartWinnerEmail(params: {
-  artistName: string;
-  writeUpUrl: string;
+  /**
+   * Top Artists first, then AI Artists. One entry for a week with a single
+   * winner (every week before 22 November 2026, or a week where nobody saved
+   * an AI song), two otherwise.
+   */
+  winners: { chart: "regular" | "ai"; artistName: string; writeUpUrl: string }[];
   /** "November 1 - November 7" */
   weekLabel: string;
   unsubscribeUrl: string;
 }) {
-  const { artistName, writeUpUrl, weekLabel, unsubscribeUrl } = params;
+  const { winners, weekLabel, unsubscribeUrl } = params;
+  const chartName = (c: "regular" | "ai") => (c === "ai" ? "AI Artists" : "Top Artists");
+  const one = winners.length === 1;
+
+  const block = (w: (typeof winners)[number]) =>
+    `<div style="margin:0 0 14px;padding:14px;background:#0d0d0c;border:1px solid #262625;border-radius:10px">
+       <p style="margin:0 0 4px;color:#8b8b8b;font-size:12px;font-weight:700;letter-spacing:1px">${chartName(w.chart).toUpperCase()}</p>
+       <p style="margin:0 0 10px"><strong style="color:#fff;font-size:18px">${w.artistName}</strong></p>
+       <a href="${w.writeUpUrl}" style="display:inline-block;background:#dcb55f;color:#09090a;font-weight:700;font-size:14px;text-decoration:none;padding:9px 18px;border-radius:999px">Read the write-up</a>
+     </div>`;
 
   return {
-    subject: `${artistName} won this week on MOTR`,
+    subject: `${winners.map((w) => w.artistName).join(" and ")} won this week on MOTR`,
     html:
       shell(
-        "This week's winner",
+        one ? "This week's winner" : "This week's winners",
         `<p style="margin:0 0 4px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${weekLabel.toUpperCase()}</p>
-         <p style="margin:0 0 16px"><strong style="color:#fff;font-size:18px">${artistName}</strong> finished first on the weekly chart, which means a full write-up on Music On The Rox. It is published now and the link is below.</p>
+         ${
+           one
+             ? `<p style="margin:0 0 16px"><strong style="color:#fff;font-size:18px">${winners[0].artistName}</strong> finished first on ${chartName(winners[0].chart)}, which means a full write-up on Music On The Rox. It is published now and the link is below.</p>`
+             : `<p style="margin:0 0 16px">There are two charts each week: Top Artists, and AI Artists for songs with AI vocals, so neither is ranked against the other. Each winner gets a full write-up on Music On The Rox, and both are published now.</p>
+                ${winners.map(block).join("")}`
+         }
          <p style="margin:0 0 16px">Nobody paid to be there. Every save came from someone who heard thirty seconds with no artist name attached and decided to keep the song, finding out who it was afterwards.</p>
          <p style="margin:0">A new week has already started. Whoever finishes first next gets the same, and the way to move it is to play a track and swipe right.</p>`,
-        { label: "Read the write-up", url: writeUpUrl }
+        one ? { label: "Read the write-up", url: winners[0].writeUpUrl } : undefined
       ) +
       `<p style="max-width:520px;margin:14px auto 0;text-align:center">
          <a href="${APP_URL}" style="color:#dcb55f;font-weight:700;text-decoration:none">app.musicontherox.com</a>
@@ -1013,7 +1035,7 @@ export function whatMotrIsEmail(params: { unsubscribeUrl: string }) {
          <p style="margin:0 0 14px">Every track plays as a <strong style="color:#fff">thirty-second clip with no artist name attached</strong>. You decide on the music, then find out who it was once you have kept it. Swipe right to keep it, left to move on. Nothing in the feed was paid to be there, and there is no way to buy a place in it.</p>
          <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">NEW: CHARTS</p>
          <p style="margin:0 0 14px">There's now a Charts tab showing the tracks listeners backed hardest this week and this month. Every position on it was earned by people keeping the song, which makes it a genuinely different chart from the ones you already see.</p>
-         <p style="margin:0 0 14px">At the end of every week we'll email you the week's Top Artists. If you want your favorite to make the cut, the way to do it is to play their track and swipe right.</p>
+         <p style="margin:0 0 14px">At the end of every week we'll email you the week's Top Artists and AI Artists. If you want your favorite to make the cut, the way to do it is to play their track and swipe right.</p>
          <p style="margin:0 0 6px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">IF YOU MAKE MUSIC</p>
          <p style="margin:0 0 14px">Submitting is free and always will be. Paste a Spotify or Apple Music link and your song goes into the same blind rotation as everyone else's, judged on how it sounds rather than on how many followers you have.</p>
          <p style="margin:0 0 14px">One thing worth knowing either way: a listener who hears the full thirty seconds before deciding counts double. Patience is the most useful thing anyone can bring to it.</p>
@@ -1037,8 +1059,9 @@ export function whatMotrIsEmail(params: { unsubscribeUrl: string }) {
  * wants their favourite higher next week already knows what to do about it.
  */
 export function weeklyChartEmail(params: {
-  songs: { title: string; artistName: string }[];
   artists: { name: string }[];
+  /** The AI Artists chart. Empty for a week before 22 November 2026. */
+  aiArtists: { name: string }[];
   /** "October 18 - October 24", so a forwarded copy still says which week. */
   weekLabel: string;
   unsubscribeUrl: string;
@@ -1049,7 +1072,7 @@ export function weeklyChartEmail(params: {
    */
   variant?: "weekly" | "midweek";
 }) {
-  const { songs, artists, weekLabel, unsubscribeUrl, variant = "weekly" } = params;
+  const { artists, aiArtists, weekLabel, unsubscribeUrl, variant = "weekly" } = params;
   const midweek = variant === "midweek";
 
   const rows = (items: string[]) =>
@@ -1081,8 +1104,8 @@ export function weeklyChartEmail(params: {
              : ""
          }
          ${
-           songs.length > 0
-             ? `<p style="margin:16px 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">TOP SONGS</p>${rows(songs.map((t) => `${t.title} <span style="color:#8b8b8b">${t.artistName}</span>`))}`
+           aiArtists.length > 0
+             ? `<p style="margin:16px 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">AI ARTISTS</p><p style="margin:0 0 8px;color:#8b8b8b;font-size:12px">Songs with AI vocals have a chart of their own, so neither kind is ranked against the other.</p>${rows(aiArtists.map((a) => a.name))}`
              : ""
          }
          <p style="margin:18px 0 0"><strong style="color:#fff">Want your favorite higher before Saturday?</strong> Play their track and swipe right. That is the only thing that moves this list, and a listener who hears the full thirty seconds counts double.</p>`,
@@ -1418,7 +1441,7 @@ export function artistPageIntroEmail(params: { unsubscribeUrl: string }) {
 
       <p style="margin:0 0 8px"><strong style="color:#fff">What is on it</strong></p>
       <ul style="margin:0 0 16px;padding-left:20px">
-        ${li("<strong style=\"color:#fff\">This week</strong>: where you are on Top Artists, which of your songs are counting toward the chart, and your battle with a link to share.")}
+        ${li("<strong style=\"color:#fff\">This week</strong>: where you are on Top Artists or AI Artists, which of your songs are counting toward the charts, and your battle with a link to share.")}
         ${li("<strong style=\"color:#fff\">Every song</strong>: how many listeners saved it, how many heard all 30 seconds, and how many opened your share link.")}
         ${li("<strong style=\"color:#fff\">Battle Wins</strong>: your all-time total.")}
         ${li("<strong style=\"color:#fff\">Spotlight</strong>: a note whenever a listener puts you in the Spotlight.")}
@@ -1583,7 +1606,7 @@ export function spotlightsAndBattlesEmail(params: { unsubscribeUrl: string }) {
 
       ${h("A brand new week")}
 
-      <p style="margin:0 0 14px">The charts reset on Sunday, so everything is wide open again. Keep an eye on your inbox: we will be sending an email with the winner of last week's Top Artist on the chart, along with the article written about them.</p>
+      <p style="margin:0 0 14px">The charts reset on Sunday, so everything is wide open again. Keep an eye on your inbox: we will be sending an email with last week's winners on Top Artists and AI Artists, along with the article written about each.</p>
 
       <p style="margin:0">Thanks for being part of this. See you on the app.</p>
   `;

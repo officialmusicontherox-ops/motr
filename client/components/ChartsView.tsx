@@ -1,25 +1,18 @@
 "use client";
 
-import Image from "next/image";
-import AiBadge from "./AiBadge";
 import { useCallback, useEffect, useState } from "react";
 import MotrShell from "./MotrShell";
 import { useRefreshOnReturn } from "@/lib/useRefreshOnReturn";
 
-type ChartSong = {
-  rank: number;
-  id: string;
-  title: string;
-  artistName: string;
-  artworkUrl: string | null;
-  ai?: boolean;
-};
-
 type ChartArtist = { rank: number; id: string; name: string };
 
 type Charts = {
-  songs: ChartSong[];
+  /** Top Artists: every song not marked as AI vocals. */
   artists: ChartArtist[];
+  /** AI Artists: songs with AI vocals. Optional so an older payload still renders. */
+  aiArtists?: ChartArtist[];
+  /** False for a week before 22 November 2026, which had one chart. */
+  aiChart?: boolean;
   /** Battle Wins, by artist. Optional so an older cached payload still renders. */
   battles?: ChartArtist[];
   since: string;
@@ -34,7 +27,7 @@ type Charts = {
 };
 
 type Range = "week" | "month";
-type Board = "songs" | "artists" | "battles";
+type Board = "artists" | "ai" | "battles";
 
 /** Often enough to feel live, and only while someone is watching. */
 const POLL_MS = 60_000;
@@ -55,7 +48,7 @@ export default function ChartsView() {
   const [range, setRange] = useState<Range>("week");
   /** Which week is being looked at. Empty means the one in progress. */
   const [week, setWeek] = useState<string>("");
-  const [board, setBoard] = useState<Board>("songs");
+  const [board, setBoard] = useState<Board>("artists");
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(async () => {
@@ -121,7 +114,7 @@ export default function ChartsView() {
         <header className="mb-4 text-center">
           <h1 className="font-display text-2xl uppercase tracking-wide">Charts</h1>
           <p className="text-muted mt-1.5 text-sm leading-relaxed">
-            The tracks listeners backed hardest, heard with no artist name attached.
+            The artists listeners backed hardest, heard with no artist name attached.
           </p>
         </header>
 
@@ -175,13 +168,13 @@ export default function ChartsView() {
           ))}
         </div>
 
-        {/* One board at a time. Ten songs and ten artists stacked is a scroll,
-            and this page is screenshotted every week. */}
+        {/* One board at a time. Two top tens stacked is a scroll, and this
+            page is screenshotted every week. */}
         <div className="mb-3 flex justify-center gap-2">
           {(
             [
-              ["songs", "Songs"],
               ["artists", "Artists"],
+              ["ai", "AI Artists"],
               ["battles", "Battle Wins"],
             ] as const
           ).map(([key, label]) => (
@@ -218,59 +211,16 @@ export default function ChartsView() {
 
         {data && (
           <div className="space-y-6">
-            <section hidden={board !== "songs"}>
-              <h2 className="motr-label text-gold mb-3">Top songs</h2>
-              {/* Said out loud, because an artist who has three songs doing
-                  well and sees two will otherwise assume the chart is wrong. */}
-              <p className="text-muted mb-3 text-xs leading-relaxed">
-                Two songs per artist, so one catalogue cannot fill the list.
-              </p>
-              {data.songs.length === 0 ? (
-                <Empty />
-              ) : (
-                <ol className="space-y-1.5">
-                  {data.songs.map((song) => (
-                    <li
-                      key={song.id}
-                      className="border-edge bg-surface flex items-center gap-3 rounded-xl border px-3 py-2"
-                    >
-                      <Rank n={song.rank} />
-                      <span className="relative h-9 w-9 shrink-0">
-                        {song.artworkUrl ? (
-                          <Image
-                            src={song.artworkUrl}
-                            alt=""
-                            width={44}
-                            height={44}
-                            unoptimized
-                            className="h-9 w-9 rounded-lg object-cover"
-                          />
-                        ) : (
-                          <span className="bg-surface-2 block h-9 w-9 rounded-lg" />
-                        )}
-                        <AiBadge on={song.ai} size="sm" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-medium">{song.title}</span>
-                        <span className="text-muted block truncate text-sm">
-                          {song.artistName}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
-
             <section hidden={board !== "artists"}>
               <h2 className="motr-label text-gold mb-3">Top artists</h2>
               <p className="text-muted mb-3 text-xs leading-relaxed">
-                {/* The weeks before 15 November were counted on every song,
-                    and keep that count, so the line says which rule a week
-                    was decided under. */}
+                {/* Each older rule is said out loud for the weeks it decided,
+                    so a look-back explains itself. */}
                 {range === "week" && (data.week ?? "") < "2026-11-15"
                   ? "Every song an artist had, added together. That was the rule for weeks before November 15."
-                  : "Each artist's two best songs, added together."}
+                  : range === "week" && data.aiChart === false
+                    ? "Each artist's two best songs, added together. Songs with AI vocals got a chart of their own from November 22."
+                    : "Each artist's two best songs, added together. Songs with AI vocals are on the AI Artists chart instead."}
               </p>
               {data.artists.length === 0 ? (
                 <Empty />
@@ -289,12 +239,41 @@ export default function ChartsView() {
               )}
             </section>
 
+            <section hidden={board !== "ai"}>
+              <h2 className="motr-label text-gold mb-3">AI artists</h2>
+              <p className="text-muted mb-3 text-xs leading-relaxed">
+                Songs with AI vocals, on a chart of their own so neither kind of artist is ranked
+                against the other. Each artist&apos;s two best, added together, with its own weekly
+                winner and write-up.
+              </p>
+              {data.aiChart === false ? (
+                <p className="border-edge bg-surface text-muted rounded-xl border p-4 text-sm leading-relaxed">
+                  The AI Artists chart starts with the week of November 22. Before that, every song
+                  was on one chart.
+                </p>
+              ) : (data.aiArtists ?? []).length === 0 ? (
+                <Empty />
+              ) : (
+                <ol className="space-y-1.5">
+                  {(data.aiArtists ?? []).map((artist) => (
+                    <li
+                      key={artist.id}
+                      className="border-edge bg-surface flex items-center gap-3 rounded-xl border px-3 py-2"
+                    >
+                      <Rank n={artist.rank} />
+                      <span className="min-w-0 flex-1 truncate font-medium">{artist.name}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+
             <section hidden={board !== "battles"}>
               <h2 className="motr-label text-gold mb-3">Battle wins</h2>
               <p className="text-muted mb-3 text-xs leading-relaxed">
                 Two songs from one genre, no names, and listeners pick one. Whoever has the
                 bigger share when the week closes takes the win. This board stands alone: it has
-                no effect on the song or artist charts or on the weekly winner.
+                no effect on either artist chart or on the weekly winners.
               </p>
               {(data.battles ?? []).length === 0 ? (
                 <Empty />

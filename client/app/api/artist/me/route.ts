@@ -11,8 +11,9 @@ import { battleWeek } from "@/lib/battles";
  * The artist id comes from the signed cookie, never from the request, so
  * there is no parameter anyone could change to read somebody else's numbers.
  *
- * Their songs and which of them count toward this week's chart; their place
- * on Top Artists if they have one; this week's battle and their Battle Wins.
+ * Their songs and which of them count toward this week's charts; their place
+ * on Top Artists and on AI Artists if they have one; this week's battle and
+ * their Battle Wins.
  *
  * No save, listen or link-open counts. Not shown on the page, and not sent
  * at all, so they cannot be read from the browser either. Nobody else's
@@ -82,23 +83,32 @@ export async function GET() {
 
   const weekScore = new Map(thisWeek.map((r) => [r.trackId, r._sum.weight ?? 0]));
 
-  // Their best two this week, by the same weighted count the chart uses.
-  const counting = new Set(
+  // Their best two this week on each chart, by the same weighted count the
+  // chart uses. A song with AI vocals counts toward AI Artists and every
+  // other song toward Top Artists, so an artist with both has two of each.
+  const isAi = new Map(tracks.map((t) => [t.id, t.aiGenerated === true]));
+  const bestTwo = (ai: boolean) =>
     [...weekScore.entries()]
-      .filter(([, s]) => s > 0)
+      .filter(([id, s]) => s > 0 && isAi.get(id) === ai)
       .sort((a, b) => b[1] - a[1])
       .slice(0, SONGS_PER_ARTIST)
-      .map(([id]) => id)
-  );
+      .map(([id]) => id);
+  const counting = new Set([...bestTwo(false), ...bestTwo(true)]);
 
-  const place = leaders.artists.findIndex((a) => a.artistId === session.artistId);
+  const placeOn = (list: { artistId: string }[]) => {
+    const i = list.findIndex((a) => a.artistId === session.artistId);
+    return i >= 0 ? i + 1 : null;
+  };
   const titleOf = new Map(tracks.map((t) => [t.id, t.title]));
 
   return NextResponse.json({
     name: session.name,
     email: session.email,
     week: week.label,
-    chartPlace: place >= 0 ? place + 1 : null,
+    // Their place on each chart this week, or null where they are not in
+    // its top ten.
+    chartPlace: placeOn(leaders.artists),
+    aiChartPlace: placeOn(leaders.aiArtists),
     battleWins: tracks.reduce((n, t) => n + t.battleWins, 0),
     spotlight: { live: spotlightLive > 0, queued: spotlightQueued > 0, total: spotlightTotal },
     battles: battles.map((b) => {

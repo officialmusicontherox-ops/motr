@@ -13,7 +13,7 @@ export async function GET() {
   return NextResponse.json({ weeks: await chartWinnerBoard() });
 }
 
-/** Locks in a week's winner, or records the write-up once it's published. */
+/** Locks in a week's winners (both charts), or records a write-up once it's published. */
 export async function POST(req: NextRequest) {
   if (!(await getAdminSession())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -31,14 +31,14 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const winner = await lockWeek(new Date(weekStart));
-    if (!winner) {
+    const winners = await lockWeek(new Date(weekStart));
+    if (winners.length === 0) {
       return NextResponse.json(
         { error: "Nothing was saved that week, so there's no winner to lock in." },
         { status: 400 }
       );
     }
-    return NextResponse.json({ winner });
+    return NextResponse.json({ winners });
   }
 
   if (action === "SET_WRITEUP") {
