@@ -1502,6 +1502,69 @@ export function thanksgivingSaleEmail(params: { listener: boolean; unsubscribeUr
   };
 }
 
+/**
+ * Thanksgiving 2026: the two artist charts, the Spotlight sale, and for
+ * artists their song details and share cards. One template, two versions.
+ */
+export function thanksgivingChangesEmail(params: { listener: boolean; unsubscribeUrl: string }) {
+  const L = params.listener;
+  const h = (t: string) =>
+    `<p style="margin:22px 0 8px;color:#dcb55f;font-size:13px;font-weight:700;letter-spacing:1px">${t}</p>`;
+  const body = `
+      <p style="margin:0 0 14px">${L ? "Hey," : "Hi,"}</p>
+
+      <p style="margin:0 0 14px">Happy Thanksgiving from all of us at MOTR. ${
+        L
+          ? "Thank you for listening, swiping and backing the music you love. You're the reason any of this works."
+          : "Thank you for trusting us with your music this year. Every song you've sent in has been heard by someone who didn't know who made it, and that's exactly how it should be."
+      }</p>
+
+      ${h("TWO CHARTS, BOTH WITH A WINNER")}
+      <p style="margin:0 0 14px">Starting this week, the Charts tab has two artist charts: <strong style="color:#fff">Top Artists</strong>, and <strong style="color:#fff">AI Artists</strong> for songs with AI vocals. Each one is its own top ten.</p>
+      <p style="margin:0 0 14px">We've always been upfront about what ${L ? "you're" : "listeners are"} hearing, and Battles already work this way: AI songs face AI songs, and everyone else faces each other. Now the charts match. Every artist is measured against artists making music the same way, which keeps it fair for everyone.</p>
+      <p style="margin:0 0 14px">Both charts crown a winner every week, and both winners get a full write-up on Music On The Rox, just like always.${
+        L ? "" : " Songs you've marked as AI vocals count toward AI Artists, and every other song counts toward Top Artists."
+      }</p>
+      ${
+        L
+          ? ""
+          : `${h("CHECK YOUR SONG DETAILS")}
+      <p style="margin:0 0 14px">You can now change the details of your songs yourself, including the genre and whether a song has AI vocals. Sign in to your artist page in the app, tap <strong style="color:#fff">Edit details</strong> on any song, and we'll review the change.</p>
+      <p style="margin:0 0 14px">If any of your songs include AI vocals, please sign in to your artist page and mark them now. That's what puts each song on the right chart and in the right battles. Songs found to have unmarked AI vocals may be removed from MOTR, to keep things transparent and fair for every artist and listener.</p>`
+      }
+
+      ${h("SPOTLIGHT SALE, THROUGH MONDAY")}
+      <p style="margin:0 0 10px">Through <strong style="color:#fff">Monday, November 30</strong>, every Spotlight bundle comes with free ones:</p>
+      <p style="margin:0 0 6px"><strong style="color:#fff">10 Spotlights for $18, plus 3 free</strong></p>
+      <p style="margin:0 0 14px"><strong style="color:#fff">3 Spotlights for $7, plus 1 free</strong></p>
+      <p style="margin:0 0 14px">A Spotlight puts an artist on the Spotlight tab for three days, named, with their photo and links to their music. ${
+        L
+          ? "Swipe up on a song you love and that artist goes in the Spotlight."
+          : "You can Spotlight yourself or any artist you want listeners to find."
+      }</p>
+      ${
+        L
+          ? ""
+          : `${h("YOUR SHARE CARDS")}
+      <p style="margin:0 0 14px">Every song you have on MOTR has a share card on your artist page, ready to post. Put it on your posts and stories so your fans can find you and start swiping. Every save counts toward your chart, and a fan who hears the full thirty seconds counts double.</p>`
+      }
+
+      <p style="margin:18px 0 0">Happy Thanksgiving, and thank you for being part of MOTR.</p>
+  `;
+  return {
+    subject: "Thanksgiving Changes on MOTR",
+    html:
+      shell(
+        "Happy Thanksgiving from MOTR",
+        body,
+        L
+          ? { label: "See the Charts", url: "https://app.musicontherox.com/charts" }
+          : { label: "Open your artist page", url: "https://app.musicontherox.com/artist" }
+      ) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${params.unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 /** Sent when a battle closes level, to both artists. */
 export function battleTieEmail(params: { title: string; unsubscribeUrl: string }) {
   const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
