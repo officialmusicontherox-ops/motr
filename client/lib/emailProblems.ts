@@ -15,6 +15,14 @@ export async function recordEmailProblem(params: {
 }) {
   const email = params.email.trim().toLowerCase();
   if (!email) return;
+  // An address on the opt-out list is one we have retired on purpose, such
+  // as an artist's old address after they gave us a new one. Nothing is
+  // sent there any more, so a late bounce for mail sent before the change
+  // is not a problem to show or alert on.
+  const retired = await prisma.suppressedEmail
+    .findFirst({ where: { email: { equals: email, mode: "insensitive" } }, select: { id: true } })
+    .catch(() => null);
+  if (retired) return;
   await prisma.emailProblem
     .create({
       data: {
