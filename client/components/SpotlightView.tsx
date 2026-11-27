@@ -88,7 +88,7 @@ export default function SpotlightView() {
               onClick={() => setOffer(true)}
               className="text-gold text-[0.7rem] font-semibold"
             >
-              {SALE.name}: bonus Spotlights through {SALE.endsLabel}
+              {SALE.name}: 50% off bundles through {SALE.endsLabel}
             </button>
           )}
         </div>

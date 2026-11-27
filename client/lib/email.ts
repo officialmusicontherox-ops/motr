@@ -1579,6 +1579,38 @@ export function thanksgivingChangesEmail(params: { listener: boolean; unsubscrib
   };
 }
 
+/** Black Friday weekend 2026: half price on Spotlight bundles. One template, two versions. */
+export function blackFridaySaleEmail(params: { listener: boolean; unsubscribeUrl: string }) {
+  const L = params.listener;
+  const body = `
+      <p style="margin:0 0 14px">${L ? "Hey," : "Hi,"}</p>
+
+      <p style="margin:0 0 14px">Our Black Friday sale on Spotlights starts now. Through <strong style="color:#fff">Sunday, November 29</strong>, every Spotlight bundle is half price:</p>
+
+      <p style="margin:0 0 6px"><strong style="color:#fff">10 Spotlights for $9</strong> <span style="color:#8b8b8b;text-decoration:line-through">$18</span></p>
+      <p style="margin:0 0 14px"><strong style="color:#fff">3 Spotlights for $3.50</strong> <span style="color:#8b8b8b;text-decoration:line-through">$7</span></p>
+
+      <p style="margin:0 0 14px">A Spotlight puts an artist on the Spotlight tab for three days, named, with their photo and links to their music. ${
+        L
+          ? "Swipe up on a song you love and that artist goes in the Spotlight."
+          : "You can Spotlight yourself or any artist you want listeners to find."
+      } Spotlights you buy keep until you use them.</p>
+
+      <p style="margin:0 0 14px">You can also support any artist you've saved: open <strong style="color:#fff">Saved</strong>, tap the artist's name, and put them in the Spotlight.</p>
+
+      <p style="margin:0">Tap <strong style="color:#fff">Get Spotlights</strong> on the Spotlight tab, or the banner at the top of the app.</p>
+  `;
+  return {
+    subject: "Black Friday Sale on Spotlights Start Now",
+    html:
+      shell("Black Friday: half price Spotlights", body, {
+        label: "Get Spotlights",
+        url: "https://app.musicontherox.com/spotlight",
+      }) +
+      `<p style="max-width:520px;margin:10px auto 0;color:#6b6b6b;font-size:12px;text-align:center"><a href="${params.unsubscribeUrl}" style="color:#6b6b6b">Unsubscribe</a></p>`,
+  };
+}
+
 /** Sent when a battle closes level, to both artists. */
 export function battleTieEmail(params: { title: string; unsubscribeUrl: string }) {
   const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

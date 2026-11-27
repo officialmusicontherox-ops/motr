@@ -5,7 +5,7 @@ import SpotlightOffer from "./SpotlightOffer";
 import { SALE, saleOn } from "@/lib/spotlightBundles";
 import { safeLocal } from "@/lib/storage";
 
-const KEY = "motr_sale_dismissed_thanksgiving2026";
+const KEY = "motr_sale_dismissed_blackfriday2026";
 
 function subscribe(cb: () => void) {
   window.addEventListener("storage", cb);
@@ -39,7 +39,7 @@ export default function SaleBanner() {
             onClick={() => setOffer(true)}
             className="text-gold min-w-0 flex-1 text-center text-[0.72rem] font-semibold leading-snug"
           >
-            {SALE.name}: free bonus Spotlights on bundles through {SALE.endsLabel}.{" "}
+            Black Friday: 50% off Spotlight bundles through {SALE.endsLabel}.{" "}
             <span className="underline underline-offset-2">Get them</span>
           </button>
           <button

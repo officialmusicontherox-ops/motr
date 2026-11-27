@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFanSession } from "@/lib/fanAuth";
 import { stripe } from "@/lib/stripe";
-import { SPOTLIGHT_SPAN, bonusFor, bundle } from "@/lib/spotlightBundles";
+import { SPOTLIGHT_SPAN, bundle, centsNow, percentOffFor } from "@/lib/spotlightBundles";
 
 /**
  * Start a purchase.
@@ -27,11 +27,11 @@ export async function POST(req: NextRequest) {
   const b = bundle(body?.bundle);
   if (!b) return NextResponse.json({ error: "Unknown bundle" }, { status: 400 });
 
-  // Any sale bonus is decided here, on the server, and travels in the
-  // metadata the webhook credits from, so the buyer gets exactly what the
-  // checkout page showed them.
-  const bonus = bonusFor(b.id);
-  const credits = b.credits + bonus;
+  // Any sale price is decided here, on the server, so the charge is exactly
+  // what the offer showed and nobody can name their own price.
+  const off = percentOffFor(b.id);
+  const cents = centsNow(b.id);
+  const credits = b.credits;
 
   const base = process.env.APP_URL ?? "https://app.musicontherox.com";
   // Only a path from our own app, never whatever the body says. An absolute
@@ -48,13 +48,13 @@ export async function POST(req: NextRequest) {
         quantity: 1,
         price_data: {
           currency: "usd",
-          unit_amount: b.cents,
+          unit_amount: cents,
           product_data: {
-            name: bonus ? `${b.label} + ${bonus} free` : b.label,
+            name: off ? `${b.label}, ${off}% off for Black Friday` : b.label,
             description:
               credits === 1
                 ? `One Spotlight on MOTR. ${SPOTLIGHT_SPAN} on the Spotlight tab. Non-refundable.`
-                : `${credits} Spotlights on MOTR${bonus ? `, including ${bonus} free for Thanksgiving week` : ""}. Each one is ${SPOTLIGHT_SPAN} on the Spotlight tab. Non-refundable.`,
+                : `${credits} Spotlights on MOTR. Each one is ${SPOTLIGHT_SPAN} on the Spotlight tab. Non-refundable.`,
           },
         },
       },
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     // Both are read back in the webhook. client_reference_id is the one
     // Stripe shows in the dashboard, so a refund can be traced to a listener.
     client_reference_id: fanId,
-    metadata: { fanId, bundle: b.id, credits: String(credits), bonus: String(bonus) },
+    metadata: { fanId, bundle: b.id, credits: String(credits), bonus: "0", percentOff: String(off) },
     // Stripe collects an email for the receipt either way. Saying what it
     // is for turns a required field into the thing that makes a purchase
     // recoverable, which matters most for the listeners who buy without an

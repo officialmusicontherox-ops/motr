@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BUNDLES, CAP_PLACES, SALE, SPOTLIGHT_SPAN, bonusFor, price, saleOn } from "@/lib/spotlightBundles";
+import { BUNDLES, CAP_PLACES, SALE, SPOTLIGHT_SPAN, centsNow, percentOffFor, price, saleOn } from "@/lib/spotlightBundles";
 import { Cross } from "./icons";
 
 /**
@@ -83,7 +83,7 @@ export default function SpotlightOffer({
           <div className="mt-5 space-y-2">
             {saleOn() && (
               <p className="border-gold/40 bg-gold/10 text-gold rounded-xl border px-3 py-2 text-xs font-semibold">
-                {SALE.name}: free bonus Spotlights on bundles through {SALE.endsLabel}.
+                {SALE.name}: 50% off Spotlight bundles through {SALE.endsLabel}.
               </p>
             )}
             {BUNDLES.map((b) => (
@@ -95,19 +95,30 @@ export default function SpotlightOffer({
               >
                 <span>
                   <span className="font-semibold">{b.label}</span>
-                  {bonusFor(b.id) > 0 && (
+                  {percentOffFor(b.id) > 0 && (
                     <span className="bg-gold text-bg ml-2 rounded-full px-2 py-px text-[0.65rem] font-bold">
-                      +{bonusFor(b.id)} free
+                      {percentOffFor(b.id)}% off
                     </span>
                   )}
-                  {bonusFor(b.id) === 0 && "note" in b && b.note && (
+                  {percentOffFor(b.id) === 0 && "note" in b && b.note && (
                     <span className="text-gold ml-2 text-[0.65rem] font-bold uppercase tracking-widest">
                       {b.note}
                     </span>
                   )}
                 </span>
                 <span className="text-gold font-bold tabular-nums">
-                  {busy === b.id ? "..." : price(b.cents)}
+                  {busy === b.id ? (
+                    "..."
+                  ) : percentOffFor(b.id) > 0 ? (
+                    <>
+                      <span className="text-muted mr-1.5 text-xs font-normal line-through">
+                        {price(b.cents)}
+                      </span>
+                      {price(centsNow(b.id))}
+                    </>
+                  ) : (
+                    price(b.cents)
+                  )}
                 </span>
               </button>
             ))}

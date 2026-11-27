@@ -52,26 +52,35 @@ export function price(cents: number) {
 }
 
 /**
- * Thanksgiving week, Monday 23 November to the end of Cyber Monday,
- * 30 November 2026, midnight Central. Bonus Spotlights on the bundles, not a
- * lower price: prices were only just set, and bonus credits get banked and
- * spent over the following weeks instead of all queuing for the ten places
- * at once. The single stays at full price.
+ * Black Friday weekend: half price on the bundles, from Thursday 26
+ * November to the end of Sunday 29 November 2026, midnight Central. The
+ * single stays at full price.
+ *
+ * It replaced the Thanksgiving bonus Spotlights (an extra 1 or 3 free),
+ * which were not moving bundles. A lower price is the simpler offer.
  *
  * Ends by itself at that moment; nothing needs switching off.
  */
 export const SALE = {
-  name: "Thanksgiving week",
-  ends: new Date("2026-12-01T06:00:00Z"),
-  endsLabel: "Monday, November 30",
-  bonus: { three: 1, ten: 3 } as Record<string, number>,
+  name: "Black Friday weekend",
+  ends: new Date("2026-11-30T06:00:00Z"),
+  endsLabel: "Sunday, November 29",
+  /** Percent off, by bundle. Anything not listed is full price. */
+  percentOff: { three: 50, ten: 50 } as Record<string, number>,
 };
 
 export function saleOn(at: Date = new Date()): boolean {
   return at.getTime() < SALE.ends.getTime();
 }
 
-/** Free Spotlights added to a bundle right now. */
-export function bonusFor(id: string, at: Date = new Date()): number {
-  return saleOn(at) ? (SALE.bonus[id] ?? 0) : 0;
+/** Percent off a bundle right now, or 0. */
+export function percentOffFor(id: string, at: Date = new Date()): number {
+  return saleOn(at) ? (SALE.percentOff[id] ?? 0) : 0;
+}
+
+/** What a bundle costs right now, in cents. The checkout charges exactly this. */
+export function centsNow(id: string, at: Date = new Date()): number {
+  const b = BUNDLES.find((x) => x.id === id);
+  if (!b) return 0;
+  return Math.round((b.cents * (100 - percentOffFor(id, at))) / 100);
 }
